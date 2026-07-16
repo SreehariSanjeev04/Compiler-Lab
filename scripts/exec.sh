@@ -12,6 +12,7 @@ echo "Compiling..."
 gcc -w -g \
     -Isrc/syntaxtree \
     -Isrc/codegen \
+    -Isrc/constants \
     parser.tab.c \
     lex.yy.c \
     src/syntaxtree/exprtree.c \
@@ -22,7 +23,7 @@ echo "========================================"
 echo "Build successful!"
 echo "========================================"
 
-./stage1 output.xsm
+./stage1 input.xsm output.xsm
 
 
 echo "========================================"
