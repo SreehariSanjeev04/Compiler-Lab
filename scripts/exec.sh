@@ -11,15 +11,20 @@ flex -o lex.yy.c src/lexer/lex.l
 echo "Compiling..."
 gcc -w -g \
     -Isrc/syntaxtree \
-    -Itest_progs/stage1 \
+    -Isrc/codegen \
     parser.tab.c \
     lex.yy.c \
     src/syntaxtree/exprtree.c \
-    test_progs/stage1/stage1_ex1.c \
+    src/codegen/codegen.c \
     -o stage1
 
 echo "========================================"
 echo "Build successful!"
 echo "========================================"
 
-./stage1
+./stage1 output.xsm
+
+
+echo "========================================"
+echo "Completed!"
+echo "========================================"
