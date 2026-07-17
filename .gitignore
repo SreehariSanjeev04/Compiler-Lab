@@ -3,3 +3,5 @@ lex.yy.c
 *.tab.c
 *.tab.h
 *.xsm
+stage*
+xfs-interface/disk.xfs
