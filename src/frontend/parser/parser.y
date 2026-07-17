@@ -3,6 +3,7 @@
 	#include <stdio.h>
 	#include "exprtree.h"
 	#include "codegen.h"
+	#include "eval.h"
 
 	int yylex(void);
 	void yyerror(char const *s);
@@ -97,6 +98,7 @@ int main(int argc, char* argv[]) {
 	yyin = inputFile;
     yyparse();
 	generateCode(root, targetFile);
+	evaluate(root);
 	fclose(inputFile);
     fclose(targetFile);
     return 0;
