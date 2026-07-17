@@ -3,20 +3,20 @@
 set -e
 
 echo "Generating parser..."
-bison -d -o parser.tab.c src/parser/parser.y
+bison -d -o parser.tab.c src/frontend/parser/parser.y
 
 echo "Generating lexer..."
-flex -o lex.yy.c src/lexer/lex.l
+flex -o lex.yy.c src/frontend/lexer/lex.l
 
 echo "Compiling..."
 gcc -w -g \
-    -Isrc/syntaxtree \
-    -Isrc/codegen \
-    -Isrc/constants \
+    -Isrc/frontend/syntaxtree \
+    -Isrc/backend/codegen \
+    -Isrc/commons \
     parser.tab.c \
     lex.yy.c \
-    src/syntaxtree/exprtree.c \
-    src/codegen/codegen.c \
+    src/frontend/syntaxtree/exprtree.c \
+    src/backend/codegen/codegen.c \
     -o stage2
 
 if [ $? -ne 0 ]; then
