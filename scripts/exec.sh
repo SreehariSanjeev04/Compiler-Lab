@@ -13,12 +13,10 @@ gcc -w -g \
     -Isrc/frontend/syntaxtree \
     -Isrc/backend/codegen \
     -Isrc/commons \
-    -Itest_progs/stage2 \
     parser.tab.c \
     lex.yy.c \
     src/frontend/syntaxtree/exprtree.c \
     src/backend/codegen/codegen.c \
-    test_progs/stage2/eval.c \
     -o stage2
 
 if [ $? -ne 0 ]; then
