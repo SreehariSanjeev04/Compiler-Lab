@@ -16,6 +16,12 @@ identifier  [a-z]
 "end"	{return END;}
 "read"	{return READ;}
 "write"	{return WRITE;}
+"if"	{return IF;}
+"while"	{return WHILE;}
+"then"	{return THEN;}
+"else"	{return ELSE;}
+"do"	{return DO;}
+"endwhile"	{return ENDWHILE;}
 
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}
@@ -23,6 +29,12 @@ yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}
 {identifier} {
 yylval.node = makeLeafNodeId(yytext); return ID;}
 
+"==" {return EQ;}
+"!=" {return NE;}
+"<" {return LT;}
+">" {return GT;}
+"<=" {return LE;}
+">=" {return GE;}
 "+"	{return PLUS;}
 "-"	{return MINUS;}
 "*"	{return MUL;}

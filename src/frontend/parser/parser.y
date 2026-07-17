@@ -22,7 +22,7 @@
 }
 
 %token <node> NUM ID
-%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE 
+%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE ENDWHILE THEN
 
 %type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt
 
@@ -48,8 +48,18 @@ Stmt
 	: InputStmt {$$ = $1;}
 	| OutputStmt {$$ = $1;}
 	| AssgStmt {$$ = $1;}
+	| Ifstmt {$$ = $1;}
+	| Whilestmt {$$ = $1;}
 	;
 
+Ifstmt
+	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF {}
+	| IF '(' expr ')' THEN Slist ENDIF {}
+	;
+
+Whilestmt
+	: WHILE '(' expr ')' DO Slist ENDWHILE {}
+	;
 InputStmt
 	: READ '(' ID ')' ';' {$$ = makeReadNode($3);}
 	;
