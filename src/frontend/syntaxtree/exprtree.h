@@ -12,6 +12,7 @@ typedef struct tnode {
     char* varname;
     int nodetype; 
     struct tnode* left;
+    struct tnode* middle;
     struct tnode* right;
 }tnode;
 
@@ -21,5 +22,8 @@ tnode* makeOperatorNode(char op, tnode *l, tnode *r);
 tnode* makeConnectorNode(tnode* l, tnode *r);
 tnode* makeReadNode(tnode* l);
 tnode* makeWriteNode(tnode* l);
+tnode* makeIfElseNode(tnode* l, tnode* m, tnode* r);
+tnode* makeIfNode(tnode* l, tnode* r);
+tnode* makeWhileNode(tnode* l, tnode* r);
 
 #endif // SYNTAXTREE_H

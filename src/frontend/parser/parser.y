@@ -24,7 +24,7 @@
 %token <node> NUM ID
 %token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE ENDWHILE THEN
 
-%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt
+%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt
 
 %left PLUS MINUS
 %left MUL DIV
@@ -53,12 +53,12 @@ Stmt
 	;
 
 Ifstmt
-	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF {}
-	| IF '(' expr ')' THEN Slist ENDIF {}
+	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF {$$ = makeIfElseNode($3, $6, $8);}
+	| IF '(' expr ')' THEN Slist ENDIF {$$ = makeIfNode($3, $6);}
 	;
 
 Whilestmt
-	: WHILE '(' expr ')' DO Slist ENDWHILE {}
+	: WHILE '(' expr ')' DO Slist ENDWHILE {$$ = makeWhileNode($3, $6);}
 	;
 InputStmt
 	: READ '(' ID ')' ';' {$$ = makeReadNode($3);}
@@ -77,6 +77,12 @@ expr
 	| expr MINUS expr {$$ = makeOperatorNode('-',$1,$3);}
 	| expr MUL expr {$$ = makeOperatorNode('*',$1,$3);}
 	| expr DIV expr {$$ = makeOperatorNode('/',$1,$3);}
+	| expr LT expr {$$ = makeOperatorNode('<',$1,$3);}
+	| expr GT expr {$$ = makeOperatorNode('>',$1,$3);}
+	| expr LE expr {$$ = makeOperatorNode('<=',$1,$3);}
+	| expr GE expr {$$ = makeOperatorNode('>=',$1,$3);}
+	| expr EQ expr {$$ = makeOperatorNode('==',$1,$3);}
+	| expr NE expr {$$ = makeOperatorNode('!=',$1,$3);}
 	| '(' expr ')' {$$ = $2;}
 	| NUM {$$ = $1;}
 	| ID {$$ = $1;}

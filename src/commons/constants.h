@@ -17,6 +17,15 @@
 #define NODE_TYPE_ASSIGN 7
 #define NODE_TYPE_NUM 8
 #define NODE_TYPE_ID 9
+#define NODE_TYPE_IF 10
+#define NODE_TYPE_IF_ELSE 11
+#define NODE_TYPE_WHILE 12
+#define NODE_TYPE_GT 13
+#define NODE_TYPE_LT 14
+#define NODE_TYPE_GE 15
+#define NODE_TYPE_LE 16
+#define NODE_TYPE_EQ 17
+#define NODE_TYPE_NE 18
 
 // Type values
 #define TYPE_INT 0

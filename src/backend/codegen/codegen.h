@@ -17,6 +17,6 @@ void restoreRegisters(FILE* targetFile);
 void exitProgram(FILE* targetFile);
 int returnStaticBindAddress(char* varname);
 void generateCode(tnode* root, FILE* targetFile);
-
+int generateLabel();
 
 #endif // CODEGEN_H
