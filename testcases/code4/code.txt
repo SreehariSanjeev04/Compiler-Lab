@@ -1,4 +1,3 @@
-
 begin
     read(a);
     read(b);

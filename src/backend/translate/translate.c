@@ -1,28 +1,32 @@
 #include "translate.h"
+extern FILE* outputFile;
 
-int translate(char* sourceFile, char* targetFile) {
+void translate(char* sourceFile, char* targetFile) {
     if(sourceFile == NULL || targetFile == NULL) {
         fprintf(stderr, "Error: Source or target file is NULL\n");
-        return 1;
+        return;
     }
     printf("Translating labels.\n");
     FILE* _sourceFile = fopen(sourceFile, "r");
     detectin = _sourceFile;
     if (detectin == NULL) {
         fprintf(stderr, "Error: Could not open output_temp.xsm for reading\n");
-        return 1;
+        return;
     }
     detectlex();
     fclose(detectin);
     translatein = fopen(sourceFile, "r");
     if (translatein == NULL) {
         fprintf(stderr, "Error: Could not open output_temp.xsm for reading\n");
-        return 1;
+        return;
     }
-    FILE* _targetFile = fopen(targetFile, "w");
-    targetFile = _targetFile;
+    translatein = fopen("output_temp.xsm", "r");
+    if (translatein == NULL) {
+        fprintf(stderr, "Error: Could not open output_temp.xsm for reading\n");
+        return;
+    }
+    outputFile = fopen(targetFile, "w");
     translatelex();
     fclose(translatein);
-    fclose(targetFile);
-    return 0;
+    return;
 }

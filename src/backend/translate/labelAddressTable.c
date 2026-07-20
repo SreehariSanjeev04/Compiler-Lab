@@ -1,5 +1,7 @@
 #include "labelAddressTable.h"
 
+LabelTableEntry labelTable[100]; 
+int labelTableSize = 0;
 int getAddress(char* label) {
     for (int i = 0; i < labelTableSize; i++) {
         if (strcmp(labelTable[i].label, label) == 0) {

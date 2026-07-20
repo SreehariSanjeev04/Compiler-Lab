@@ -9,7 +9,7 @@ extern FILE* targetFile;
 extern int detectlex();
 extern int translatelex();
 
-void translate(const char *input,
-               const char *output);
+void translate(char *input,
+               char *output);
 
 #endif

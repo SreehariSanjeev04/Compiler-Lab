@@ -17,29 +17,27 @@ fi
 echo -e "${BOLD}Compiling compiler...${NC}"
 
 # Run Bison
-bison -d -o parser.tab.c src/frontend/parser/parser.y
+bison -d -o build/parser.tab.c src/frontend/parser/parser.y
 if [ $? -ne 0 ]; then
     echo -e "${RED}Bison generation failed.${NC}"
     exit 1
 fi
 
 # Run Flex
-flex -o lex.yy.c src/frontend/lexer/lex.l
+flex -o build/lex.yy.c src/frontend/lexer/lex.l
 if [ $? -ne 0 ]; then
     echo -e "${RED}Flex generation failed.${NC}"
     exit 1
 fi
 
+# Run flex detect for label translation
+flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
+
+# Run flex translate for label translation
+flex --prefix=translate -o build/translate.yy.c src/backend/translate/label_translate.l
+
 # Run GCC
-gcc -w -g \
-    -Isrc/frontend/syntaxtree \
-    -Isrc/backend/codegen \
-    -Isrc/commons \
-    parser.tab.c \
-    lex.yy.c \
-    src/frontend/syntaxtree/exprtree.c \
-    src/backend/codegen/codegen.c \
-    -o stage2
+gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/translate -Isrc/commons
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GCC compilation failed.${NC}"
@@ -75,7 +73,7 @@ for code_dir in $subdirs; do
     fi
 
     # Run your compiler to generate target.xsm
-    ./stage2 "$code_file" "$target_xsm" &> /dev/null
+    ./compiler "$code_file" "$target_xsm" &> /dev/null
     if [ $? -ne 0 ]; then
         echo -e "     ${RED}code generation failed${NC}"
         TOTAL_FAILED=$((TOTAL_FAILED + 1))

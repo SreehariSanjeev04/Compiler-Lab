@@ -55,12 +55,12 @@ Stmt
 	;
 
 Ifstmt
-	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF {$$ = makeIfElseNode($3, $6, $8);}
-	| IF '(' expr ')' THEN Slist ENDIF {$$ = makeIfNode($3, $6);}
+	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF ';' {$$ = makeIfElseNode($3, $6, $8);}
+	| IF '(' expr ')' THEN Slist ENDIF ';' {$$ = makeIfNode($3, $6);}
 	;
 
 Whilestmt
-	: WHILE '(' expr ')' DO Slist ENDWHILE {$$ = makeWhileNode($3, $6);}
+	: WHILE '(' expr ')' DO Slist ENDWHILE ';' {$$ = makeWhileNode($3, $6);}
 	;
 InputStmt
 	: READ '(' ID ')' ';' {$$ = makeReadNode($3);}
