@@ -10,10 +10,10 @@ typedef struct LabelTableEntry {
     int address;
 } LabelTableEntry;
 
-LabelTableEntry labelTable[100]; // Assuming a maximum of 100 labels
-int labelTableSize = 0;
+extern LabelTableEntry labelTable[100]; // Assuming a maximum of 100 labels
+extern int labelTableSize;
 
 int getAddress(char* label);
 void storeAddress(char* label, int address);
 
-#endif LABEL_ADDRESS_TABLE_H
+#endif

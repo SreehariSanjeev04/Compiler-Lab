@@ -5,8 +5,7 @@
     int line_number = 8;
 %}
 
-// currently the labels are either MAIN or L<int>
-label (MAIN|L[0-9]+):\r?\n
+label  (L[0-9]+):[ \t]*\r?\n
 %%  
 
 {label} {
@@ -23,6 +22,6 @@ label (MAIN|L[0-9]+):\r?\n
 }
 %%
 
-int yywrap() {
+int detectwrap() {
     return 1;
 }

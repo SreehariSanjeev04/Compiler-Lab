@@ -2,12 +2,15 @@
 #include "constants.h"
 
 /*
+typedef struct tnode {
     int val;
     int type;
     char* varname;
     int nodetype; 
     struct tnode* left;
+    struct tnode* middle;
     struct tnode* right;
+}tnode;
 */
 
 tnode* makeLeafNodeNum(int n) {
@@ -33,14 +36,14 @@ tnode* makeLeafNodeId(char* c) {
     temp->middle = NULL;
     return temp;
 }
-tnode* makeOperatorNode(char op, tnode *l, tnode *r) {
+tnode* makeOperatorNode(char *op, tnode *l, tnode *r) {
     if(!l || !r) {
         fprintf(stderr, "Error: Invalid node passed to makeOperatorNode\n");
         exit(1);
     }
     // as of now the operation takes between two number type nodes
-    if(!(l->type == TYPE_INT) || !(r->type == TYPE_INT)) {
-        fprintf(stderr, "Error: Type Mistmatch");
+    if((l->type != TYPE_INT) || (r->type != TYPE_INT)) {
+        fprintf(stderr, "Error: Type Mismatch");
         exit(1);
     }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
@@ -49,54 +52,41 @@ tnode* makeOperatorNode(char op, tnode *l, tnode *r) {
     temp->left = l;
     temp->right = r;
     temp->middle = NULL;
-    switch (op)
-    {
-    case '+':
+    if(strcmp(op, "+") == 0) {
         temp->nodetype = NODE_TYPE_PLUS;
         temp->type = TYPE_INT;
-        break;
-    case '-':
+    } else if(strcmp(op, "-") == 0) {
         temp->nodetype = NODE_TYPE_MINUS;
         temp->type = TYPE_INT;
-        break;
-    case '*':
+    } else if(strcmp(op, "*") == 0) {
         temp->nodetype = NODE_TYPE_MUL;
         temp->type = TYPE_INT;
-        break;
-    case '/':
+    } else if(strcmp(op, "/") == 0) {
         temp->nodetype = NODE_TYPE_DIV;
         temp->type = TYPE_INT;
-        break;
-    case '=':
+    } else if(strcmp(op, "=") == 0) {
         temp->nodetype = NODE_TYPE_ASSIGN;
-        temp->type = TYPE_INT;
-        break;      
-    case '<':
+        temp->type = TYPE_VOID; 
+    } else if(strcmp(op, "<") == 0) {
         temp->nodetype = NODE_TYPE_LT;
         temp->type = TYPE_BOOL;
-        break;
-    case '>':
+    } else if(strcmp(op, ">") == 0) {
         temp->nodetype = NODE_TYPE_GT;
         temp->type = TYPE_BOOL;
-        break;
-    case '<=':
+    } else if(strcmp(op, "<=") == 0) {
         temp->nodetype = NODE_TYPE_LE;
         temp->type = TYPE_BOOL;
-        break;
-    case '>=':
+    } else if(strcmp(op, ">=") == 0) {
         temp->nodetype = NODE_TYPE_GE;
         temp->type = TYPE_BOOL;
-        break;
-    case '==':
+    } else if(strcmp(op, "==") == 0) {
         temp->nodetype = NODE_TYPE_EQ;
         temp->type = TYPE_BOOL;
-        break;
-    case '!=':
+    } else if(strcmp(op, "!=") == 0) {
         temp->nodetype = NODE_TYPE_NE;
         temp->type = TYPE_BOOL;
-        break;
-    default:
-        printf("Error: Invalid operator %c\n", op);
+    } else {
+        fprintf(stderr, "Error: Invalid operator %s\n", op);
         exit(1);
     }
     return temp;
@@ -115,6 +105,10 @@ tnode* makeConnectorNode(tnode* l, tnode *r) {
 }
 
 tnode* makeReadNode(tnode* l) {
+    if(l->nodetype != NODE_TYPE_ID) {
+        fprintf(stderr, "Error: READ node must have an ID as its left child\n");
+        exit(1);
+    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -139,6 +133,10 @@ tnode* makeWriteNode(tnode* l) {
 }
 
 tnode* makeIfElseNode(tnode* boolExpr, tnode* thenStmt, tnode* elseStmt) {
+    if(boolExpr->type != TYPE_BOOL) {
+        fprintf(stderr, "Error: If condition must be of boolean type\n");
+        exit(1);
+    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -151,6 +149,10 @@ tnode* makeIfElseNode(tnode* boolExpr, tnode* thenStmt, tnode* elseStmt) {
 }
 
 tnode* makeIfNode(tnode* boolExpr, tnode* thenStmt) {
+    if(boolExpr->type != TYPE_BOOL) {
+        fprintf(stderr, "Error: If condition must be of boolean type\n");
+        exit(1);
+    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -163,6 +165,10 @@ tnode* makeIfNode(tnode* boolExpr, tnode* thenStmt) {
 }
 
 tnode* makeWhileNode(tnode* boolExpr, tnode* bodyStmt) {
+    if(boolExpr->type != TYPE_BOOL) {
+        fprintf(stderr, "Error: While condition must be of boolean type\n");
+        exit(1);
+    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;

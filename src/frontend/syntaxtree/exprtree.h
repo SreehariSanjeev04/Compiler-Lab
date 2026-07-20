@@ -18,7 +18,7 @@ typedef struct tnode {
 
 tnode* makeLeafNodeNum(int n);
 tnode* makeLeafNodeId(char* c);
-tnode* makeOperatorNode(char op, tnode *l, tnode *r);
+tnode* makeOperatorNode(char *op, tnode *l, tnode *r);
 tnode* makeConnectorNode(tnode* l, tnode *r);
 tnode* makeReadNode(tnode* l);
 tnode* makeWriteNode(tnode* l);

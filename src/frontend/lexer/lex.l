@@ -22,6 +22,7 @@ identifier  [a-z]
 "else"	{return ELSE;}
 "do"	{return DO;}
 "endwhile"	{return ENDWHILE;}
+"endif"	{return ENDIF;}
 
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}

@@ -178,7 +178,7 @@ int codeGen(tnode *root, FILE *targetFile)
     {
         int addressReg = getReg();
         tnode *variableNode = root->left;
-        if (variableNode->nodetype == NODE_TYPE_PLUS || variableNode->nodetype != NODE_TYPE_ID)
+        if (variableNode->nodetype != NODE_TYPE_ID)
         {
             fprintf(stderr, "Error: READ node must have an ID as its left child\n");
             exit(1);
