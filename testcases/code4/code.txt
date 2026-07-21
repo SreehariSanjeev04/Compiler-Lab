@@ -3,8 +3,8 @@ begin
     read(b);
     read(c);
     if (a < b) then
-        if (b < c) then Write(c); else Write(b); endif;
+        if (b < c) then write(c); else write(b); endif;
     else
-        if (a < c) then Write(c); else Write(a); endif;
+        if (a < c) then write(c); else write(a); endif;
     endif;
 end;

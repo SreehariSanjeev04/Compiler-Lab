@@ -4,16 +4,15 @@
 %}
 
 %%  
-(L[0-9]+):[ \t]*\r?\n {
-    /* ignore labels in the second pass */
-}
+(L[0-9]+):[ \t]*\r?\n {}
 
 (L[0-9]+) {
     int address = getAddress(yytext);
     fprintf(outputFile, "%d\n", address);
 }
 
-(.|\n) {
+[\n] {fprintf(outputFile, "\n");}
+. {
     fprintf(outputFile, "%s", yytext);
 }
 %%

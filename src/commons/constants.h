@@ -26,6 +26,7 @@
 #define NODE_TYPE_LE 16
 #define NODE_TYPE_EQ 17
 #define NODE_TYPE_NE 18
+#define NODE_TYPE_BREAKPOINT 19
 
 // Type values
 #define TYPE_INT 0

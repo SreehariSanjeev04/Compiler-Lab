@@ -21,7 +21,7 @@
     struct tnode *node;
 }
 
-%token <node> NUM ID
+%token <node> NUM ID BREAKPOINT
 %token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF
 
 %type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt
@@ -52,6 +52,7 @@ Stmt
 	| AssgStmt {$$ = $1;}
 	| Ifstmt {$$ = $1;}
 	| Whilestmt {$$ = $1;}
+	| BREAKPOINT ';' {$$ = makeBreakPointNode();}
 	;
 
 Ifstmt

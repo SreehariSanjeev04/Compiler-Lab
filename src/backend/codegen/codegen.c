@@ -115,6 +115,11 @@ int codeGen(tnode *root, FILE *targetFile)
         {
             int address = returnStaticBindAddress(root->varname);
             fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
+        } else if(root->nodetype == NODE_TYPE_BREAKPOINT) {
+            fprintf(targetFile, "BRKP\n");
+        } else {
+            fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
+            exit(1);
         }
         return reg;
     }

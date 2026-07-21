@@ -23,6 +23,7 @@ identifier  [a-z]
 "do"	{return DO;}
 "endwhile"	{return ENDWHILE;}
 "endif"	{return ENDIF;}
+"breakpoint"	{return BREAKPOINT;}
 
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}

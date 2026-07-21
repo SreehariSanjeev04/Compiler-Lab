@@ -179,3 +179,15 @@ tnode* makeWhileNode(tnode* boolExpr, tnode* bodyStmt) {
     temp->middle = NULL;
     return temp;
 }
+
+tnode* makeBreakPointNode() {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_VOID;
+    temp->varname = NULL;
+    temp->nodetype = NODE_TYPE_BREAKPOINT;
+    temp->left = NULL;
+    temp->right = NULL;
+    temp->middle = NULL;
+    return temp;
+}
