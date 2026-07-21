@@ -22,7 +22,7 @@
 }
 
 %token <node> NUM ID BREAKPOINT CONTINUE BREAK
-%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL
+%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL INT BOOL
 
 %type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt
 
@@ -34,11 +34,30 @@
 %%
 
 program
-	: START Slist END ';'  
+	: START decl Slist END ';'  
 	{
-		root = $2;
+		root = $3;
 	}
 	| START END ';'  {printf("Empty program\n"); exit(0);}
+	;
+
+decl
+	: DECL vardecl ENDDECL {}
+	| DECL ENDDECL {}
+	;
+
+vardecl
+	: vardecl type idlist ';' {}
+	| type idlist ';' {}
+	;
+
+idlist
+	: idlist ',' ID {}
+	| ID {printf("Declared variable: %s\n", $1->varname);}
+	;
+type
+	: INT {}
+	| BOOL {}
 	;
 
 Slist

@@ -28,6 +28,10 @@ identifier  [a-z]
 "continue"	{return CONTINUE;}
 "repeat" {return REPEAT;}
 "until" {return UNTIL;}
+"decl" {return DECL;}
+"enddecl" {return ENDDECL;}
+"int" {return INT;}
+"bool" {return BOOL;}
 
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}

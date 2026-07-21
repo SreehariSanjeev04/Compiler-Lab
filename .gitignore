@@ -8,3 +8,4 @@ a.out
 build/
 xfs-interface/disk.xfs
 compiler
+.ignore
