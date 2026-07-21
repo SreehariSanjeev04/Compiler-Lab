@@ -24,6 +24,10 @@ identifier  [a-z]
 "endwhile"	{return ENDWHILE;}
 "endif"	{return ENDIF;}
 "breakpoint"	{return BREAKPOINT;}
+"break"	{return BREAK;}
+"continue"	{return CONTINUE;}
+"repeat" {return REPEAT;}
+"until" {return UNTIL;}
 
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}

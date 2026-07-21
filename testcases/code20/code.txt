@@ -1,0 +1,16 @@
+begin
+    read(n);
+    i = 1;
+    while (i <= n) do
+        if (i == 1) then
+            write(100);
+        else
+            if (i == n) then
+                write(200);
+            else
+                write(i);
+            endif;
+        endif;
+        i = i + 1;
+    endwhile;
+end;

@@ -5,6 +5,10 @@ int labelCount = 0;
  * To do: Check the codegen function to make sure everything is alright
  */
 
+static bool insideWhileLoop = false;
+static int whileStartLabel = -1;
+static int whileEndLabel = -1;
+
 void addHeader(FILE *targetFile)
 {
     fprintf(targetFile, "0\n2056\n0\n0\n0\n0\n0\n0\n");
@@ -117,6 +121,10 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
         } else if(root->nodetype == NODE_TYPE_BREAKPOINT) {
             fprintf(targetFile, "BRKP\n");
+        } else if(root->nodetype == NODE_TYPE_BREAK && insideWhileLoop) {
+            fprintf(targetFile, "JMP L%d\n", whileEndLabel);
+        } else if(root->nodetype == NODE_TYPE_CONTINUE && insideWhileLoop) {
+            fprintf(targetFile, "JMP L%d\n", whileStartLabel);
         } else {
             fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
             exit(1);
@@ -161,8 +169,13 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: While condition must be of boolean type\n");
             exit(1);
         }
+        insideWhileLoop = true;
         int labelStart = generateLabel();
         int labelEnd = generateLabel();
+        int prevStart = whileStartLabel;
+        int prevEnd = whileEndLabel;
+        whileStartLabel = labelStart;
+        whileEndLabel = labelEnd;
         fprintf(targetFile, "L%d:\n", labelStart);
         int conditionReg = codeGen(root->left, targetFile);
         fprintf(targetFile, "JZ R%d, L%d\n", conditionReg, labelEnd);
@@ -170,6 +183,55 @@ int codeGen(tnode *root, FILE *targetFile)
         codeGen(root->right, targetFile); // body of while
         fprintf(targetFile, "JMP L%d\n", labelStart);
         fprintf(targetFile, "L%d:\n", labelEnd);
+        whileStartLabel = prevStart;
+        whileEndLabel = prevEnd;
+        insideWhileLoop = false;
+        return -1;
+    }
+    case NODE_TYPE_DO_WHILE: {
+        if(root->right->type != TYPE_BOOL) {
+            fprintf(stderr, "Error: Do-While condition must be of boolean type\n");
+            exit(1);
+        }
+        insideWhileLoop = true;
+        int labelStart = generateLabel();
+        int labelEnd = generateLabel();
+        int prevStart = whileStartLabel;
+        int prevEnd = whileEndLabel;
+        whileStartLabel = labelStart;
+        whileEndLabel = labelEnd;
+        fprintf(targetFile, "L%d:\n", labelStart);
+        codeGen(root->left, targetFile); // body of do-while
+        int conditionReg = codeGen(root->right, targetFile);
+        fprintf(targetFile, "JNZ R%d, L%d\n", conditionReg, labelStart);
+        freeReg();
+        fprintf(targetFile, "L%d:\n", labelEnd);
+        whileStartLabel = prevStart;
+        whileEndLabel = prevEnd;
+        insideWhileLoop = false;
+        return -1;
+    }
+    case NODE_TYPE_REPEAT_UNTIL: {
+        if(root->right->type != TYPE_BOOL) {
+            fprintf(stderr, "Error: Repeat-Until condition must be of boolean type\n");
+            exit(1);
+        }
+        insideWhileLoop = true;
+        int labelStart = generateLabel();
+        int labelEnd = generateLabel();
+        int prevStart = whileStartLabel;
+        int prevEnd = whileEndLabel;
+        whileStartLabel = labelStart;
+        whileEndLabel = labelEnd;
+        fprintf(targetFile, "L%d:\n", labelStart);
+        codeGen(root->left, targetFile); // body of repeat-until
+        int conditionReg = codeGen(root->right, targetFile);
+        fprintf(targetFile, "JZ R%d, L%d\n", conditionReg, labelStart);
+        freeReg();
+        fprintf(targetFile, "L%d:\n", labelEnd);
+        whileStartLabel = prevStart;
+        whileEndLabel = prevEnd;
+        insideWhileLoop = false;
         return -1;
     }
     default:

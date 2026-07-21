@@ -191,3 +191,59 @@ tnode* makeBreakPointNode() {
     temp->middle = NULL;
     return temp;
 }
+
+tnode* makeBreakNode() {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_VOID;
+    temp->varname = NULL;
+    temp->nodetype = NODE_TYPE_BREAK;
+    temp->left = NULL;
+    temp->right = NULL;
+    temp->middle = NULL;
+    return temp;
+}
+
+tnode* makeContinueNode() {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_VOID;
+    temp->varname = NULL;
+    temp->nodetype = NODE_TYPE_CONTINUE;
+    temp->left = NULL;
+    temp->right = NULL;
+    temp->middle = NULL;
+    return temp;
+}
+
+tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr) {
+    if(boolExpr->type != TYPE_BOOL) {
+        fprintf(stderr, "Error: Repeat Until condition must be of boolean type\n");
+        exit(1);
+    }
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_VOID;
+    temp->varname = NULL;
+    temp->nodetype = NODE_TYPE_REPEAT_UNTIL;
+    temp->left = bodyStmt;
+    temp->right = boolExpr;
+    temp->middle = NULL;
+    return temp;
+}
+
+tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr) {
+    if(boolExpr->type != TYPE_BOOL) {
+        fprintf(stderr, "Error: Do While condition must be of boolean type\n");
+        exit(1);
+    }
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_VOID;
+    temp->varname = NULL;
+    temp->nodetype = NODE_TYPE_DO_WHILE;
+    temp->left = bodyStmt;
+    temp->right = boolExpr;
+    temp->middle = NULL;
+    return temp;
+}

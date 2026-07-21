@@ -1,0 +1,13 @@
+begin
+    read(a);
+    read(b);
+    if (a > b) then
+        write(a);
+    else
+        if (a != b) then
+            write(b);
+        else
+            write(0);
+        endif;
+    endif;
+end;

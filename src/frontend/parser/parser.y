@@ -21,8 +21,8 @@
     struct tnode *node;
 }
 
-%token <node> NUM ID BREAKPOINT
-%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF
+%token <node> NUM ID BREAKPOINT CONTINUE BREAK
+%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL
 
 %type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt
 
@@ -53,6 +53,8 @@ Stmt
 	| Ifstmt {$$ = $1;}
 	| Whilestmt {$$ = $1;}
 	| BREAKPOINT ';' {$$ = makeBreakPointNode();}
+	| BREAK ';' {$$ = makeBreakNode();}
+	| CONTINUE ';' {$$ = makeContinueNode();}
 	;
 
 Ifstmt
@@ -62,6 +64,8 @@ Ifstmt
 
 Whilestmt
 	: WHILE '(' expr ')' DO Slist ENDWHILE ';' {$$ = makeWhileNode($3, $6);}
+	| DO Slist WHILE '(' expr ')' ENDWHILE ';' {$$ = makeDoWhileNode($3, $6);}
+	| REPEAT Slist UNTIL '(' expr ')' ';' {$$ = makeRepeatUntilNode($2, $5);}
 	;
 InputStmt
 	: READ '(' ID ')' ';' {$$ = makeReadNode($3);}

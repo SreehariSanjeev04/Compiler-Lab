@@ -27,7 +27,10 @@
 #define NODE_TYPE_EQ 17
 #define NODE_TYPE_NE 18
 #define NODE_TYPE_BREAKPOINT 19
-
+#define NODE_TYPE_BREAK 20
+#define NODE_TYPE_CONTINUE 21
+#define NODE_TYPE_REPEAT_UNTIL 22
+#define NODE_TYPE_DO_WHILE 23
 // Type values
 #define TYPE_INT 0
 #define TYPE_BOOL 1

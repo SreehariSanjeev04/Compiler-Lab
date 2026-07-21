@@ -1,0 +1,6 @@
+begin
+    read(a);
+    read(b);
+    write(a <= b);
+    write(b >= a);
+end;

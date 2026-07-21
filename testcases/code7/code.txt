@@ -1,0 +1,13 @@
+begin
+    read(a);
+    read(b);
+    read(c);
+
+    x = a + b * c;
+    y = (a + b) * c;
+    z = x + y - a * b + c;
+
+    write(x);
+    write(y);
+    write(z);
+end;

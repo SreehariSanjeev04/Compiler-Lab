@@ -1,0 +1,2 @@
+150
+Machine is halting.

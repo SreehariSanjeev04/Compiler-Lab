@@ -26,5 +26,7 @@ tnode* makeIfElseNode(tnode* l, tnode* m, tnode* r);
 tnode* makeIfNode(tnode* l, tnode* r);
 tnode* makeWhileNode(tnode* l, tnode* r);
 tnode* makeBreakPointNode();
+tnode* makeBreakNode();
+tnode* makeContinueNode();
 
 #endif // SYNTAXTREE_H
