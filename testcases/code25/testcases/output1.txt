@@ -1,0 +1,7 @@
+11
+21
+22
+31
+32
+33
+Machine is halting.

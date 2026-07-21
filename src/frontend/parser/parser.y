@@ -64,7 +64,7 @@ Ifstmt
 
 Whilestmt
 	: WHILE '(' expr ')' DO Slist ENDWHILE ';' {$$ = makeWhileNode($3, $6);}
-	| DO Slist WHILE '(' expr ')' ENDWHILE ';' {$$ = makeDoWhileNode($3, $6);}
+	| DO Slist WHILE '(' expr ')' ENDWHILE ';' {$$ = makeDoWhileNode($2, $5);}
 	| REPEAT Slist UNTIL '(' expr ')' ';' {$$ = makeRepeatUntilNode($2, $5);}
 	;
 InputStmt

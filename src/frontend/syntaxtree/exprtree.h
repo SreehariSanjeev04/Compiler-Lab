@@ -28,5 +28,7 @@ tnode* makeWhileNode(tnode* l, tnode* r);
 tnode* makeBreakPointNode();
 tnode* makeBreakNode();
 tnode* makeContinueNode();
+tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr);
+tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
 
 #endif // SYNTAXTREE_H

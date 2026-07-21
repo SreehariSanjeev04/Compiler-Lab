@@ -2,7 +2,8 @@ DIRS = spl xfs-interface xsm_dev
 
 all:
 	set -e; for d in $(DIRS); do $(MAKE) -C $$d ; done
-
+test:
+	./scripts/run_tests.sh
 clean:
 	@cd spl && make clean
 	@cd xfs-interface && make clean
