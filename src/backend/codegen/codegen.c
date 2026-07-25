@@ -113,21 +113,31 @@ int codeGen(tnode *root, FILE *targetFile)
         if (root->nodetype == NODE_TYPE_NUM)
         {
             fprintf(targetFile, "MOV R%d, %d\n", reg, root->val);
-        } else if(root->nodetype == NODE_TYPE_STRING) {
+        }
+        else if (root->nodetype == NODE_TYPE_STRING)
+        {
             fprintf(targetFile, "MOV R%d, %s\n", reg, root->varname);
         }
         else if (root->nodetype == NODE_TYPE_ID)
         {
-            
+
             int address = returnStaticBindAddress(root->varname);
             fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
-        } else if(root->nodetype == NODE_TYPE_BREAKPOINT) {
+        }
+        else if (root->nodetype == NODE_TYPE_BREAKPOINT)
+        {
             fprintf(targetFile, "BRKP\n");
-        } else if(root->nodetype == NODE_TYPE_BREAK && insideWhileLoop) {
+        }
+        else if (root->nodetype == NODE_TYPE_BREAK && insideWhileLoop)
+        {
             fprintf(targetFile, "JMP L%d\n", whileEndLabel);
-        } else if(root->nodetype == NODE_TYPE_CONTINUE && insideWhileLoop) {
+        }
+        else if (root->nodetype == NODE_TYPE_CONTINUE && insideWhileLoop)
+        {
             fprintf(targetFile, "JMP L%d\n", whileStartLabel);
-        } else {
+        }
+        else
+        {
             fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
             exit(1);
         }
@@ -136,8 +146,10 @@ int codeGen(tnode *root, FILE *targetFile)
     // Cases that require special statement handling: If, If Else, While
     switch (root->nodetype)
     {
-    case NODE_TYPE_IF: {
-        if(root->left->type != TYPE_BOOL) {
+    case NODE_TYPE_IF:
+    {
+        if (root->left->type != TYPE_BOOL)
+        {
             fprintf(stderr, "Error: If condition must be of boolean type\n");
             exit(1);
         }
@@ -149,8 +161,10 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "L%d:\n", labelElse);
         return -1;
     }
-    case NODE_TYPE_IF_ELSE: {
-        if(root->left->type != TYPE_BOOL) {
+    case NODE_TYPE_IF_ELSE:
+    {
+        if (root->left->type != TYPE_BOOL)
+        {
             fprintf(stderr, "Error: If condition must be of boolean type\n");
             exit(1);
         }
@@ -166,8 +180,10 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "L%d:\n", labelEnd);
         return -1;
     }
-    case NODE_TYPE_WHILE: {
-        if(root->left->type != TYPE_BOOL) {
+    case NODE_TYPE_WHILE:
+    {
+        if (root->left->type != TYPE_BOOL)
+        {
             fprintf(stderr, "Error: While condition must be of boolean type\n");
             exit(1);
         }
@@ -190,8 +206,10 @@ int codeGen(tnode *root, FILE *targetFile)
         insideWhileLoop = false;
         return -1;
     }
-    case NODE_TYPE_DO_WHILE: {
-        if(root->right->type != TYPE_BOOL) {
+    case NODE_TYPE_DO_WHILE:
+    {
+        if (root->right->type != TYPE_BOOL)
+        {
             fprintf(stderr, "Error: Do-While condition must be of boolean type\n");
             exit(1);
         }
@@ -213,8 +231,10 @@ int codeGen(tnode *root, FILE *targetFile)
         insideWhileLoop = false;
         return -1;
     }
-    case NODE_TYPE_REPEAT_UNTIL: {
-        if(root->right->type != TYPE_BOOL) {
+    case NODE_TYPE_REPEAT_UNTIL:
+    {
+        if (root->right->type != TYPE_BOOL)
+        {
             fprintf(stderr, "Error: Repeat-Until condition must be of boolean type\n");
             exit(1);
         }
@@ -252,6 +272,7 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: READ node must have an ID as its left child\n");
             exit(1);
         }
+        struct Gsymbol *symbol = Lookup(variableNode->varname);
         int address = returnStaticBindAddress(variableNode->varname);
         fprintf(targetFile, "MOV R%d, %d\n", addressReg, address);
         readValue(addressReg, targetFile);
@@ -267,7 +288,7 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ASSIGN:
     {
-        if(!root->left || root->left->nodetype != NODE_TYPE_ID)
+        if (!root->left || root->left->nodetype != NODE_TYPE_ID)
         {
             fprintf(stderr, "Error: ASSIGN node must have an ID as its left child\n");
             exit(1);
@@ -282,35 +303,50 @@ int codeGen(tnode *root, FILE *targetFile)
         break;
     }
 
+    // below this is arithmetic and relational operations, which are binary operations
     int leftReg = codeGen(root->left, targetFile);
     int rightReg = codeGen(root->right, targetFile);
 
+    if(root->left->type != TYPE_INT || root->right->type != TYPE_INT) {
+        fprintf(stderr, "Error: Type Mismatch in arithmetic or relational operation\n");
+        exit(1);
+    }
     switch (root->nodetype)
     {
     case NODE_TYPE_PLUS:
+    {
         fprintf(targetFile, "ADD R%d, R%d\n", leftReg, rightReg);
         break;
+    }
     case NODE_TYPE_MINUS:
+    {
         fprintf(targetFile, "SUB R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_MUL:
+    }
+    case NODE_TYPE_MUL: {
         fprintf(targetFile, "MUL R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_DIV:
+    }
+    case NODE_TYPE_DIV: {
         fprintf(targetFile, "DIV R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_GT:
+    }
+    case NODE_TYPE_GT: {
         fprintf(targetFile, "GT R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_LT:
+    }
+    case NODE_TYPE_LT: {
         fprintf(targetFile, "LT R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_GE:
+    }
+    case NODE_TYPE_GE: {
         fprintf(targetFile, "GE R%d, R%d\n", leftReg, rightReg);
         break;
-    case NODE_TYPE_LE:
+    }
+    case NODE_TYPE_LE: {
         fprintf(targetFile, "LE R%d, R%d\n", leftReg, rightReg);
         break;
+    }
     case NODE_TYPE_EQ:
         fprintf(targetFile, "EQ R%d, R%d\n", leftReg, rightReg);
         break;

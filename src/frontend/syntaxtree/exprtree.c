@@ -122,10 +122,6 @@ tnode* makeConnectorNode(tnode* l, tnode *r) {
 }
 
 tnode* makeReadNode(tnode* l) {
-    if(l->nodetype != NODE_TYPE_ID) {
-        fprintf(stderr, "Error: READ node must have an ID as its left child\n");
-        exit(1);
-    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -150,10 +146,6 @@ tnode* makeWriteNode(tnode* l) {
 }
 
 tnode* makeIfElseNode(tnode* boolExpr, tnode* thenStmt, tnode* elseStmt) {
-    if(boolExpr->type != TYPE_BOOL) {
-        fprintf(stderr, "Error: If condition must be of boolean type\n");
-        exit(1);
-    }
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -166,10 +158,7 @@ tnode* makeIfElseNode(tnode* boolExpr, tnode* thenStmt, tnode* elseStmt) {
 }
 
 tnode* makeIfNode(tnode* boolExpr, tnode* thenStmt) {
-    if(boolExpr->type != TYPE_BOOL) {
-        fprintf(stderr, "Error: If condition must be of boolean type\n");
-        exit(1);
-    }
+
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -182,10 +171,7 @@ tnode* makeIfNode(tnode* boolExpr, tnode* thenStmt) {
 }
 
 tnode* makeWhileNode(tnode* boolExpr, tnode* bodyStmt) {
-    if(boolExpr->type != TYPE_BOOL) {
-        fprintf(stderr, "Error: While condition must be of boolean type\n");
-        exit(1);
-    }
+
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -234,10 +220,7 @@ tnode* makeContinueNode() {
 }
 
 tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr) {
-    if(boolExpr->type != TYPE_BOOL) {
-        fprintf(stderr, "Error: Repeat Until condition must be of boolean type\n");
-        exit(1);
-    }
+
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
@@ -250,10 +233,7 @@ tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr) {
 }
 
 tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr) {
-    if(boolExpr->type != TYPE_BOOL) {
-        fprintf(stderr, "Error: Do While condition must be of boolean type\n");
-        exit(1);
-    }
+
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
     temp->type = TYPE_VOID;
