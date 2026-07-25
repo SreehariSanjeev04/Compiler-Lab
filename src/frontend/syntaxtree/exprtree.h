@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "constants.h"
+#include "symboltable.h"
 
 typedef struct tnode {
     int val;
@@ -14,10 +15,12 @@ typedef struct tnode {
     struct tnode* left;
     struct tnode* middle;
     struct tnode* right;
+    struct Gsymbol* Gentry;
 }tnode;
 
 tnode* makeLeafNodeNum(int n);
 tnode* makeLeafNodeId(char* c);
+tnode* makeLeafNodeString(char* str);
 tnode* makeOperatorNode(char *op, tnode *l, tnode *r);
 tnode* makeConnectorNode(tnode* l, tnode *r);
 tnode* makeReadNode(tnode* l);

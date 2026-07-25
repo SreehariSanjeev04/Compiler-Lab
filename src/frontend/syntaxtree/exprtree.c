@@ -1,5 +1,6 @@
 #include "exprtree.h"
 #include "constants.h"
+#include "symboltable.h"
 
 /*
 typedef struct tnode {
@@ -25,25 +26,41 @@ tnode* makeLeafNodeNum(int n) {
     return temp;
 }
 tnode* makeLeafNodeId(char* c) {
+    struct Gsymbol* entry = Lookup(c);
+    if(!entry) {
+        fprintf(stderr, "Error: Variable %s not declared\n", c);
+        exit(1);
+    }
+    int type = entry->type;
     tnode* temp = (tnode*)malloc(sizeof(tnode));
     temp->val = 0;
-    temp->type = TYPE_INT; // as of now the variables are of type int, but this can be changed later
+    temp->type = type;
     temp->varname = (char*)malloc(strlen(c) + 1);
     strcpy(temp->varname, c);
     temp->nodetype = NODE_TYPE_ID;
     temp->left = NULL;
     temp->right = NULL;
     temp->middle = NULL;
+    temp->Gentry = NULL;
+    return temp;
+}
+
+tnode* makeLeafNodeString(char* str) {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->val = 0;
+    temp->type = TYPE_STRING; 
+    temp->varname = (char*)malloc(strlen(str) + 1);
+    strcpy(temp->varname, str);
+    temp->nodetype = NODE_TYPE_STRING; 
+    temp->left = NULL;
+    temp->right = NULL;
+    temp->middle = NULL;
+    temp->Gentry = NULL;
     return temp;
 }
 tnode* makeOperatorNode(char *op, tnode *l, tnode *r) {
     if(!l || !r) {
         fprintf(stderr, "Error: Invalid node passed to makeOperatorNode\n");
-        exit(1);
-    }
-    // as of now the operation takes between two number type nodes
-    if((l->type != TYPE_INT) || (r->type != TYPE_INT)) {
-        fprintf(stderr, "Error: Type Mismatch");
         exit(1);
     }
     tnode* temp = (tnode*)malloc(sizeof(tnode));

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct Gsymbol {
     char* name;       
@@ -13,6 +14,6 @@ typedef struct Gsymbol {
 } Gsymbol;
 
 struct Gsymbol* Lookup(char *name);
-struct Gsymbol* Install(char *name, int type, int size);
+struct Gsymbol* Install(char *name, int type);
 
 #endif // SYMBOLTABLE_H

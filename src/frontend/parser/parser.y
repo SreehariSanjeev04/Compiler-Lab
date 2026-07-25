@@ -3,6 +3,7 @@
 	#include <stdio.h>
 	#include "exprtree.h"
 	#include "codegen.h"
+	#include "symboltable.h"
 
 	int yylex(void);
 	void yyerror(char const *s);
@@ -11,20 +12,27 @@
 
 	FILE* targetFile;
 	FILE* inputFile;
+	extern int yydebug;
 	
 	tnode* root;
 %}
 
 %define parse.error verbose
+%define parse.trace
 
 %union {
     struct tnode *node;
+	int vartype;
+	char* str;
 }
 
-%token <node> NUM ID BREAKPOINT CONTINUE BREAK
-%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL INT BOOL
+%token <node> NUM TEXT BREAKPOINT CONTINUE BREAK
+%token <vartype> INT STRING
+%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL
+%token <str> ID
 
-%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt
+%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt varlist
+%type <vartype> type
 
 %left EQ NE
 %left LT GT LE GE
@@ -34,30 +42,42 @@
 %%
 
 program
-	: START decl Slist END ';'  
+	: START declarations Slist END ';'  
 	{
 		root = $3;
 	}
 	| START END ';'  {printf("Empty program\n"); exit(0);}
 	;
 
+declarations
+	: DECL decllist ENDDECL
+	| DECL ENDDECL
+	;
+
+decllist
+	: decllist decl
+	| decl
+	;
+
 decl
-	: DECL vardecl ENDDECL {}
-	| DECL ENDDECL {}
+	: type varlist ';'
 	;
 
-vardecl
-	: vardecl type idlist ';' {}
-	| type idlist ';' {}
-	;
-
-idlist
-	: idlist ',' ID {}
-	| ID {printf("Declared variable: %s\n", $1->varname);}
+varlist
+	: varlist ',' ID {
+	printf("Installing variable: %s of type %d\n", $3, $<vartype>0);
+	Install($3, $<vartype>0);}
+	| ID {
+	printf("Installing variable: %s of type %d\n", $1, $<vartype>0);
+	Install($1, $<vartype>0);}
 	;
 type
-	: INT {}
-	| BOOL {}
+	: INT {
+	printf("Type is INT\n");
+	$$ = TYPE_INT;}
+	| STRING {
+	printf("Type is STRING\n");
+	$$ = TYPE_STRING;}
 	;
 
 Slist
@@ -87,7 +107,9 @@ Whilestmt
 	| REPEAT Slist UNTIL '(' expr ')' ';' {$$ = makeRepeatUntilNode($2, $5);}
 	;
 InputStmt
-	: READ '(' ID ')' ';' {$$ = makeReadNode($3);}
+	: READ '(' ID ')' ';' {
+	tnode* idNode = makeLeafNodeId($3);
+	$$ = makeReadNode(idNode);}
 	;
 
 OutputStmt
@@ -107,12 +129,15 @@ expr
 	| expr NE expr {$$ = makeOperatorNode("!=",$1,$3);}
 	| '(' expr ')' {$$ = $2;}
 	| NUM {$$ = $1;}
-	| ID {$$ = $1;}
+	| TEXT {$$ = $1;}
+	| ID {$$ = makeLeafNodeId($1);}
 	;
 
 
 AssgStmt
-	: ID ASSIGN expr ';' {$$ = makeOperatorNode("=",$1,$3);}
+	: ID ASSIGN expr ';' {
+	tnode* idNode = makeLeafNodeId($1);
+	$$ = makeOperatorNode("=",idNode,$3);}
 	;
 	
 %%

@@ -31,9 +31,12 @@
 #define NODE_TYPE_CONTINUE 21
 #define NODE_TYPE_REPEAT_UNTIL 22
 #define NODE_TYPE_DO_WHILE 23
+#define NODE_TYPE_STRING 24
+
 // Type values
 #define TYPE_INT 0
 #define TYPE_BOOL 1
 #define TYPE_VOID 2
+#define TYPE_STRING 3
 
 #endif // CONSTANTS_H

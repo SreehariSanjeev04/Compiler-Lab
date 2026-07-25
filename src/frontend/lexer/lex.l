@@ -8,8 +8,9 @@
 digit  [0-9]
 number  {digit}+
 
- // In stage2 we are only considering single letter identifiers
-identifier  [a-z]
+text  \"[^\"\\]*\"
+
+identifier  [a-z]+
 %%
 
 "begin"	{return START;}
@@ -31,13 +32,19 @@ identifier  [a-z]
 "decl" {return DECL;}
 "enddecl" {return ENDDECL;}
 "int" {return INT;}
-"bool" {return BOOL;}
+"str" {return STRING;}
 
+{text} {
+	yylval.node = makeLeafNodeString(yytext); 
+	return TEXT;
+}
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}
 
 {identifier} {
-yylval.node = makeLeafNodeId(yytext); return ID;}
+yylval.str = strdup(yytext);
+return ID;
+}
 
 "==" {return EQ;}
 "!=" {return NE;}
@@ -53,9 +60,12 @@ yylval.node = makeLeafNodeId(yytext); return ID;}
 "(" { return *yytext; }
 ")" { return *yytext; }
 ";" { return *yytext; }
+"," { return *yytext; }
 [ \t]	{}
 [\n]	{}
-.	{yyerror("unknown character\n");exit(1);}
+.	{yyerror("unknown character\n");
+	fprintf(stderr, "Error: Unknown character '%c' at line %d\n", *yytext, yylineno);
+	exit(1);}
 
 %%
 

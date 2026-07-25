@@ -1,4 +1,5 @@
 #include "codegen.h"
+#include <symboltable.h>
 int regCount = 0;
 int labelCount = 0;
 /**
@@ -64,20 +65,18 @@ void restoreRegisters(FILE *targetFile)
 
 int returnStaticBindAddress(char *varname)
 {
-    if (!varname || strlen(varname) != 1)
+    if (!varname || strlen(varname) <= 0)
     {
         fprintf(stderr, "Error: Variable name is invalid. Only single-letter variable names are allowed.\n");
         exit(1);
     }
-    if (varname[0] >= 'a' && varname[0] <= 'z')
+    struct Gsymbol *symbol = Lookup(varname);
+    if (!symbol)
     {
-        return 4096 + (varname[0] - 'a');
-    }
-    else
-    {
-        fprintf(stderr, "Error: Invalid variable name %s\n", varname);
+        fprintf(stderr, "Error: Variable '%s' not defined\n", varname);
         exit(1);
     }
+    return symbol->binding;
 }
 
 void generateCode(tnode *root, FILE *targetFile)
@@ -114,9 +113,12 @@ int codeGen(tnode *root, FILE *targetFile)
         if (root->nodetype == NODE_TYPE_NUM)
         {
             fprintf(targetFile, "MOV R%d, %d\n", reg, root->val);
+        } else if(root->nodetype == NODE_TYPE_STRING) {
+            fprintf(targetFile, "MOV R%d, %s\n", reg, root->varname);
         }
         else if (root->nodetype == NODE_TYPE_ID)
         {
+            
             int address = returnStaticBindAddress(root->varname);
             fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
         } else if(root->nodetype == NODE_TYPE_BREAKPOINT) {
@@ -265,6 +267,11 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ASSIGN:
     {
+        if(!root->left || root->left->nodetype != NODE_TYPE_ID)
+        {
+            fprintf(stderr, "Error: ASSIGN node must have an ID as its left child\n");
+            exit(1);
+        }
         int rightReg = codeGen(root->right, targetFile);
         int address = returnStaticBindAddress(root->left->varname);
         fprintf(targetFile, "MOV [%d], R%d\n", address, rightReg);

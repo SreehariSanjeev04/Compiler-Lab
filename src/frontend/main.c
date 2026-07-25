@@ -5,9 +5,11 @@ extern FILE* inputFile;
 extern FILE* targetFile;
 extern FILE* yyin;
 extern tnode* root;
+extern int yydebug;
 extern int yyparse();
 
 int main(int argc, char* argv[]) {
+	yydebug = 1; // toggle for debugging
 	if(argc != 3) {
 		fprintf(stderr, "Usage: %s <input_file> <output_file>\n", argv[0]);
 		exit(1);
