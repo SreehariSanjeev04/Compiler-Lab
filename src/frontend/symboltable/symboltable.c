@@ -15,7 +15,7 @@ struct Gsymbol* Lookup(char *name) {
 }
 
 struct Gsymbol* Install(char *name, int type) {
-    printf("Installing variable: %s of type %d\n", name, type);
+    // printf("Installing variable: %s of type %d\n", name, type);
     if (name == NULL || strlen(name) == 0) {
         fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);

@@ -64,12 +64,16 @@ decl
 	;
 
 varlist
-	: varlist ',' ID {
-	printf("Installing variable: %s of type %d\n", $3, $<vartype>0);
+	: varlist, ID '[' NUM ']'
+	| varlist ',' ID {
+	// printf("Installing variable: %s of type %d\n", $3, $<vartype>0);
 	Install($3, $<vartype>0);}
 	| ID {
-	printf("Installing variable: %s of type %d\n", $1, $<vartype>0);
+	// printf("Installing variable: %s of type %d\n", $1, $<vartype>0);
 	Install($1, $<vartype>0);}
+	| ID '[' NUM ']' {
+	// printf("Installing array: %s of type %d\n", $1, $<vartype>0);
+	}
 	;
 type
 	: INT {
