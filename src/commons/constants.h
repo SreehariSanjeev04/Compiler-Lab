@@ -32,11 +32,15 @@
 #define NODE_TYPE_REPEAT_UNTIL 22
 #define NODE_TYPE_DO_WHILE 23
 #define NODE_TYPE_STRING 24
+#define NODE_TYPE_ARRAY 25
 
 // Type values
 #define TYPE_INT 0
 #define TYPE_BOOL 1
 #define TYPE_VOID 2
 #define TYPE_STRING 3
+
+#define DEFAULT_BINDING_ADDRESS 4096
+#define DEFAULT_VAR_SIZE 1
 
 #endif // CONSTANTS_H

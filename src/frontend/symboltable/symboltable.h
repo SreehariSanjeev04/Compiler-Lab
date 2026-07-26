@@ -14,6 +14,6 @@ typedef struct Gsymbol {
 } Gsymbol;
 
 struct Gsymbol* Lookup(char *name);
-struct Gsymbol* Install(char *name, int type);
+struct Gsymbol* Install(char *name, int type, int size);
 
 #endif // SYMBOLTABLE_H

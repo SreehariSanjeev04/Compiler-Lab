@@ -33,5 +33,6 @@ tnode* makeBreakNode();
 tnode* makeContinueNode();
 tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
+tnode* makeArrayNode(tnode* idNode, tnode* indexExpr);
 
 #endif // SYNTAXTREE_H

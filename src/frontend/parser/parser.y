@@ -1,9 +1,10 @@
 %{
 	#include <stdlib.h>
 	#include <stdio.h>
-	#include "exprtree.h"
-	#include "codegen.h"
-	#include "symboltable.h"
+	#include <exprtree.h>
+	#include <codegen.h>
+	#include <symboltable.h>
+	#include <constants.h>
 
 	int yylex(void);
 	void yyerror(char const *s);
@@ -64,23 +65,24 @@ decl
 	;
 
 varlist
-	: varlist, ID '[' NUM ']'
+	: varlist ',' ID '[' NUM ']' {
+		Install($3, $<vartype>0, $5);
+	}
 	| varlist ',' ID {
 	// printf("Installing variable: %s of type %d\n", $3, $<vartype>0);
-	Install($3, $<vartype>0);}
+		Install($3, $<vartype>0, DEFAULT_VAR_SIZE);}
 	| ID {
 	// printf("Installing variable: %s of type %d\n", $1, $<vartype>0);
-	Install($1, $<vartype>0);}
+		Install($1, $<vartype>0, DEFAULT_VAR_SIZE);}
 	| ID '[' NUM ']' {
 	// printf("Installing array: %s of type %d\n", $1, $<vartype>0);
+		Install($1, $<vartype>0, $3);
 	}
 	;
 type
 	: INT {
-	printf("Type is INT\n");
 	$$ = TYPE_INT;}
 	| STRING {
-	printf("Type is STRING\n");
 	$$ = TYPE_STRING;}
 	;
 
@@ -114,6 +116,9 @@ InputStmt
 	: READ '(' ID ')' ';' {
 	tnode* idNode = makeLeafNodeId($3);
 	$$ = makeReadNode(idNode);}
+	// | READ '(' ID '[' expr ']' ')' ';' {
+	// tnode* idNode = makeLeafNodeId($3);
+	// }
 	;
 
 OutputStmt
@@ -135,6 +140,7 @@ expr
 	| NUM {$$ = $1;}
 	| TEXT {$$ = $1;}
 	| ID {$$ = makeLeafNodeId($1);}
+	| ID '[' expr ']' {$$ = makeArrayNode($1, $3);}
 	;
 
 
@@ -142,6 +148,9 @@ AssgStmt
 	: ID ASSIGN expr ';' {
 	tnode* idNode = makeLeafNodeId($1);
 	$$ = makeOperatorNode("=",idNode,$3);}
+	| ID '[' expr ']' ASSIGN expr ';' {
+	tnode* idNode = makeArrayNode($1, $3);
+	$$ = makeOperatorNode("=", idNode, $6);} // on what assumption?
 	;
 	
 %%

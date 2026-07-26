@@ -244,3 +244,15 @@ tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr) {
     temp->middle = NULL;
     return temp;
 }
+
+tnode* makeArrayNode(tnode* idNode, tnode* indexExpr) {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->nodetype = NODE_TYPE_ARRAY;
+    temp->type = TYPE_INT; // This has to change
+    temp->varname = NULL;
+    temp->val = 0;
+    temp->left = idNode;
+    temp->right = indexExpr;
+    temp->middle = NULL;
+    return temp;
+}
