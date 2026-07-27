@@ -113,12 +113,8 @@ Whilestmt
 	| REPEAT Slist UNTIL '(' expr ')' ';' {$$ = makeRepeatUntilNode($2, $5);}
 	;
 InputStmt
-	: READ '(' ID ')' ';' {
-	tnode* idNode = makeLeafNodeId($3);
-	$$ = makeReadNode(idNode);}
-	// | READ '(' ID '[' expr ']' ')' ';' {
-	// tnode* idNode = makeLeafNodeId($3);
-	// }
+	: READ '(' var ')' ';' {
+		$$ = makeReadNode($3);}
 	;
 
 OutputStmt
@@ -139,19 +135,23 @@ expr
 	| '(' expr ')' {$$ = $2;}
 	| NUM {$$ = $1;}
 	| TEXT {$$ = $1;}
-	| ID {$$ = makeLeafNodeId($1);}
-	| ID '[' expr ']' {$$ = makeArrayNode($1, $3);}
+	| var {$$ = $1;}
 	;
-
 
 AssgStmt
-	: ID ASSIGN expr ';' {
-	tnode* idNode = makeLeafNodeId($1);
-	$$ = makeOperatorNode("=",idNode,$3);}
-	| ID '[' expr ']' ASSIGN expr ';' {
-	tnode* idNode = makeArrayNode($1, $3);
-	$$ = makeOperatorNode("=", idNode, $6);} // on what assumption?
+	: var ASSIGN expr ';' {
+	$$ = makeOperatorNode("=",$1,$3);}
 	;
+
+var
+	: ID {$$ = makeLeafNodeId($1);}
+	| ID '[' expr ']' {
+	tnode* idNode = makeLeafNodeId($1);
+	$$ = makeArrayNode(idNode, $3);}
+	;
+
+
+
 	
 %%
 
