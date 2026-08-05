@@ -54,8 +54,8 @@ program
 	;
 
 declarations
-	: DECL decllist ENDDECL {} 
-	| DECL ENDDECL {}
+	: DECL decllist ENDDECL { assignBindingAddresses(); } 
+	| DECL ENDDECL { assignBindingAddresses(); }
 	;
 
 decllist
@@ -74,7 +74,7 @@ varlist
 // the id is a string, so we need to create a leaf node for it, and then return that node
 vardecl
 	: ID {
-		if (lookup($1) != NULL) {
+		if (Lookup($1) != NULL) {
 			printf("Error: Variable %s already declared\n", $1);
 			exit(1);
 		}
@@ -83,16 +83,15 @@ vardecl
 			exit(1);
 		}
 		Install($1, currentType);
-		currentType = -1; // Reset currentType after installation
 		$$ = $1; // Return the ID as a string for further processing
 	}
 	| vardecl '[' NUM ']' { 
 		// check if the variable is already declared
-		if(lookup($1) == NULL) {
+		if(Lookup($1) == NULL) {
 			printf("Error: Variable %s not declared\n", $1);
 			exit(1);
 		}
-		struct GSymbol* symbol = lookup($1);
+		struct Gsymbol* symbol = Lookup($1);
 		addDimensionSizes(symbol, $3->val);
 		$$ = $1; // Return the ID as a string for further processing
 	}

@@ -1,0 +1,39 @@
+begin
+decl
+    int a[2][2][2];
+    int s, i, j, k;
+enddecl
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        k = 0;
+        while (k < 2) do
+            a[i][j][k] = i * 4 + j * 2 + k;
+            k = k + 1;
+        endwhile;
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+s = 0;
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        k = 0;
+        while (k < 2) do
+            s = s + a[i][j][k];
+            k = k + 1;
+        endwhile;
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+write(s);
+write(a[1][0][1]);
+write(a[0][1][0]);
+write(a[1][1][1]);
+end;

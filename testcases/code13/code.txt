@@ -1,9 +1,12 @@
 begin
-    read(a);
-    read(b);
-    if (a < b) then
-        write(a);
-    else
-        write(b);
-    endif;
+decl
+    int a, b;
+enddecl
+read(a);
+read(b);
+if (a < b) then
+    write(a);
+else
+    write(b);
+endif;
 end;

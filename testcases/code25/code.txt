@@ -1,12 +1,15 @@
 begin
-    read(n);
-    i = 1;
-    do
-        j = 1;
-        repeat
-            write(i * 10 + j);
-            j = j + 1;
-        until (j > i);
-        i = i + 1;
-    while (i <= n) endwhile;
+decl
+    int n, i, j;
+enddecl
+read(n);
+i = 1;
+do
+    j = 1;
+    repeat
+        write(i * 10 + j);
+        j = j + 1;
+    until (j > i);
+    i = i + 1;
+while (i <= n) endwhile;
 end;

@@ -1,18 +1,21 @@
 begin
-    read(a);
-    read(b);
+decl
+    int a, b;
+enddecl
+read(a);
+read(b);
 
-    if(a>b) then
-        if(a>100) then
-            write(a);
-        else
-            write(b);
-        endif;
+if(a>b) then
+    if(a>100) then
+        write(a);
     else
-        if(b>100) then
-            write(b);
-        else
-            write(a);
-        endif;
+        write(b);
     endif;
+else
+    if(b>100) then
+        write(b);
+    else
+        write(a);
+    endif;
+endif;
 end;

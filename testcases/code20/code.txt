@@ -1,16 +1,19 @@
 begin
-    read(n);
-    i = 1;
-    while (i <= n) do
-        if (i == 1) then
-            write(100);
+decl
+    int n, i;
+enddecl
+read(n);
+i = 1;
+while (i <= n) do
+    if (i == 1) then
+        write(100);
+    else
+        if (i == n) then
+            write(200);
         else
-            if (i == n) then
-                write(200);
-            else
-                write(i);
-            endif;
+            write(i);
         endif;
-        i = i + 1;
-    endwhile;
+    endif;
+    i = i + 1;
+endwhile;
 end;

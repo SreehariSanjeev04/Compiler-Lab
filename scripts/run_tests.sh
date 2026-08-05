@@ -37,7 +37,7 @@ flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
 flex --prefix=translate -o build/translate.yy.c src/backend/translate/label_translate.l
 
 # Run GCC
-gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/translate -Isrc/commons
+gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/symboltable/symboltable.c src/frontend/symboltable/utils/utils.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/translate -Isrc/commons -Isrc/frontend/symboltable -Isrc/frontend/symboltable/utils
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GCC compilation failed.${NC}"

@@ -1,0 +1,21 @@
+begin
+decl
+    int a[2][3];
+    int b[2][3];
+    int i, j;
+enddecl
+read(i);
+read(j);
+a[0][0] = 10;
+a[0][1] = 20;
+a[0][2] = 30;
+a[1][0] = 40;
+a[1][1] = 50;
+a[1][2] = 60;
+b[0][0] = 1;
+b[1][2] = 2;
+write(a[i][j]);
+write(b[0][0] + b[1][2]);
+a[i][j] = a[i][j] + b[0][0];
+write(a[i][j]);
+end;

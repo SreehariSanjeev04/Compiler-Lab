@@ -1,6 +1,9 @@
 begin
-    read(a);
-    if (a > 10) then
-        write(a);
-    endif;
+decl
+    int a;
+enddecl
+read(a);
+if (a > 10) then
+    write(a);
+endif;
 end;

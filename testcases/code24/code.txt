@@ -1,11 +1,14 @@
 begin
-    read(n);
-    i = 1;
-    repeat
-        write(i);
-        if (i == 3) then
-            break;
-        endif;
-        i = i + 1;
-    until (i > n);
+decl
+    int n, i;
+enddecl
+read(n);
+i = 1;
+repeat
+    write(i);
+    if (i == 3) then
+        break;
+    endif;
+    i = i + 1;
+until (i > n);
 end;

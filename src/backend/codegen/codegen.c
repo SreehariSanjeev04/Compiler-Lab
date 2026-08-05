@@ -1,5 +1,6 @@
 #include "codegen.h"
 #include <symboltable.h>
+#include <utils.h>
 int regCount = 0;
 int labelCount = 0;
 /**
@@ -18,7 +19,7 @@ void addHeader(FILE *targetFile)
 
 int getReg()
 {
-    if (regCount < 20)
+    if (regCount < MAX_REGISTERS)
     {
         return regCount++;
     }
@@ -92,6 +93,59 @@ void generateCode(tnode *root, FILE *targetFile)
     printf("Code generation completed successfully.\n");
 }
 
+/*
+ * Computes the memory address of an array element into a register.
+ * The array node is a left-leaning tree: the leftmost leaf is the variable
+ * name and the right child of each node is the index for that dimension.
+ * @param root: The NODE_TYPE_ARRAY node whose address is to be computed
+ * @param targetFile: The file pointer to the target file where the code is being generated
+ * @return: The register number holding the element address
+ */
+static int codeGenArrayAddress(tnode *root, FILE *targetFile)
+{
+    tnode *current = root;
+    while (current->left != NULL)
+    {
+        current = current->left;
+    }
+    if (current->nodetype != NODE_TYPE_ID)
+    {
+        fprintf(stderr, "Error: Array node must have an ID as its leftmost child\n");
+        exit(1);
+    }
+    struct Gsymbol *symbol = Lookup(current->varname);
+    if (symbol == NULL)
+    {
+        fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
+        exit(1);
+    }
+    int numOfDimensions = symbol->dimensions;
+    int bindingAddress = returnStaticBindAddress(current->varname);
+    int *strideArray = createStrideArray(symbol);
+
+    // Start the total offset with the binding address of the array
+    int totalOffsetReg = getReg();
+    fprintf(targetFile, "MOV R%d, %d\n", totalOffsetReg, bindingAddress);
+
+    // The rightmost index corresponds to the last dimension (stride 1)
+    int indexCount = numOfDimensions - 1;
+    current = root;
+    while (current->left != NULL)
+    {
+        int computeReg = getReg();
+        int indexReg = codeGen(current->right, targetFile);
+        fprintf(targetFile, "MOV R%d, %d\n", computeReg, strideArray[indexCount]);
+        fprintf(targetFile, "MUL R%d, R%d\n", computeReg, indexReg);
+        fprintf(targetFile, "ADD R%d, R%d\n", totalOffsetReg, computeReg);
+        freeReg(); // free indexReg (allocated last)
+        freeReg(); // free computeReg
+        current = current->left;
+        indexCount--;
+    }
+    free(strideArray);
+    return totalOffsetReg;
+}
+
 int codeGen(tnode *root, FILE *targetFile)
 {
     if (root == NULL)
@@ -106,41 +160,58 @@ int codeGen(tnode *root, FILE *targetFile)
         return -1;
     }
 
-    // Only possible leaf nodes are NUM and ID
+    // Leaf nodes: NUM, ID, STRING load values into registers.
     if (!root->left && !root->right)
     {
-        int reg = getReg();
-        if (root->nodetype == NODE_TYPE_NUM)
+        switch (root->nodetype)
         {
+        case NODE_TYPE_NUM:
+        {
+            int reg = getReg();
             fprintf(targetFile, "MOV R%d, %d\n", reg, root->val);
+            return reg;
         }
-        else if (root->nodetype == NODE_TYPE_STRING)
+        case NODE_TYPE_STRING:
         {
+            int reg = getReg();
             fprintf(targetFile, "MOV R%d, %s\n", reg, root->varname);
+            return reg;
         }
-        else if (root->nodetype == NODE_TYPE_ID)
+        case NODE_TYPE_ID:
         {
+            // Dereference the variable: load its value into the register.
             int address = returnStaticBindAddress(root->varname);
-            fprintf(targetFile, "MOV R%d, %d\n", reg, address);   
+            int reg = getReg();
+            fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
+            return reg;
         }
-        else if (root->nodetype == NODE_TYPE_BREAKPOINT)
-        {
-            fprintf(targetFile, "BRKP\n");
+        default:
+            // Statement-only leaves (breakpoint, break, continue) do not use a register.
+            if (root->nodetype == NODE_TYPE_BREAKPOINT)
+            {
+                fprintf(targetFile, "BRKP\n");
+            }
+            else if (root->nodetype == NODE_TYPE_BREAK)
+            {
+                if (insideWhileLoop)
+                {
+                    fprintf(targetFile, "JMP L%d\n", whileEndLabel);
+                }
+            }
+            else if (root->nodetype == NODE_TYPE_CONTINUE)
+            {
+                if (insideWhileLoop)
+                {
+                    fprintf(targetFile, "JMP L%d\n", whileStartLabel);
+                }
+            }
+            else
+            {
+                fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
+                exit(1);
+            }
+            return -1;
         }
-        else if (root->nodetype == NODE_TYPE_BREAK && insideWhileLoop)
-        {
-            fprintf(targetFile, "JMP L%d\n", whileEndLabel);
-        }
-        else if (root->nodetype == NODE_TYPE_CONTINUE && insideWhileLoop)
-        {
-            fprintf(targetFile, "JMP L%d\n", whileStartLabel);
-        }
-        else
-        {
-            fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
-            exit(1);
-        }
-        return reg;
     }
     // Cases that require special statement handling: If, If Else, While, Array
     switch (root->nodetype)
@@ -257,40 +328,10 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ARRAY:
     {
-        // the leftmost child would be the variable and the rightmost child would be the last index
-        tnode* current = root;
-        while(current->left != NULL) {
-            current = current->left;
-        }
-        if(current->nodetype != NODE_TYPE_ID) {
-            fprintf(stderr, "Error: Array node must have an ID as its leftmost child\n");
-            exit(1);
-        }
-        struct Gsymbol *symbol = Lookup(current->varname);
-        if(symbol == NULL) {
-            fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
-            exit(1);
-        }
-        int numOfDimensions = symbol->dimensions;
-        int bindingAddress = returnStaticBindAddress(current->varname);
-        int* strideArray = createStrideArray(symbol);
-        int totalOffsetReg = getReg();
-        fprintf(targetFile, "MOV R%d, %d\n", totalOffsetReg, bindingAddress); // initialize total offset with binding address
-        int indexCount = numOfDimensions - 1;
-        tnode* current = root;
-        while(current->left != NULL) {
-            int computeReg = getReg();
-            int indexReg = codeGen(current->right, targetFile);
-            fprintf(targetFile, "MOV R%d, %d\n", computeReg, strideArray[indexCount]);
-            fprintf(targetFile, "MUL R%d, R%d\n", computeReg, indexReg);
-            fprintf(targetFile, "ADD R%d, R%d\n", totalOffsetReg, computeReg);
-            freeReg(); // free computeReg
-            freeReg(); // free indexReg
-            current = current->left;
-            indexCount--;
-        }
-        free(strideArray);
-        return totalOffsetReg;
+        // Used as a value in an expression: compute the element address, then dereference.
+        int reg = codeGenArrayAddress(root, targetFile);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
+        return reg;
     }
     default:
         break;
@@ -302,21 +343,33 @@ int codeGen(tnode *root, FILE *targetFile)
     case NODE_TYPE_READ:
     {
         tnode *variableNode = root->left;
-        if (variableNode->nodetype != NODE_TYPE_ID   && variableNode->nodetype != NODE_TYPE_ARRAY)
+        if (variableNode == NULL ||
+            (variableNode->nodetype != NODE_TYPE_ID && variableNode->nodetype != NODE_TYPE_ARRAY))
         {
             fprintf(stderr, "Error: READ node must have an ID or array node as its left child\n");
             exit(1);
         }
-        int addressReg = codeGen(variableNode, targetFile);
+        // The Read library call stores the input value at the address passed to it,
+        // so we must compute the address (not the value) of the target variable.
+        int addressReg;
+        if (variableNode->nodetype == NODE_TYPE_ID)
+        {
+            int address = returnStaticBindAddress(variableNode->varname);
+            addressReg = getReg();
+            fprintf(targetFile, "MOV R%d, %d\n", addressReg, address);
+        }
+        else
+        {
+            addressReg = codeGenArrayAddress(variableNode, targetFile);
+        }
         readValue(addressReg, targetFile);
         freeReg();
         return -1;
     }
     case NODE_TYPE_WRITE:
     {
-        int addressReg = codeGen(root->left, targetFile);
-        fprintf(targetFile, "MOV R%d, [R%d]\n", addressReg, addressReg); // load the value from the address into the register
-        printValue(addressReg, targetFile);
+        int valueReg = codeGen(root->left, targetFile);
+        printValue(valueReg, targetFile);
         freeReg();
         return -1;
     }
@@ -328,9 +381,18 @@ int codeGen(tnode *root, FILE *targetFile)
             exit(1);
         }
         int rightReg = codeGen(root->right, targetFile);
-        int address = returnStaticBindAddress(root->left->varname);
-        fprintf(targetFile, "MOV [%d], R%d\n", address, rightReg);
-        freeReg();
+        if (root->left->nodetype == NODE_TYPE_ID)
+        {
+            int address = returnStaticBindAddress(root->left->varname);
+            fprintf(targetFile, "MOV [%d], R%d\n", address, rightReg);
+        }
+        else
+        {
+            int addressReg = codeGenArrayAddress(root->left, targetFile);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            freeReg(); // free addressReg
+        }
+        freeReg(); // free rightReg
         return -1;
     }
     default:

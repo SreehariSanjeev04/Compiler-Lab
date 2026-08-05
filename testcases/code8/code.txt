@@ -1,9 +1,12 @@
 begin
-    read(n);
-    i = 1;
+decl
+    int n, i;
+enddecl
+read(n);
+i = 1;
 
-    while (i <= n) do
-        write(i);
-        i = i + 1;
-    endwhile;
+while (i <= n) do
+    write(i);
+    i = i + 1;
+endwhile;
 end;

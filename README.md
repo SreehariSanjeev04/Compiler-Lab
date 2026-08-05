@@ -22,7 +22,7 @@ xsm_expl/
 ├── spl/               # SPL compiler (C + Flex + Bison)
 ├── xfs-interface/     # XFS disk filesystem interface (C)
 ├── scripts/           # Build/test/utility scripts
-├── testcases/         # 25 eXpl test programs
+├── testcases/         # 35 eXpl test programs
 └── test_progs/        # Stage-wise test programs
 ```
 
@@ -114,4 +114,4 @@ end;
 ./scripts/run_tests.sh
 ```
 
-Runs all 25 test cases (`testcases/code1` through `code25`), comparing output against expected results.
+Runs all 35 test cases (`testcases/code1` through `code35`), comparing output against expected results.

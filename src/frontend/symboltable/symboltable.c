@@ -40,7 +40,7 @@ struct Gsymbol* Install(char *name, int type) {
     strcpy(newSymbol->name, name);
     newSymbol->type = type;
     newSymbol->size = 1;
-    newSymbol->binding = currentBindingAddress;
+    newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
     newSymbol->dimensions = 0;
     newSymbol->dimension_sizes = NULL;

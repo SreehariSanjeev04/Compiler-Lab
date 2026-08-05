@@ -74,8 +74,8 @@ void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
         fprintf(stderr, "Error: Symbol is NULL\n");
         exit(1);
     }
-    if(atoi(symbol->name) < 0) {
-        fprintf(stderr, "Error: Dimension size cannot be negative\n");
+    if(dimension <= 0) {
+        fprintf(stderr, "Error: Dimension size must be positive, got %d\n", dimension);
         exit(1);
     }
     if (symbol->dimension_sizes == NULL) {
@@ -83,10 +83,12 @@ void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
         symbol->dimension_sizes->size = dimension;
         symbol->dimension_sizes->next = NULL;
     } else {
-        struct dimension_sizes* current = symbol->dimension_sizes;
-        current->next = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
-        current->next->size = dimension;
-        current->next->next = NULL;
+        // Insert at the head so that the sizes are stored in the reverse order of
+        // the declaration (last dimension first), as expected by createStrideArray.
+        struct dimension_sizes* newDim = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
+        newDim->size = dimension;
+        newDim->next = symbol->dimension_sizes;
+        symbol->dimension_sizes = newDim;
     }
     symbol->dimensions += 1;
     symbol->size *= dimension;
@@ -94,5 +96,24 @@ void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
         fprintf(stderr, "Error: Array size exceeds maximum allowed address space\n");
         exit(1);
     }
-    currentBindingAddress += dimension;
+}
+
+/**
+ * This function assigns sequential static binding addresses to all symbols in
+ * the symbol table. Scalars occupy one word; arrays occupy one word per element.
+ * It must be called once, after all declarations have been parsed.
+ * @return: void
+ */
+void assignBindingAddresses() {
+    currentBindingAddress = DEFAULT_BINDING_ADDRESS;
+    struct Gsymbol* current = head;
+    while (current != NULL) {
+        current->binding = currentBindingAddress;
+        if(current->size > MAX_ARRAY_ADDRESS) {
+            fprintf(stderr, "Error: Variable '%s' requires more memory than available (%d)\n", current->name, current->size);
+            exit(1);
+        }
+        currentBindingAddress += current->size;
+        current = current->next;
+    }
 }

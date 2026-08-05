@@ -59,6 +59,8 @@ return ID;
 "=" {return ASSIGN;}
 "(" { return *yytext; }
 ")" { return *yytext; }
+"[" { return *yytext; }
+"]" { return *yytext; }
 ";" { return *yytext; }
 "," { return *yytext; }
 [ \t]	{}

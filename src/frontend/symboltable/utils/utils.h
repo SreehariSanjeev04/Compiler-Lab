@@ -4,6 +4,7 @@
 
 void freeSymbolTable();
 void addDimensionSizes(struct Gsymbol* symbol, int dimensions);
-int* addStrideArray(struct Gsymbol* symbol);
+int* createStrideArray(struct Gsymbol* symbol);
+void assignBindingAddresses();
 
 #endif
