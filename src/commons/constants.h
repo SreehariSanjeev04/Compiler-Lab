@@ -4,6 +4,7 @@
 // Maximum limit for registers and variables
 #define MAX_REGISTERS 20
 #define MAX_VARIABLES 26
+#define MAX_ARRAY_DIMENSION 10
 
 // Node type values
 

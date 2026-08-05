@@ -143,7 +143,7 @@ int codeGen(tnode *root, FILE *targetFile)
         }
         return reg;
     }
-    // Cases that require special statement handling: If, If Else, While
+    // Cases that require special statement handling: If, If Else, While, Array
     switch (root->nodetype)
     {
     case NODE_TYPE_IF:
@@ -255,6 +255,28 @@ int codeGen(tnode *root, FILE *targetFile)
         whileEndLabel = prevEnd;
         insideWhileLoop = false;
         return -1;
+    }
+    case NODE_TYPE_ARRAY:
+    {
+        // the leftmost child would be the variable and the rightmost child would be the last index
+        tnode* current = root;
+        while(current->left != NULL) {
+            current = current->left;
+        }
+        if(current->nodetype != NODE_TYPE_ID) {
+            fprintf(stderr, "Error: Array node must have an ID as its leftmost child\n");
+            exit(1);
+        }
+        struct Gsymbol *symbol = Lookup(current->varname);
+        if(symbol == NULL) {
+            fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
+            exit(1);
+        }
+        int noOfDimensions = symbol->dimensions;
+        int productArray[noOfDimensions];
+        memset(productArray, 1, sizeof(productArray));
+        struct dimension_sizes* dimCurrent = symbol->dimension_sizes;
+        
     }
     default:
         break;

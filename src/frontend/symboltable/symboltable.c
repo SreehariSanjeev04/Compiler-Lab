@@ -15,8 +15,7 @@ struct Gsymbol* Lookup(char *name) {
     return NULL;
 }
 
-struct Gsymbol* Install(char *name, int type, int size) {
-    // printf("Installing variable: %s of type %d\n", name, type);
+struct Gsymbol* Install(char *name, int type) {
     if (name == NULL || strlen(name) == 0) {
         fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
@@ -25,17 +24,15 @@ struct Gsymbol* Install(char *name, int type, int size) {
         fprintf(stderr, "Error: Variable %s already declared\n", name);
         exit(1);
     }
-    if(currentBindingAddress + size >= 4121) {
-        fprintf(stderr, "Error: Memory limit exceeded. Cannot allocate more variables.\n");
-        exit(1);
-    }
     struct Gsymbol* newSymbol = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
     newSymbol->name = (char*)malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
     newSymbol->type = type;
-    newSymbol->size = size;
-    newSymbol->binding = currentBindingAddress += size;
+    newSymbol->size = 1;
+    newSymbol->binding = currentBindingAddress;
     newSymbol->next = NULL;
+    newSymbol->dimensions = 0;
+    newSymbol->dimension_sizes = NULL;
 
     if (head == NULL) {
         head = newSymbol;

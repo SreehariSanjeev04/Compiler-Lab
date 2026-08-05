@@ -5,6 +5,7 @@
 	#include <codegen.h>
 	#include <symboltable.h>
 	#include <constants.h>
+	#include <utils.h>
 
 	int yylex(void);
 	void yyerror(char const *s);
@@ -16,6 +17,7 @@
 	extern int yydebug;
 	
 	tnode* root;
+	int currentType = -1;
 %}
 
 %define parse.error verbose
@@ -43,7 +45,7 @@
 %%
 
 program
-	: START declarations Slist END ';'  
+	: START declarations Slist END ';' 
 	{
 		root = $3;
 	}
@@ -51,39 +53,55 @@ program
 	;
 
 declarations
-	: DECL decllist ENDDECL
-	| DECL ENDDECL
+	: DECL decllist ENDDECL {} 
+	| DECL ENDDECL {}
 	;
 
 decllist
-	: decllist decl
-	| decl
+	: decllist decl {}
+	| decl {}
 	;
 
 decl
-	: type varlist ';'
+	: type varlist ';' {}
 	;
 
 varlist
-	: varlist ',' ID '[' NUM ']' {
-		Install($3, $<vartype>0, $5);
+	: varlist ',' vardecl { }
+	| vardecl {}	
+
+// the id is a string, so we need to create a leaf node for it, and then return that node
+vardecl
+	: ID {
+		if (lookup($1) != NULL) {
+			printf("Error: Variable %s already declared\n", $1);
+			exit(1);
+		}
+		if(currentType == -1) {
+			printf("Error: Type not specified for variable %s\n", $1);
+			exit(1);
+		}
+		Install($1, currentType);
+		currentType = -1; // Reset currentType after installation
+		$$ = $1; // Return the ID as a string for further processing
 	}
-	| varlist ',' ID {
-	// printf("Installing variable: %s of type %d\n", $3, $<vartype>0);
-		Install($3, $<vartype>0, DEFAULT_VAR_SIZE);}
-	| ID {
-	// printf("Installing variable: %s of type %d\n", $1, $<vartype>0);
-		Install($1, $<vartype>0, DEFAULT_VAR_SIZE);}
-	| ID '[' NUM ']' {
-	// printf("Installing array: %s of type %d\n", $1, $<vartype>0);
-		Install($1, $<vartype>0, $3);
+	| vardecl '[' NUM ']' { 
+		// check if the variable is already declared
+		if(lookup($1) == NULL) {
+			printf("Error: Variable %s not declared\n", $1);
+			exit(1);
+		}
+		struct GSymbol* symbol = lookup($1);
+		addDimensionSizes(symbol, $3);
+		$$ = $1; // Return the ID as a string for further processing
 	}
 	;
+
 type
 	: INT {
-	$$ = TYPE_INT;}
+	currentType = TYPE_INT;}
 	| STRING {
-	$$ = TYPE_STRING;}
+	currentType = TYPE_STRING;}
 	;
 
 Slist
@@ -143,15 +161,12 @@ AssgStmt
 	$$ = makeOperatorNode("=",$1,$3);}
 	;
 
+// this would create array node with the last index at the rightmost leaf node, and the left child would be the variable name
 var
 	: ID {$$ = makeLeafNodeId($1);}
-	| ID '[' expr ']' {
-	tnode* idNode = makeLeafNodeId($1);
-	$$ = makeArrayNode(idNode, $3);}
+	| var '[' expr ']' {
+	$$ = makeArrayNode($1, $3);}
 	;
-
-
-
 	
 %%
 
