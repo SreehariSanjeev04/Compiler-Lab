@@ -20,4 +20,7 @@ int returnStaticBindAddress(char* varname);
 void generateCode(tnode* root, FILE* targetFile);
 int generateLabel();
 
+extern int regCount;
+extern int labelCount;
+
 #endif // CODEGEN_H

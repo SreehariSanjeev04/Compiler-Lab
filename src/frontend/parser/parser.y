@@ -34,8 +34,9 @@
 %token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL
 %token <str> ID
 
-%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt varlist
+%type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt var
 %type <vartype> type
+%type <str> vardecl
 
 %left EQ NE
 %left LT GT LE GE
@@ -92,7 +93,7 @@ vardecl
 			exit(1);
 		}
 		struct GSymbol* symbol = lookup($1);
-		addDimensionSizes(symbol, $3);
+		addDimensionSizes(symbol, $3->val);
 		$$ = $1; // Return the ID as a string for further processing
 	}
 	;

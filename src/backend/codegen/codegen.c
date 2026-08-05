@@ -120,9 +120,8 @@ int codeGen(tnode *root, FILE *targetFile)
         }
         else if (root->nodetype == NODE_TYPE_ID)
         {
-
             int address = returnStaticBindAddress(root->varname);
-            fprintf(targetFile, "MOV R%d, [%d]\n", reg, address);
+            fprintf(targetFile, "MOV R%d, %d\n", reg, address);   
         }
         else if (root->nodetype == NODE_TYPE_BREAKPOINT)
         {
@@ -302,32 +301,30 @@ int codeGen(tnode *root, FILE *targetFile)
     {
     case NODE_TYPE_READ:
     {
-        int addressReg = getReg();
         tnode *variableNode = root->left;
-        if (variableNode->nodetype != NODE_TYPE_ID)
+        if (variableNode->nodetype != NODE_TYPE_ID   && variableNode->nodetype != NODE_TYPE_ARRAY)
         {
-            fprintf(stderr, "Error: READ node must have an ID as its left child\n");
+            fprintf(stderr, "Error: READ node must have an ID or array node as its left child\n");
             exit(1);
         }
-        struct Gsymbol *symbol = Lookup(variableNode->varname);
-        int address = returnStaticBindAddress(variableNode->varname);
-        fprintf(targetFile, "MOV R%d, %d\n", addressReg, address);
+        int addressReg = codeGen(variableNode, targetFile);
         readValue(addressReg, targetFile);
         freeReg();
         return -1;
     }
     case NODE_TYPE_WRITE:
     {
-        int valueReg = codeGen(root->left, targetFile);
-        printValue(valueReg, targetFile);
+        int addressReg = codeGen(root->left, targetFile);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", addressReg, addressReg); // load the value from the address into the register
+        printValue(addressReg, targetFile);
         freeReg();
         return -1;
     }
     case NODE_TYPE_ASSIGN:
     {
-        if (!root->left || root->left->nodetype != NODE_TYPE_ID)
+        if (!root->left || (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY))
         {
-            fprintf(stderr, "Error: ASSIGN node must have an ID as its left child\n");
+            fprintf(stderr, "Error: ASSIGN node must have an ID or array node as its left child\n");
             exit(1);
         }
         int rightReg = codeGen(root->right, targetFile);
@@ -399,6 +396,12 @@ int codeGen(tnode *root, FILE *targetFile)
     return leftReg;
 }
 
+/*
+* This function generates the assembly code to print a value stored in a register.
+* @param reg: The register number that contains the value to be printed
+* @param targetFile: The file pointer to the target file where the code is being generated
+* @return: void
+*/
 void printValue(int reg, FILE *targetFile)
 {
 
@@ -423,6 +426,12 @@ void printValue(int reg, FILE *targetFile)
     restoreRegisters(targetFile);
 }
 
+/*
+* This function generates the assembly code to read a value from the user and store it in a specified register.
+* @param reg: The register number where the read value will be stored
+* @param targetFile: The file pointer to the target file where the code is being generated
+* @return: void
+*/
 void readValue(int reg, FILE *targetFile)
 {
     saveRegisters(targetFile);
@@ -446,6 +455,10 @@ void readValue(int reg, FILE *targetFile)
     restoreRegisters(targetFile);
 }
 
+/**
+ * This function generates the assembly code to exit the program.
+ * @param targetFile: The file pointer to the target file where the code is being generated
+ */
 void exitProgram(FILE *targetFile)
 {
     int tempReg = getReg();

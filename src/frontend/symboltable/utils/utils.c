@@ -2,6 +2,12 @@
 #include <symboltable.h>
 #include <constants.h>
 
+/**
+ * This function frees the memory allocated for the symbol table and its associated structures.
+ * It traverses the linked list of symbols and deallocates memory for each symbol's name
+ * and dimension sizes, as well as the symbol itself. After freeing all symbols, it sets the head of the symbol table to NULL.
+ * @return: void
+ */
 void freeSymbolTable() {
     struct Gsymbol* current = head;
     while (current != NULL) {
@@ -21,6 +27,12 @@ void freeSymbolTable() {
     head = NULL;
 }
 
+/**
+ * This function creates a stride array for a given symbol representing an array variable.
+ * The stride array is used to calculate the memory address of elements in multi-dimensional arrays.
+ * @param symbol: The symbol table entry for the array variable.
+ * @return: A pointer to the dynamically allocated stride array.
+ */
 int* createStrideArray(struct Gsymbol* symbol) {
     if (symbol == NULL || symbol->dimensions <= 0) {
         fprintf(stderr, "Error: Invalid symbol or dimensions\n");
@@ -49,6 +61,14 @@ int* createStrideArray(struct Gsymbol* symbol) {
     return strideArray;
 }
 
+/**
+ * This function adds a new dimension size to the specified symbol representing an array variable.
+ * It updates the linked list of dimension sizes, increments the number of dimensions, and adjusts the total size of the array.
+ * @param symbol: The symbol table entry for the array variable.
+ * @param dimension: The size of the new dimension to be added.
+ * @return: void
+ * @details: The dimension sizes are filled in the reverse order of the dimensions. For example, for a 2D array declared as int arr[3][4], the first call to addDimensionSizes will add 4, and the second call will add 3.
+ */
 void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
     if(symbol == NULL) {
         fprintf(stderr, "Error: Symbol is NULL\n");

@@ -4,6 +4,11 @@
 struct Gsymbol* head = NULL;
 int currentBindingAddress = DEFAULT_BINDING_ADDRESS;
 
+/**
+ * This function looks up a variable in the symbol table by its name.
+ * @param name: The name of the variable to look up
+ * @return: A pointer to the Gsymbol structure if found, NULL otherwise
+ */
 struct Gsymbol* Lookup(char *name) {
     struct Gsymbol* current = head;
     while (current != NULL) {
@@ -15,6 +20,12 @@ struct Gsymbol* Lookup(char *name) {
     return NULL;
 }
 
+/**
+ * This function installs a new variable into the symbol table.
+ * @param name: The name of the variable to be installed
+ * @param type: The type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.)
+ * @return: A pointer to the newly created Gsymbol structure for the variable
+ */
 struct Gsymbol* Install(char *name, int type) {
     if (name == NULL || strlen(name) == 0) {
         fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");

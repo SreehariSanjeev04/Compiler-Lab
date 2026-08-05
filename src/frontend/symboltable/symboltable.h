@@ -22,6 +22,7 @@ typedef struct Gsymbol {
 
 extern struct Gsymbol *head;
 extern int currentBindingAddress;
+
 struct Gsymbol* Lookup(char *name);
 struct Gsymbol* Install(char *name, int type);
 
