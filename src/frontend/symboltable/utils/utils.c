@@ -1,5 +1,6 @@
 #include <utils.h>
 #include <symboltable.h>
+#include <constants.h>
 
 void freeSymbolTable() {
     struct Gsymbol* current = head;
@@ -69,4 +70,9 @@ void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
     }
     symbol->dimensions += 1;
     symbol->size *= dimension;
+    if(symbol->size > MAX_ARRAY_ADDRESS) {
+        fprintf(stderr, "Error: Array size exceeds maximum allowed address space\n");
+        exit(1);
+    }
+    currentBindingAddress += dimension;
 }

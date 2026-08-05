@@ -5,6 +5,7 @@
 #define MAX_REGISTERS 20
 #define MAX_VARIABLES 26
 #define MAX_ARRAY_DIMENSION 10
+#define MAX_ARRAY_ADDRESS 4121
 
 // Node type values
 

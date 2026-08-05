@@ -272,11 +272,26 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
             exit(1);
         }
-        int noOfDimensions = symbol->dimensions;
-        int productArray[noOfDimensions];
-        memset(productArray, 1, sizeof(productArray));
-        struct dimension_sizes* dimCurrent = symbol->dimension_sizes;
-        
+        int numOfDimensions = symbol->dimensions;
+        int bindingAddress = returnStaticBindAddress(current->varname);
+        int* strideArray = createStrideArray(symbol);
+        int totalOffsetReg = getReg();
+        fprintf(targetFile, "MOV R%d, %d\n", totalOffsetReg, bindingAddress); // initialize total offset with binding address
+        int indexCount = numOfDimensions - 1;
+        tnode* current = root;
+        while(current->left != NULL) {
+            int computeReg = getReg();
+            int indexReg = codeGen(current->right, targetFile);
+            fprintf(targetFile, "MOV R%d, %d\n", computeReg, strideArray[indexCount]);
+            fprintf(targetFile, "MUL R%d, R%d\n", computeReg, indexReg);
+            fprintf(targetFile, "ADD R%d, R%d\n", totalOffsetReg, computeReg);
+            freeReg(); // free computeReg
+            freeReg(); // free indexReg
+            current = current->left;
+            indexCount--;
+        }
+        free(strideArray);
+        return totalOffsetReg;
     }
     default:
         break;
