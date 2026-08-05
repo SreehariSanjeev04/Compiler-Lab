@@ -20,6 +20,34 @@ void freeSymbolTable() {
     head = NULL;
 }
 
+int* createStrideArray(struct Gsymbol* symbol) {
+    if (symbol == NULL || symbol->dimensions <= 0) {
+        fprintf(stderr, "Error: Invalid symbol or dimensions\n");
+        exit(1);
+    }
+
+    int* strideArray = (int*)malloc(symbol->dimensions * sizeof(int));
+    if (strideArray == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed for stride array\n");
+        exit(1);
+    }
+
+    struct dimension_sizes* current = symbol->dimension_sizes;
+    int totalSize = 1;
+    for (int i = symbol->dimensions - 1; i >= 0; i--) {
+        if (current == NULL) {
+            fprintf(stderr, "Error: Dimension sizes do not match the number of dimensions\n");
+            free(strideArray);
+            exit(1);
+        }
+        strideArray[i] = totalSize;
+        totalSize *= current->size;
+        current = current->next;
+    }
+
+    return strideArray;
+}
+
 void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
     if(symbol == NULL) {
         fprintf(stderr, "Error: Symbol is NULL\n");
