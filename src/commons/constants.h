@@ -41,6 +41,11 @@
 #define TYPE_BOOL 1
 #define TYPE_VOID 2
 #define TYPE_STRING 3
+#define TYPE_POINTER_INT 4
+#define TYPE_POINTER_BOOL 5
+#define TYPE_POINTER_STRING 6
+
+// To do - look into void type pointer
 
 #define DEFAULT_BINDING_ADDRESS 4096
 #define DEFAULT_VAR_SIZE 1

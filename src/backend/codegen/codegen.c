@@ -333,6 +333,18 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
         return reg;
     }
+    case NODE_TYPE_ADDRESS:
+    {
+        if (root->left->nodetype != NODE_TYPE_ID)
+        {
+            fprintf(stderr, "Error: Address node must have an ID node as its left child\n");
+            exit(1);
+        }
+        int address = returnStaticBindAddress(root->left->varname);
+        int reg = getReg();
+        fprintf(targetFile, "MOV R%d, %d\n", reg, address); // load the address to the register
+        return reg;
+    }
     default:
         break;
     }
@@ -349,8 +361,6 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: READ node must have an ID or array node as its left child\n");
             exit(1);
         }
-        // The Read library call stores the input value at the address passed to it,
-        // so we must compute the address (not the value) of the target variable.
         int addressReg;
         if (variableNode->nodetype == NODE_TYPE_ID)
         {
@@ -375,12 +385,17 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ASSIGN:
     {
-        if (!root->left || (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY))
+        if (!root->left || (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY && !isPointerType(root->left->type)))
         {
-            fprintf(stderr, "Error: ASSIGN node must have an ID or array node as its left child\n");
+            fprintf(stderr, "Error: ASSIGN node must have an ID or array node or a pointer node as its left child\n");
             exit(1);
         }
         int rightReg = codeGen(root->right, targetFile);
+        if(isPointerType(root->left->type) && root->left->nodetype == NODE_TYPE_ADDRESS) {
+            // pointer assignent: *p = value
+            // check the dereference level of the pointer and generate code accordingly
+            
+        }
         if (root->left->nodetype == NODE_TYPE_ID)
         {
             int address = returnStaticBindAddress(root->left->varname);

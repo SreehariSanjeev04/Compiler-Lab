@@ -54,7 +54,7 @@ return ID;
 ">=" {return GE;}
 "+"	{return PLUS;}
 "-"	{return MINUS;}
-"*"	{return MUL;}
+"*"	{return STAR;}
 "/"	{return DIV;}
 "=" {return ASSIGN;}
 "(" { return *yytext; }
@@ -63,6 +63,7 @@ return ID;
 "]" { return *yytext; }
 ";" { return *yytext; }
 "," { return *yytext; }
+"&" { return *yytext; }
 [ \t]	{}
 [\n]	{}
 .	{yyerror("unknown character\n");

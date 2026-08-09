@@ -6,6 +6,7 @@
 	#include <symboltable.h>
 	#include <constants.h>
 	#include <utils.h>
+	#include <stdbool.h>
 
 	int yylex(void);
 	void yyerror(char const *s);
@@ -27,21 +28,22 @@
     struct tnode *node;
 	int vartype;
 	char* str;
+	bool isAddress;
 }
 
 %token <node> NUM TEXT BREAKPOINT CONTINUE BREAK
 %token <vartype> INT STRING
-%token PLUS MINUS MUL DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL
+%token PLUS MINUS STAR DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL
 %token <str> ID
 
 %type <node> expr program Slist Stmt InputStmt OutputStmt AssgStmt Ifstmt Whilestmt var
 %type <vartype> type
-%type <str> vardecl
+%type <str> vardecl arraydecl
 
 %left EQ NE
 %left LT GT LE GE
 %left PLUS MINUS
-%left MUL DIV
+%left STAR DIV
 
 %%
 
@@ -71,21 +73,41 @@ varlist
 	: varlist ',' vardecl { }
 	| vardecl {}	
 
+
 // the id is a string, so we need to create a leaf node for it, and then return that node
 vardecl
+	: ptrList ID {
+		if (Lookup($2) != NULL) {
+			printf("Error: Variable %s already declared\n", $2);
+			exit(1);
+		}
+		if(currentType == -1) {
+			printf("Error: Type not specified for variable %s\n", $2);
+			exit(1);
+		}
+		
+		Install($2, returnPointerType(currentType), $1);
+		$$ = $2; // Return the ID as a string for further processing
+	}
+	| arraydecl {
+		$$ = $1;
+	}
+	;
+
+arraydecl
 	: ID {
 		if (Lookup($1) != NULL) {
 			printf("Error: Variable %s already declared\n", $1);
 			exit(1);
 		}
 		if(currentType == -1) {
-			printf("Error: Type not specified for variable %s\n", $1);
+			printf("Error: Type not specified for variable %s\n", $1	);
 			exit(1);
 		}
-		Install($1, currentType);
-		$$ = $1; // Return the ID as a string for further processing
+		Install($1, currentType, 0);
+		$$ = $1;
 	}
-	| vardecl '[' NUM ']' { 
+	| arraydecl '[' NUM ']' {
 		// check if the variable is already declared
 		if(Lookup($1) == NULL) {
 			printf("Error: Variable %s not declared\n", $1);
@@ -93,10 +115,13 @@ vardecl
 		}
 		struct Gsymbol* symbol = Lookup($1);
 		addDimensionSizes(symbol, $3->val);
-		$$ = $1; // Return the ID as a string for further processing
+		$$ = $1;
 	}
-	;
 
+ptrList
+	: STAR ptrList {$$ = $2 + 1;} // Increment pointer level for each '*'
+	| /* empty */ {$$ = 0;} // No pointer indirection
+	;
 type
 	: INT {
 	currentType = TYPE_INT;}
@@ -142,7 +167,7 @@ OutputStmt
 expr
 	: expr PLUS expr {$$ = makeOperatorNode("+",$1,$3);}
 	| expr MINUS expr {$$ = makeOperatorNode("-",$1,$3);}
-	| expr MUL expr {$$ = makeOperatorNode("*",$1,$3);}
+	| expr STAR expr {$$ = makeOperatorNode("*",$1,$3);}
 	| expr DIV expr {$$ = makeOperatorNode("/",$1,$3);}
 	| expr LE expr {$$ = makeOperatorNode("<=",$1,$3);}
 	| expr GE expr {$$ = makeOperatorNode(">=",$1,$3);}
@@ -153,9 +178,20 @@ expr
 	| '(' expr ')' {$$ = $2;}
 	| NUM {$$ = $1;}
 	| TEXT {$$ = $1;}
-	| var {$$ = $1;}
+	| addr var {
+		if($1) {
+			$$ = $2;
+		} else {
+			$$ = makeAddressNode($2);
+		}
+	}
 	;
 
+// detect if the variable is being used as an address or not, if it is then we will create a new node for it, else we will just return the variable node
+addr
+	: '&' {$$ = true}
+	| /* empty */ {$$ = false}
+	;
 AssgStmt
 	: var ASSIGN expr ';' {
 	$$ = makeOperatorNode("=",$1,$3);}

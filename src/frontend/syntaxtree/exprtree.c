@@ -256,3 +256,15 @@ tnode* makeArrayNode(tnode* idNode, tnode* indexExpr) {
     temp->middle = NULL;
     return temp;
 }
+
+tnode* makeAddressNode(tnode* varNode) {
+    tnode* temp = (tnode*)malloc(sizeof(tnode));
+    temp->nodetype = NODE_TYPE_ADDRESS;
+    temp->type = NULL; // This will be set based on the variable type later
+    temp->varname = NULL;
+    temp->val = 0;
+    temp->left = varNode;
+    temp->right = NULL;
+    temp->middle = NULL;
+    return temp;
+}

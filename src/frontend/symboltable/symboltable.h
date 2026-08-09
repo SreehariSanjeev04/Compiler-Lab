@@ -10,9 +10,14 @@ typedef struct dimension_sizes {
     struct dimension_sizes* next;
 } dimension_sizes;
 
+typedef struct TypeRef {
+    int type; // Type of the variable (eg. TYPE_INT, TYPE_BOOL, etc.)
+    int pointerLevel; // Level of pointer indirection (0 for non-pointer types)
+} TypeRef;
+
 typedef struct Gsymbol {
     char* name;       
-    int type;         // type of the variable
+    TypeRef typeRef; // Type reference for the variable
     int size;         // size of the type of the variable
     int binding;      // stores the static memory address allocated to the variable
     int dimensions;    // number of dimensions for arrays
@@ -24,6 +29,6 @@ extern struct Gsymbol *head;
 extern int currentBindingAddress;
 
 struct Gsymbol* Lookup(char *name);
-struct Gsymbol* Install(char *name, int type);
+struct Gsymbol* Install(char *name, int type, int pointerLevel);
 
 #endif // SYMBOLTABLE_H

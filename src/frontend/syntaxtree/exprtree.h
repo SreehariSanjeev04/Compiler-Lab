@@ -34,5 +34,6 @@ tnode* makeContinueNode();
 tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeArrayNode(tnode* idNode, tnode* indexExpr);
+tnode* makeAddressNode(tnode* varNode);
 
 #endif // SYNTAXTREE_H

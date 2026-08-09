@@ -26,7 +26,7 @@ struct Gsymbol* Lookup(char *name) {
  * @param type: The type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.)
  * @return: A pointer to the newly created Gsymbol structure for the variable
  */
-struct Gsymbol* Install(char *name, int type) {
+struct Gsymbol* Install(char *name, int type, int pointerLevel) {
     if (name == NULL || strlen(name) == 0) {
         fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
@@ -38,7 +38,8 @@ struct Gsymbol* Install(char *name, int type) {
     struct Gsymbol* newSymbol = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
     newSymbol->name = (char*)malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
-    newSymbol->type = type;
+    newSymbol->typeRef.type = type;
+    newSymbol->typeRef.pointerLevel = pointerLevel;
     newSymbol->size = 1;
     newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
