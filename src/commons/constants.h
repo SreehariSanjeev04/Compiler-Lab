@@ -35,15 +35,13 @@
 #define NODE_TYPE_DO_WHILE 23
 #define NODE_TYPE_STRING 24
 #define NODE_TYPE_ARRAY 25
+#define NODE_TYPE_DEREF 26
 
 // Type values
 #define TYPE_INT 0
 #define TYPE_BOOL 1
 #define TYPE_VOID 2
 #define TYPE_STRING 3
-#define TYPE_POINTER_INT 4
-#define TYPE_POINTER_BOOL 5
-#define TYPE_POINTER_STRING 6
 
 // To do - look into void type pointer
 

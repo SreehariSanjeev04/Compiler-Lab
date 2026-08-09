@@ -385,17 +385,14 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ASSIGN:
     {
-        if (!root->left || (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY && !isPointerType(root->left->type)))
+        if (!root->left || (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY && root->left->nodetype != NODE_TYPE_DEREF))
         {
             fprintf(stderr, "Error: ASSIGN node must have an ID or array node or a pointer node as its left child\n");
             exit(1);
         }
+        
         int rightReg = codeGen(root->right, targetFile);
-        if(isPointerType(root->left->type) && root->left->nodetype == NODE_TYPE_ADDRESS) {
-            // pointer assignent: *p = value
-            // check the dereference level of the pointer and generate code accordingly
-            
-        }
+        
         if (root->left->nodetype == NODE_TYPE_ID)
         {
             int address = returnStaticBindAddress(root->left->varname);

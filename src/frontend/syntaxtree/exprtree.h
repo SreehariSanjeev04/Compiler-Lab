@@ -10,6 +10,7 @@
 typedef struct tnode {
     int val;
     int type;
+    int pointerLevel;
     char* varname;
     int nodetype; 
     struct tnode* left;
@@ -35,5 +36,6 @@ tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeArrayNode(tnode* idNode, tnode* indexExpr);
 tnode* makeAddressNode(tnode* varNode);
+tnode* makeDeRefNode(tnode* varNode);
 
 #endif // SYNTAXTREE_H

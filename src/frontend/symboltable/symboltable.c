@@ -38,9 +38,9 @@ struct Gsymbol* Install(char *name, int type, int pointerLevel) {
     struct Gsymbol* newSymbol = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
     newSymbol->name = (char*)malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
-    newSymbol->typeRef.type = type;
-    newSymbol->typeRef.pointerLevel = pointerLevel;
-    newSymbol->size = 1;
+    newSymbol->type = type;
+    newSymbol->pointerLevel = pointerLevel;
+    newSymbol->size = 1; // default size
     newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
     newSymbol->dimensions = 0;

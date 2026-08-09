@@ -10,14 +10,10 @@ typedef struct dimension_sizes {
     struct dimension_sizes* next;
 } dimension_sizes;
 
-typedef struct TypeRef {
-    int type; // Type of the variable (eg. TYPE_INT, TYPE_BOOL, etc.)
-    int pointerLevel; // Level of pointer indirection (0 for non-pointer types)
-} TypeRef;
-
 typedef struct Gsymbol {
     char* name;       
-    TypeRef typeRef; // Type reference for the variable
+    int type;         // type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.)
+    int pointerLevel; // level of pointer indirection (0 for non-pointer, 1 for single pointer, etc.)
     int size;         // size of the type of the variable
     int binding;      // stores the static memory address allocated to the variable
     int dimensions;    // number of dimensions for arrays
