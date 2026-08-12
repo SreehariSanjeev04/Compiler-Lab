@@ -36,6 +36,7 @@
 #define NODE_TYPE_STRING 24
 #define NODE_TYPE_ARRAY 25
 #define NODE_TYPE_DEREF 26
+#define NODE_TYPE_ADDRESS 27
 
 // Type values
 #define TYPE_INT 0

@@ -118,48 +118,6 @@ void assignBindingAddresses() {
     }
 }
 
-/*
- * This function returns the pointer type corresponding to a given base type.
- * @param baseType: The base type for which to return a pointer type.
- * @return: The corresponding pointer type.
- */
-int returnPointerType(int baseType) {
-    switch(baseType) {
-        case TYPE_INT:
-            return TYPE_POINTER_INT;
-        case TYPE_BOOL:
-            return TYPE_POINTER_BOOL;
-        case TYPE_STRING:
-            return TYPE_POINTER_STRING;
-        default:
-            fprintf(stderr, "Error: Invalid base type for pointer conversion\n");
-            exit(1);
-    }
-}
-
-/*
- * This function checks if a given type is a pointer type.
- * @param type: The type to check.
- * @return: true if the type is a pointer type, false otherwise.
- */
-bool isPointerType(int type) {
-    return (type == TYPE_POINTER_INT || type == TYPE_POINTER_BOOL || type == TYPE_POINTER_STRING);
-}
-
-int returnBaseType(int pointerType) {
-    switch(pointerType) {
-        case TYPE_POINTER_INT:
-            return TYPE_INT;
-        case TYPE_POINTER_BOOL:
-            return TYPE_BOOL;
-        case TYPE_POINTER_STRING:
-            return TYPE_STRING;
-        default:
-            fprintf(stderr, "Error: Invalid pointer type for base type conversion\n");
-            exit(1);
-    }
-}
-
 /**
  * This function returns the pointer level of a given symbol.
  * @param symbol: The symbol table entry for which to return the pointer level.
@@ -170,8 +128,8 @@ int returnPointerLevel(struct Gsymbol* symbol) {
         fprintf(stderr, "Error: Symbol is NULL\n");
         exit(1);
     }
-    if(!isPointerType(symbol->typeRef.type)) {
+    if(!isPointerType(symbol->type)) {
         return 0; // Not a pointer type
     }
-    return symbol->typeRef.pointerLevel;
+    return symbol->pointerLevel;
 }
