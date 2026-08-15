@@ -43,7 +43,7 @@
 %left EQ NE
 %left LT GT LE GE
 %left PLUS MINUS
-%left STAR DIV
+%left STAR DIV MOD
 %right ADDR DEREF 
 %%
 
@@ -119,7 +119,7 @@ arraydecl
 
 ptr_decl
     : STAR ptr_decl { $$ = $2 + 1; }  
-    | /* empty */   { $$ = 0; }     
+    | STAR  { $$ = 1; }     
     ;
 
 type
