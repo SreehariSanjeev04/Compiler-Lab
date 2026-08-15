@@ -1,0 +1,14 @@
+begin
+decl
+    int a[3];
+    int *p;
+enddecl
+p = a;
+read(*p);
+read(*(p + 1));
+read(*(p + 2));
+write(a[0]);
+write(a[1]);
+write(a[2]);
+write(*p + *(p + 1) + *(p + 2));
+end;

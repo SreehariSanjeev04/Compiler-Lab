@@ -706,7 +706,7 @@ char *yytext;
 #line 1 "src/backend/translate/label_translate.l"
 #line 2 "src/backend/translate/label_translate.l"
     #include "labelAddressTable.h"
-    FILE* outputFile;
+    extern FILE* outputFile;
 #line 711 "build/translate.yy.c"
 #line 712 "build/translate.yy.c"
 
@@ -995,28 +995,29 @@ YY_RULE_SETUP
 #line 9 "src/backend/translate/label_translate.l"
 {
     int address = getAddress(yytext);
-    fprintf(outputFile, "%d\n", address);
+    // The trailing newline is emitted by the [\n] rule below.
+    fprintf(outputFile, "%d", address);
 }
 	YY_BREAK
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 14 "src/backend/translate/label_translate.l"
+#line 15 "src/backend/translate/label_translate.l"
 {fprintf(outputFile, "\n");}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 15 "src/backend/translate/label_translate.l"
+#line 16 "src/backend/translate/label_translate.l"
 {
     fprintf(outputFile, "%s", yytext);
 }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 18 "src/backend/translate/label_translate.l"
+#line 19 "src/backend/translate/label_translate.l"
 ECHO;
 	YY_BREAK
-#line 1020 "build/translate.yy.c"
+#line 1021 "build/translate.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2021,7 +2022,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 18 "src/backend/translate/label_translate.l"
+#line 19 "src/backend/translate/label_translate.l"
 
 
 int translatewrap() {

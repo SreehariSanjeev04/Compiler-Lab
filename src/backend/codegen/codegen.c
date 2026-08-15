@@ -1,4 +1,5 @@
 #include "codegen.h"
+#include <codegen_utils.h>
 #include <symboltable.h>
 #include <utils.h>
 int regCount = 0;
@@ -17,7 +18,7 @@ void addHeader(FILE *targetFile)
     fprintf(targetFile, "MOV SP, 4121\n");
 }
 
-int getReg()
+int getReg(void)
 {
     if (regCount < MAX_REGISTERS)
     {
@@ -30,12 +31,12 @@ int getReg()
     }
 }
 
-int generateLabel()
+int generateLabel(void)
 {
     return labelCount++;
 }
 
-void freeReg()
+void freeReg(void)
 {
     if (regCount > 0)
     {
@@ -64,7 +65,7 @@ void restoreRegisters(FILE *targetFile)
     }
 }
 
-int returnStaticBindAddress(char *varname)
+int returnStaticBindAddress(const char *varname)
 {
     if (!varname || strlen(varname) <= 0)
     {
@@ -119,7 +120,6 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
         fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
         exit(1);
     }
-    int numOfDimensions = symbol->dimensions;
     int bindingAddress = returnStaticBindAddress(current->varname);
     int *strideArray = createStrideArray(symbol);
 
@@ -127,8 +127,18 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
     int totalOffsetReg = getReg();
     fprintf(targetFile, "MOV R%d, %d\n", totalOffsetReg, bindingAddress);
 
-    // The rightmost index corresponds to the last dimension (stride 1)
-    int indexCount = numOfDimensions - 1;
+    // The index at tree depth j (1 = rightmost) corresponds to dimension
+    // (numIndices - j), where numIndices is the number of index nodes present.
+    // With fewer indices than dimensions, the missing inner dimensions default
+    // to 0, so the first stride used must be that of the outermost index.
+    int numIndices = 0;
+    current = root;
+    while (current->left != NULL)
+    {
+        numIndices++;
+        current = current->left;
+    }
+    int indexCount = numIndices - 1;
     current = root;
     while (current->left != NULL)
     {
@@ -146,6 +156,36 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
     return totalOffsetReg;
 }
 
+/*
+ * Produces the value of an expression that is being used as a pointer/address,
+ * applying array decay: an array element expression yields its element address
+ * and an array name yields its base address, without any memory load. Other
+ * expressions are evaluated normally (an ID pointer loads its stored address).
+ * @param root: The node whose pointer value is to be produced
+ * @param targetFile: The file pointer to the target file where the code is being generated
+ * @return: The register number holding the pointer value (caller must free it)
+ */
+int codeGenAddressOperand(tnode *root, FILE *targetFile)
+{
+    if (root->nodetype == NODE_TYPE_ARRAY)
+    {
+        return codeGenArrayAddress(root, targetFile);
+    }
+    if (root->nodetype == NODE_TYPE_ID && root->Gentry != NULL && root->Gentry->dimensions > 0)
+    {
+        int reg = getReg();
+        fprintf(targetFile, "MOV R%d, %d\n", reg, root->Gentry->binding);
+        return reg;
+    }
+    return codeGen(root, targetFile);
+}
+
+/*
+ * Generates XSM assembly for a syntax tree node.
+ * Value-producing nodes return the register number holding the result;
+ * statement nodes return -1. The caller must free the returned register
+ * (except -1) with freeReg() once it is no longer needed.
+ */
 int codeGen(tnode *root, FILE *targetFile)
 {
     if (root == NULL)
@@ -218,9 +258,9 @@ int codeGen(tnode *root, FILE *targetFile)
     {
     case NODE_TYPE_IF:
     {
-        if (root->left->type != TYPE_BOOL)
+        if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: If condition must be of boolean type\n");
+            fprintf(stderr, "Error: If condition must be of boolean or integer type\n");
             exit(1);
         }
         int conditionReg = codeGen(root->left, targetFile);
@@ -233,9 +273,9 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_IF_ELSE:
     {
-        if (root->left->type != TYPE_BOOL)
+        if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: If condition must be of boolean type\n");
+            fprintf(stderr, "Error: If condition must be of boolean or integer type\n");
             exit(1);
         }
         int conditionReg = codeGen(root->left, targetFile);
@@ -252,9 +292,9 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_WHILE:
     {
-        if (root->left->type != TYPE_BOOL)
+        if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: While condition must be of boolean type\n");
+            fprintf(stderr, "Error: While condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -278,9 +318,9 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_DO_WHILE:
     {
-        if (root->right->type != TYPE_BOOL)
+        if (root->right->type != TYPE_BOOL && root->right->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: Do-While condition must be of boolean type\n");
+            fprintf(stderr, "Error: Do-While condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -303,9 +343,9 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_REPEAT_UNTIL:
     {
-        if (root->right->type != TYPE_BOOL)
+        if (root->right->type != TYPE_BOOL && root->right->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: Repeat-Until condition must be of boolean type\n");
+            fprintf(stderr, "Error: Repeat-Until condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -350,23 +390,27 @@ int codeGen(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_DEREF:
     {
-        if (!isPointer(root->left))
+        if (effectivePointerLevel(root->left) <= 0)
         {
-            fprintf(stderr, "The deferenced variable should be an ID node or an array node");
+            fprintf(stderr, "Error: Cannot dereference a non-pointer expression\n");
             exit(1);
         }
-        if (root->left->nodetype == NODE_TYPE_ARRAY)
+        if (root->left->nodetype == NODE_TYPE_ARRAY ||
+            (root->left->nodetype == NODE_TYPE_ID && root->left->Gentry != NULL && root->left->Gentry->dimensions > 0))
         {
-            int addressReg = codeGenArrayAddress(root->left, targetFile);
-            int reg = getReg();
-            fprintf(targetFile, "MOV R%d, [R%d]", reg, addressReg);
+            // Array operand: *arr is the first element of arr. If that element
+            // is itself an array (remaining dimensions), it decays to its
+            // address and no load is performed; otherwise one load yields it.
+            int reg = codeGenAddressOperand(root->left, targetFile);
+            if (root->pointerLevel > 0)
+            {
+                return reg;
+            }
+            fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
             return reg;
         }
-        int pointerReg = getReg();
-        int address = returnStaticBindAddress(root->left->varname);
-        fprintf(targetFile, "MOV R%d, %d", pointerReg, address);
-        int reg = getReg();
-        fprintf(targetFile, "MOV R%d, [R%d]", reg, pointerReg);
+        int reg = codeGen(root->left, targetFile);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
         return reg;
     }
     default:
@@ -380,9 +424,11 @@ int codeGen(tnode *root, FILE *targetFile)
     {
         tnode *variableNode = root->left;
         if (variableNode == NULL ||
-            (variableNode->nodetype != NODE_TYPE_ID && variableNode->nodetype != NODE_TYPE_ARRAY))
+            (variableNode->nodetype != NODE_TYPE_ID &&
+             variableNode->nodetype != NODE_TYPE_ARRAY &&
+             variableNode->nodetype != NODE_TYPE_DEREF))
         {
-            fprintf(stderr, "Error: READ node must have an ID or array node as its left child\n");
+            fprintf(stderr, "Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
         }
         int addressReg;
@@ -391,6 +437,16 @@ int codeGen(tnode *root, FILE *targetFile)
             int address = returnStaticBindAddress(variableNode->varname);
             addressReg = getReg();
             fprintf(targetFile, "MOV R%d, %d\n", addressReg, address);
+        }
+        // allowing reading into dereferenced pointers as well, but only if the pointer level is 0
+        else if (variableNode->nodetype == NODE_TYPE_DEREF)
+        {
+            if (variableNode->pointerLevel != 0)
+            {
+                fprintf(stderr, "Error: Can only read into a dereferenced integer location\n");
+                exit(1);
+            }
+            addressReg = codeGenAddressOperand(variableNode->left, targetFile);
         }
         else
         {
@@ -415,12 +471,31 @@ int codeGen(tnode *root, FILE *targetFile)
             exit(1);
         }
 
-        int rightReg = codeGen(root->right, targetFile);
+        int rightReg;
+        // Array decay on the RHS: when storing into a pointer, an array name
+        // or array element yields its address instead of its value.
+        if (effectivePointerLevel(root->left) > 0 &&
+            (root->right->nodetype == NODE_TYPE_ARRAY ||
+             (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->dimensions > 0)))
+        {
+            rightReg = codeGenAddressOperand(root->right, targetFile);
+        }
+        else
+        {
+            rightReg = codeGen(root->right, targetFile);
+        }
 
         if (root->left->nodetype == NODE_TYPE_ID)
         {
             int address = returnStaticBindAddress(root->left->varname);
             fprintf(targetFile, "MOV [%d], R%d\n", address, rightReg);
+        }
+        else if (root->left->nodetype == NODE_TYPE_DEREF)
+        {
+            // The address of *p is the value of p.
+            int addressReg = codeGenAddressOperand(root->left->left, targetFile);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            freeReg(); // free addressReg
         }
         else
         {
@@ -436,14 +511,17 @@ int codeGen(tnode *root, FILE *targetFile)
     }
 
     // below this is arithmetic and relational operations, which are binary operations
-    int leftReg = codeGen(root->left, targetFile);
-    int rightReg = codeGen(root->right, targetFile);
-
-    if (root->left->type != TYPE_INT || root->right->type != TYPE_INT)
+    if (!isArithmeticCompatible(root->left, root->right, root->nodetype))
     {
         fprintf(stderr, "Error: Type Mismatch in arithmetic or relational operation\n");
         exit(1);
     }
+    // Pointer operands are fetched in address form (arrays decay to addresses),
+    // so that p + 1 advances p by one word and p - q yields the word difference.
+    int leftLevel = effectivePointerLevel(root->left);
+    int rightLevel = effectivePointerLevel(root->right);
+    int leftReg = leftLevel > 0 ? codeGenAddressOperand(root->left, targetFile) : codeGen(root->left, targetFile);
+    int rightReg = rightLevel > 0 ? codeGenAddressOperand(root->right, targetFile) : codeGen(root->right, targetFile);
     switch (root->nodetype)
     {
     case NODE_TYPE_PLUS:

@@ -6,6 +6,8 @@ test:
 	./scripts/run_tests.sh
 exec:
 	./scripts/exec.sh
+test:
+	./scripts/run_tests.sh
 clean:
 	@cd spl && make clean
 	@cd xfs-interface && make clean

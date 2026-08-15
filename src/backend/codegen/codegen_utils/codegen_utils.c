@@ -5,15 +5,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Returns the effective pointer level of an expression, applying array decay.
+ * Array names carry level = number of dimensions and each subscript consumes
+ * one level (see makeArrayNode), so an array's level already IS its decayed
+ * pointer level and no special casing is required.
+ */
+int effectivePointerLevel(tnode* node) {
+    if (node == NULL) {
+        fprintf(stderr, "ERROR: NULL node passed to effectivePointerLevel\n");
+        exit(1);
+    }
+    return node->pointerLevel;
+}
+
 bool isAssignmentCompatible(tnode* left, tnode* right) {
     if (left == NULL || right == NULL) {
         fprintf(stderr, "Error: NULL node passed to isAssignmentCompatible\n");
         exit(1);
     }
 
-    // LHS should be a valid variable (ID, Array, or Pointer dereference)
-    if (left->nodetype != NODE_TYPE_ID && 
-        left->nodetype != NODE_TYPE_ARRAY && 
+    // LHS should be a valid lvalue: ID, Array, or Pointer dereference
+    if (left->nodetype != NODE_TYPE_ID &&
+        left->nodetype != NODE_TYPE_ARRAY &&
         left->nodetype != NODE_TYPE_DEREF) {
         return false;
     }
@@ -23,19 +37,40 @@ bool isAssignmentCompatible(tnode* left, tnode* right) {
         return false;
     }
 
-    // 4. Effective Pointer Level Check (including array decay)
-   if(left->pointerLevel != right->pointerLevel) {
+    // Effective pointer levels must match. A fully subscripted array element
+    // (e.g. a[i][j]) is level 0, a row (a[i]) is level 1, and the array name
+    // `a` of a 2D array is level 2 -- so `p = a` (int* = 2D array) is rejected
+    // like in C, while `p = a[0]`, `p = a` (1D), `p = &a[0][0]` all work.
+    if (effectivePointerLevel(left) != effectivePointerLevel(right)) {
         return false;
     }
 
     return true;
 }
 
-bool isPointer(tnode* root) {
-    struct Gsymbol* node = root->Gentry;
-    if(!node) {
-        fprintf(stderr, "Error: Variable '%s' not found in symbol table\n", varname);
+bool isArithmeticCompatible(tnode* left, tnode* right, int op) {
+    if (left == NULL || right == NULL) {
+        fprintf(stderr, "Error: NULL node passed to isArithmeticCompatible\n");
         exit(1);
     }
-    return (root->nodetype == NODE_TYPE_ARRAY || root->nodetype == NODE_TYPE_ID) && node->pointerLevel > 0;
+    if (left->type != TYPE_INT || right->type != TYPE_INT) {
+        return false;
+    }
+    int lLevel = effectivePointerLevel(left);
+    int rLevel = effectivePointerLevel(right);
+    if (lLevel == 0 && rLevel == 0) {
+        // Plain integer arithmetic or relational operation
+        return true;
+    }
+    switch (op) {
+    case NODE_TYPE_PLUS:
+        // pointer + integer (or integer + pointer) only
+        return (lLevel > 0) != (rLevel > 0);
+    case NODE_TYPE_MINUS:
+        // pointer - integer, or pointer - pointer of the same level
+        return lLevel > 0 && (rLevel == 0 || rLevel == lLevel);
+    default:
+        // MUL/DIV/relational operations are not defined for pointers
+        return false;
+    }
 }

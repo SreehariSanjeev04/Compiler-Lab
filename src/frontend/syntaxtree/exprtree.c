@@ -5,7 +5,7 @@
 #include "constants.h"
 #include "symboltable.h"
 
-tnode *tnodeInit() {
+static tnode *tnodeInit(void) {
     tnode *temp = (tnode *)malloc(sizeof(tnode));
     if (temp == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for AST node\n");
@@ -27,51 +27,73 @@ tnode *tnodeInit() {
 tnode *makeLeafNodeNum(int n) {
     tnode *temp = tnodeInit();
     temp->val = n;
+    temp->type = TYPE_INT;
     temp->nodetype = NODE_TYPE_NUM;
     return temp;
 }
 
-tnode *makeLeafNodeId(char *c) {
+tnode *makeLeafNodeId(const char *c) {
     tnode *temp = tnodeInit();
     temp->varname = strdup(c);
     if (temp->varname == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for variable name\n");
         exit(1);
     }
+    struct Gsymbol *entry = Lookup(c);
+    if (entry == NULL) {
+        fprintf(stderr, "Error: Variable '%s' not declared\n", c);
+        exit(1);
+    }
     temp->nodetype = NODE_TYPE_ID;
-    temp->Gentry = Lookup(c); 
+    temp->Gentry = entry;
+    temp->type = entry->type;
+    temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
 
-tnode *makeLeafNodeString(char *str) {
+tnode *makeLeafNodeString(const char *str) {
     tnode *temp = tnodeInit();
     temp->varname = strdup(str);
     if (temp->varname == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for string value\n");
         exit(1);
     }
+    temp->type = TYPE_STRING;
     temp->nodetype = NODE_TYPE_STRING;
     return temp;
 }
 
 
 
-tnode *makeOperatorNode(char *op, tnode *l, tnode *r) {
+tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
     tnode *temp = tnodeInit();
     temp->left = l;
     temp->right = r;
 
-    if (strcmp(op, "+") == 0)       temp->nodetype = NODE_TYPE_PLUS;
-    else if (strcmp(op, "-") == 0)  temp->nodetype = NODE_TYPE_MINUS;
-    else if (strcmp(op, "*") == 0)  temp->nodetype = NODE_TYPE_MUL;
-    else if (strcmp(op, "/") == 0)  temp->nodetype = NODE_TYPE_DIV;
-    else if (strcmp(op, "=") == 0)  temp->nodetype = NODE_TYPE_ASSIGN;
-    else if (strcmp(op, "<") == 0)  temp->nodetype = NODE_TYPE_LT;
-    else if (strcmp(op, ">") == 0)  temp->nodetype = NODE_TYPE_GT;
-    else if (strcmp(op, "<=") == 0) temp->nodetype = NODE_TYPE_LE;
-    else if (strcmp(op, ">=") == 0) temp->nodetype = NODE_TYPE_GE;
-    else if (strcmp(op, "==") == 0) temp->nodetype = NODE_TYPE_EQ;
-    else if (strcmp(op, "!=") == 0) temp->nodetype = NODE_TYPE_NE;
+    if (strcmp(op, "+") == 0)
+    {
+        temp->nodetype = NODE_TYPE_PLUS;
+        temp->type = TYPE_INT;
+        // pointer + integer (or integer + pointer) keeps the pointer level
+        temp->pointerLevel = l->pointerLevel > 0 ? l->pointerLevel : r->pointerLevel;
+    }
+    else if (strcmp(op, "-") == 0)
+    {
+        temp->nodetype = NODE_TYPE_MINUS;
+        temp->type = TYPE_INT;
+        // pointer - integer stays a pointer; pointer - pointer yields an integer
+        if (l->pointerLevel > 0 && r->pointerLevel == 0)
+            temp->pointerLevel = l->pointerLevel;
+    }
+    else if (strcmp(op, "*") == 0)  { temp->nodetype = NODE_TYPE_MUL; temp->type = TYPE_INT; }
+    else if (strcmp(op, "/") == 0)  { temp->nodetype = NODE_TYPE_DIV; temp->type = TYPE_INT; }
+    else if (strcmp(op, "=") == 0)  { temp->nodetype = NODE_TYPE_ASSIGN; temp->type = TYPE_VOID; }
+    else if (strcmp(op, "<") == 0)  { temp->nodetype = NODE_TYPE_LT; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, ">") == 0)  { temp->nodetype = NODE_TYPE_GT; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, "<=") == 0) { temp->nodetype = NODE_TYPE_LE; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, ">=") == 0) { temp->nodetype = NODE_TYPE_GE; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, "==") == 0) { temp->nodetype = NODE_TYPE_EQ; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, "!=") == 0) { temp->nodetype = NODE_TYPE_NE; temp->type = TYPE_BOOL; }
     else {
         fprintf(stderr, "Error: Unknown operator %s\n", op);
         exit(1);
@@ -83,6 +105,12 @@ tnode *makeOperatorNode(char *op, tnode *l, tnode *r) {
 tnode *makeArrayNode(tnode *idNode, tnode *indexExpr) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_ARRAY;
+    temp->type = idNode->type; // inherit the base type of the variable
+    // Each subscript consumes one dimension, so the element is one pointer
+    // level shallower than the subscripted expression. With the array name at
+    // level = number of dimensions, `a` (2D) is level 2, `a[i]` is level 1
+    // (the row, which decays to an int*), and `a[i][j]` is level 0 (an int).
+    temp->pointerLevel = idNode->pointerLevel - 1;
     temp->left = idNode;
     temp->right = indexExpr;
     return temp;
@@ -92,13 +120,19 @@ tnode *makeAddressNode(tnode *varNode) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_ADDRESS;
     temp->left = varNode;
+    temp->type = varNode->type;
+    temp->pointerLevel = varNode->pointerLevel + 1;
     return temp;
 }
 
 tnode *makeDeRefNode(tnode *varNode) {
+    // Note: pointer validity (level >= 1) is NOT checked here; it is checked
+    // during code generation (codeGen NODE_TYPE_DEREF case).
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_DEREF;
     temp->left = varNode;
+    temp->type = varNode->type;
+    temp->pointerLevel = varNode->pointerLevel - 1;
     return temp;
 }
 
@@ -167,19 +201,19 @@ tnode *makeRepeatUntilNode(tnode *bodyStmt, tnode *boolExpr) {
     return temp;
 }
 
-tnode *makeBreakNode() {
+tnode *makeBreakNode(void) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_BREAK;
     return temp;
 }
 
-tnode *makeContinueNode() {
+tnode *makeContinueNode(void) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_CONTINUE;
     return temp;
 }
 
-tnode *makeBreakPointNode() {
+tnode *makeBreakPointNode(void) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_BREAKPOINT;
     return temp;

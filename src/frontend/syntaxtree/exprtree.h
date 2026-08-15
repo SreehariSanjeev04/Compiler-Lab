@@ -20,18 +20,18 @@ typedef struct tnode {
 }tnode;
 
 tnode* makeLeafNodeNum(int n);
-tnode* makeLeafNodeId(char* c);
-tnode* makeLeafNodeString(char* str);
-tnode* makeOperatorNode(char *op, tnode *l, tnode *r);
+tnode* makeLeafNodeId(const char* c);
+tnode* makeLeafNodeString(const char* str);
+tnode* makeOperatorNode(const char *op, tnode *l, tnode *r);
 tnode* makeConnectorNode(tnode* l, tnode *r);
 tnode* makeReadNode(tnode* l);
 tnode* makeWriteNode(tnode* l);
 tnode* makeIfElseNode(tnode* l, tnode* m, tnode* r);
 tnode* makeIfNode(tnode* l, tnode* r);
 tnode* makeWhileNode(tnode* l, tnode* r);
-tnode* makeBreakPointNode();
-tnode* makeBreakNode();
-tnode* makeContinueNode();
+tnode* makeBreakPointNode(void);
+tnode* makeBreakNode(void);
+tnode* makeContinueNode(void);
 tnode* makeRepeatUntilNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeArrayNode(tnode* idNode, tnode* indexExpr);

@@ -5,15 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_LABELS 100
+
 typedef struct LabelTableEntry {
     char* label;
     int address;
 } LabelTableEntry;
 
-extern LabelTableEntry labelTable[100]; // Assuming a maximum of 100 labels
+extern LabelTableEntry labelTable[MAX_LABELS];
 extern int labelTableSize;
 
-int getAddress(char* label);
-void storeAddress(char* label, int address);
+int getAddress(const char* label);
+void storeAddress(const char* label, int address);
 
 #endif

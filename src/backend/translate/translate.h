@@ -6,10 +6,9 @@
 extern FILE* detectin;
 extern FILE* translatein;
 extern FILE* targetFile;
-extern int detectlex();
-extern int translatelex();
+extern int detectlex(void);
+extern int translatelex(void);
 
-void translate(char *input,
-               char *output);
+void translate(const char *sourceFile, const char *targetFile);
 
 #endif

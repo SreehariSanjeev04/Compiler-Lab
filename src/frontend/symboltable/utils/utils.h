@@ -2,10 +2,9 @@
 #define SYMBOLTABLE_UTILS_H
 #include <symboltable.h>
 
-void freeSymbolTable();
-void addDimensionSizes(struct Gsymbol* symbol, int dimensions);
+void freeSymbolTable(void);
+void addDimensionSizes(struct Gsymbol* symbol, int size);
 int* createStrideArray(struct Gsymbol* symbol);
-void assignBindingAddresses();
-int returnPointerType(int baseType);
+void assignBindingAddresses(void);
 
 #endif

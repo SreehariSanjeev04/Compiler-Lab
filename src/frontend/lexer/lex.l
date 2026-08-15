@@ -10,7 +10,7 @@ number  {digit}+
 
 text  \"[^\"\\]*\"
 
-identifier  [a-z]+
+identifier  [a-zA-Z][a-zA-Z0-9_]*
 %%
 
 "begin"	{return START;}
@@ -57,6 +57,7 @@ return ID;
 "*"	{return STAR;}
 "/"	{return DIV;}
 "=" {return ASSIGN;}
+"%" {return MOD;}
 "(" { return *yytext; }
 ")" { return *yytext; }
 "[" { return *yytext; }

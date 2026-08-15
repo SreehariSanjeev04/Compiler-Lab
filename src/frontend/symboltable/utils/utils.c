@@ -8,7 +8,7 @@
  * and dimension sizes, as well as the symbol itself. After freeing all symbols, it sets the head of the symbol table to NULL.
  * @return: void
  */
-void freeSymbolTable() {
+void freeSymbolTable(void) {
     struct Gsymbol* current = head;
     while (current != NULL) {
         struct Gsymbol* temp = current;
@@ -65,33 +65,37 @@ int* createStrideArray(struct Gsymbol* symbol) {
  * This function adds a new dimension size to the specified symbol representing an array variable.
  * It updates the linked list of dimension sizes, increments the number of dimensions, and adjusts the total size of the array.
  * @param symbol: The symbol table entry for the array variable.
- * @param dimension: The size of the new dimension to be added.
+ * @param size: The size of the new dimension to be added.
  * @return: void
  * @details: The dimension sizes are filled in the reverse order of the dimensions. For example, for a 2D array declared as int arr[3][4], the first call to addDimensionSizes will add 4, and the second call will add 3.
  */
-void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
+void addDimensionSizes(struct Gsymbol* symbol, int size) {
     if(symbol == NULL) {
         fprintf(stderr, "Error: Symbol is NULL\n");
         exit(1);
     }
-    if(dimension <= 0) {
-        fprintf(stderr, "Error: Dimension size must be positive, got %d\n", dimension);
+    if(size <= 0) {
+        fprintf(stderr, "Error: Dimension size must be positive, got %d\n", size);
         exit(1);
     }
     if (symbol->dimension_sizes == NULL) {
         symbol->dimension_sizes = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
-        symbol->dimension_sizes->size = dimension;
+        symbol->dimension_sizes->size = size;
         symbol->dimension_sizes->next = NULL;
     } else {
         // Insert at the head so that the sizes are stored in the reverse order of
         // the declaration (last dimension first), as expected by createStrideArray.
         struct dimension_sizes* newDim = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
-        newDim->size = dimension;
+        newDim->size = size;
         newDim->next = symbol->dimension_sizes;
         symbol->dimension_sizes = newDim;
     }
     symbol->dimensions += 1;
-    symbol->size *= dimension;
+    // An array name decays to a pointer to its first element, so its pointer
+    // level is its number of dimensions (2D array -> level 2, **a reaches the
+    // first element). Subscripting decrements the level per dimension.
+    symbol->pointerLevel = symbol->dimensions;
+    symbol->size *= size;
     if(symbol->size > MAX_ARRAY_ADDRESS) {
         fprintf(stderr, "Error: Array size exceeds maximum allowed address space\n");
         exit(1);
@@ -104,7 +108,7 @@ void addDimensionSizes(struct Gsymbol* symbol, int dimension) {
  * It must be called once, after all declarations have been parsed.
  * @return: void
  */
-void assignBindingAddresses() {
+void assignBindingAddresses(void) {
     currentBindingAddress = DEFAULT_BINDING_ADDRESS;
     struct Gsymbol* current = head;
     while (current != NULL) {
@@ -116,20 +120,4 @@ void assignBindingAddresses() {
         currentBindingAddress += current->size;
         current = current->next;
     }
-}
-
-/**
- * This function returns the pointer level of a given symbol.
- * @param symbol: The symbol table entry for which to return the pointer level.
- * @return: The pointer level of the symbol.
- */
-int returnPointerLevel(struct Gsymbol* symbol) {
-    if(symbol == NULL) {
-        fprintf(stderr, "Error: Symbol is NULL\n");
-        exit(1);
-    }
-    if(!isPointerType(symbol->type)) {
-        return 0; // Not a pointer type
-    }
-    return symbol->pointerLevel;
 }

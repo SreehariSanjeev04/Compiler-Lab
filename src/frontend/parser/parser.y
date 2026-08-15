@@ -28,12 +28,11 @@
     struct tnode *node;
     int vartype;
     char* str;
-    bool isAddress;
 }
 
 %token <node> NUM TEXT BREAKPOINT CONTINUE BREAK
 %token <vartype> INT STRING
-%token PLUS MINUS STAR DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL
+%token PLUS MINUS STAR DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD
 %token <str> ID
 
 %type <node> expr program slist stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs
@@ -156,7 +155,8 @@ whilestmt
     ;
 
 inputstmt
-    : READ '(' var ')' ';' { $$ = makeReadNode($3); }
+    : READ '(' var ')' ';'       { $$ = makeReadNode($3); }
+    | READ '(' STAR expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
     ;
 
 outputstmt
@@ -175,6 +175,7 @@ expr
     | expr GT expr            { $$ = makeOperatorNode(">", $1, $3); }
     | expr EQ expr            { $$ = makeOperatorNode("==", $1, $3); }
     | expr NE expr            { $$ = makeOperatorNode("!=", $1, $3); }
+    | expr MOD expr           { $$ = makeOperatorNode("/", $1, $3); }
     | '(' expr ')'            { $$ = $2; }
     | NUM                     { $$ = $1; }
     | TEXT                    { $$ = $1; }
@@ -190,7 +191,7 @@ assgstmt
 
 assg_lhs
     : var                       { $$ = $1; }
-    | STAR assg_lhs %prec DEREF { $$ = makeDeRefNode($2); }
+    | STAR expr                 { $$ = makeDeRefNode($2); }
     ;
 
 var

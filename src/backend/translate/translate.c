@@ -2,7 +2,7 @@
 
 FILE* outputFile;
 
-void translate(char* sourceFile, char* targetFile) {
+void translate(const char* sourceFile, const char* targetFile) {
     if(sourceFile == NULL || targetFile == NULL) {
         fprintf(stderr, "Error: Source or target file is NULL\n");
         return;

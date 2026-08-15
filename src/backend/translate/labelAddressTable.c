@@ -1,8 +1,8 @@
 #include "labelAddressTable.h"
 
-LabelTableEntry labelTable[100]; 
+LabelTableEntry labelTable[MAX_LABELS]; 
 int labelTableSize = 0;
-int getAddress(char* label) {
+int getAddress(const char* label) {
     for (int i = 0; i < labelTableSize; i++) {
         if (strcmp(labelTable[i].label, label) == 0) {
             return labelTable[i].address;
@@ -12,8 +12,8 @@ int getAddress(char* label) {
     exit(1);
 }
 
-void storeAddress(char* label, int address) {
-    if (labelTableSize >= 100) {
+void storeAddress(const char* label, int address) {
+    if (labelTableSize >= MAX_LABELS) {
         fprintf(stderr, "Error: Label table is full\n");
         exit(1);
     }

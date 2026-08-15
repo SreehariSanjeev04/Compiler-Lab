@@ -24,7 +24,7 @@ typedef struct Gsymbol {
 extern struct Gsymbol *head;
 extern int currentBindingAddress;
 
-struct Gsymbol* Lookup(char *name);
-struct Gsymbol* Install(char *name, int type, int pointerLevel);
+struct Gsymbol* Lookup(const char *name);
+struct Gsymbol* Install(const char *name, int type, int pointerLevel);
 
 #endif // SYMBOLTABLE_H

@@ -611,8 +611,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 3
-#define YY_END_OF_BUFFER 4
+#define YY_NUM_RULES 4
+#define YY_END_OF_BUFFER 5
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -622,8 +622,8 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[15] =
     {   0,
-        0,    0,    4,    3,    2,    3,    0,    2,    0,    0,
-        0,    1,    0,    0
+        3,    3,    5,    3,    2,    3,    3,    2,    3,    3,
+        3,    1,    3,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -995,25 +995,36 @@ YY_RULE_SETUP
 {
     char labelName[32];
     sscanf(yytext, "%[^:]", labelName);
-    
-    int labelAddress = 2056 + (line_number - 8) * 2; 
+
+    // The program header occupies 8 words starting at address 2048 and each
+    // instruction is 2 words. A label occupies a file line but no instruction
+    // slot, so line_number counts only header + instruction lines (labels are
+    // intentionally not counted here).
+    int labelAddress = 2056 + (line_number - 8) * 2;
     storeAddress(labelName, labelAddress);
 }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 21 "src/backend/translate/label_detect.l"
+#line 25 "src/backend/translate/label_detect.l"
 {
     line_number++;
 }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 25 "src/backend/translate/label_detect.l"
+#line 29 "src/backend/translate/label_detect.l"
+{
+    line_number++;
+}
+	YY_BREAK
+case 4:
+YY_RULE_SETUP
+#line 33 "src/backend/translate/label_detect.l"
 ECHO;
 	YY_BREAK
-#line 1017 "build/detect.yy.c"
+#line 1028 "build/detect.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2018,7 +2029,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 25 "src/backend/translate/label_detect.l"
+#line 33 "src/backend/translate/label_detect.l"
 
 
 int detectwrap() { return 1; }
