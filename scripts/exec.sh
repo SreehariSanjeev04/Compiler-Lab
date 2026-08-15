@@ -2,11 +2,41 @@
 
 set -e
 
-echo "Generating parser..."
-bison -d -t -o build/parser.tab.c src/frontend/parser/parser.y
+COUNTEREXAMPLE=false
+FIX=false
 
-echo "Generating lexer..."
-flex -o build/lex.yy.c src/frontend/lexer/lex.l
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -c|--counterexample)
+            COUNTEREXAMPLE=true
+            shift
+            ;;
+        -f|--fix)
+            FIX=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac 
+done
+
+echo "Generating parser..."
+
+if $COUNTEREXAMPLE; then
+    echo "Generating parser with counterexample support..."
+    bison -d -o build/parser.tab.c src/frontend/parser/parser.y --counterexample
+else
+    bison -d -o build/parser.tab.c src/frontend/parser/parser.y
+fi
+
+if $FIX; then
+    echo "Generating parser with fix support..."
+    bison -d -o build/parser.tab.c src/frontend/parser/parser.y --fix
+else
+    bison -d -o build/parser.tab.c src/frontend/parser/parser.y
+fi
 
 echo "Generating label detection lexer..."
 flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
@@ -45,3 +75,10 @@ fi
 echo "========================================"
 echo "Completed!"
 echo "========================================"
+
+
+echo "========================================"
+echo "Executing the generated code..."
+echo "========================================"
+
+./xsm -l library.lib -e output.xsm
