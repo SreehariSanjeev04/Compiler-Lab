@@ -1,4 +1,4 @@
-#include <utils.h>
+#include <symboltable_utils.h>
 #include <symboltable.h>
 #include <constants.h>
 

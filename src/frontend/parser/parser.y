@@ -5,7 +5,7 @@
     #include <codegen.h>
     #include <symboltable.h>
     #include <constants.h>
-    #include <utils.h>
+    #include <symboltable_utils.h>
     #include <stdbool.h>
 
     int yylex(void);
