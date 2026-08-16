@@ -74,16 +74,28 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
     {
         temp->nodetype = NODE_TYPE_PLUS;
         temp->type = TYPE_INT;
-        // pointer + integer (or integer + pointer) keeps the pointer level
-        temp->pointerLevel = l->pointerLevel > 0 ? l->pointerLevel : r->pointerLevel;
+        // pointer + integer (or integer + pointer) keeps the pointer level and base type
+        if (l->pointerLevel > 0)
+        {
+            temp->pointerLevel = l->pointerLevel;
+            temp->type = l->type;
+        }
+        else if (r->pointerLevel > 0)
+        {
+            temp->pointerLevel = r->pointerLevel;
+            temp->type = r->type;
+        }
     }
     else if (strcmp(op, "-") == 0)
     {
         temp->nodetype = NODE_TYPE_MINUS;
         temp->type = TYPE_INT;
-        // pointer - integer stays a pointer; pointer - pointer yields an integer
+        // pointer - integer stays a pointer (keeps its base type); pointer - pointer yields an integer
         if (l->pointerLevel > 0 && r->pointerLevel == 0)
+        {
             temp->pointerLevel = l->pointerLevel;
+            temp->type = l->type;
+        }
     }
     else if (strcmp(op, "*") == 0)  { temp->nodetype = NODE_TYPE_MUL; temp->type = TYPE_INT; }
     else if (strcmp(op, "/") == 0)  { temp->nodetype = NODE_TYPE_DIV; temp->type = TYPE_INT; }
