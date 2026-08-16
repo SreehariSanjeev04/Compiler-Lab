@@ -3,5 +3,7 @@ c
 d
 b
 9
+9
+9
 c
 Machine is halting.
