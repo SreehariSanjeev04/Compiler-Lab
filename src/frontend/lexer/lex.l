@@ -54,7 +54,7 @@ return ID;
 ">=" {return GE;}
 "+"	{return PLUS;}
 "-"	{return MINUS;}
-"*"	{return STAR;}
+"*"	{return *yytext;}
 "/"	{return DIV;}
 "=" {return ASSIGN;}
 "%" {return MOD;}

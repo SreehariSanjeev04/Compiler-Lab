@@ -32,99 +32,133 @@
 
 %token <node> NUM TEXT BREAKPOINT CONTINUE BREAK
 %token <vartype> INT STRING
-%token PLUS MINUS STAR DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN
 %token <str> ID
 
-%type <node> expr program slist stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs
-%type <vartype> type ptr_decl
-%type <str> vardecl arraydecl
-
+%type <node> expr program slist stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs Body MainBlock Fdef FdefBlock
+%type <vartype> type PtrDecl
 
 %left EQ NE
 %left LT GT LE GE
 %left PLUS MINUS
-%left STAR DIV MOD
+%left '*' DIV MOD
 %right ADDR DEREF 
+
 %%
 
 program
-    : START declarations slist END ';' 
-    {
-        root = $3;
-    }
-    | START END ';'  { printf("Empty program\n"); exit(0); }
+    : GDeclBlock FdefBlock MainBlock    { root = $3; }
+    | GDeclBlock MainBlock           { root = $2; }
+    | MainBlock                      { root = $1; }
     ;
 
-declarations
-    : DECL decllist ENDDECL { assignBindingAddresses(); } 
+GDeclBlock
+    : DECL GdeclList ENDDECL { assignBindingAddresses(); }
     | DECL ENDDECL         { assignBindingAddresses(); }
     ;
 
-decllist
-    : decllist decl {}
-    | decl {}
+GdeclList
+    : GdeclList Gdecl
+    | Gdecl
     ;
 
-decl
-    : type varlist ';' {}
+Gdecl
+    : type GidList ';'
     ;
 
-varlist
-    : varlist ',' vardecl {}
-    | vardecl {}    
+GidList
+    : GidList ',' Gid
+    | Gid
     ;
 
-vardecl
-    : ptr_decl ID {
-        if (Lookup($2) != NULL) {
-            printf("Error: Variable %s already declared\n", $2);
-            exit(1);
-        }
-        if (currentType == -1) {
-            printf("Error: Type not specified for variable %s\n", $2);
-            exit(1);
-        }
-        
-        Install($2, currentType, $1);
-        $$ = $2;
-    }
-    | arraydecl {
-        $$ = $1;
-    }
-    ;
-
-arraydecl
+Gid
     : ID {
         if (Lookup($1) != NULL) {
-            printf("Error: Variable %s already declared\n", $1);
-            exit(1);
-        }
-        if (currentType == -1) {
-            printf("Error: Type not specified for variable %s\n", $1);
-            exit(1);
+            printf("Error: Variable %s already declared\n", $1); exit(1);
         }
         Install($1, currentType, 0);
-        $$ = $1;
     }
-    | arraydecl '[' NUM ']' {
-        if (Lookup($1) == NULL) {
-            printf("Error: Variable %s not declared\n", $1);
-            exit(1);
+    | PtrDecl ID {
+        if (Lookup($2) != NULL) {
+            printf("Error: Variable %s already declared\n", $2); exit(1);
         }
-        struct Gsymbol* symbol = Lookup($1);
-        addDimensionSizes(symbol, $3->val);
-        $$ = $1;
+        Install($2, currentType, $1);
+    }
+    | ID DeclDimList {
+    }
+    | ID '(' paramlist ')' {
+    }
+    | ID '(' ')' {
     }
     ;
 
-ptr_decl
-    : STAR ptr_decl { $$ = $2 + 1; }  
-    | STAR  { $$ = 1; }     
+DeclDimList
+    : DeclDimList '[' NUM ']'
+    | '[' NUM ']'
+    ;
+
+PtrDecl
+    : '*' PtrDecl { $$ = $2 + 1; }  
+    | '*'          { $$ = 1; }     
     ;
 
 type
     : INT    { currentType = TYPE_INT; }
     | STRING { currentType = TYPE_STRING; }
+    ;
+
+FdefBlock
+    : FdefBlock Fdef { $$ = $1; }
+    | Fdef           { $$ = $1; }
+    ;
+
+Fdef
+    : type ID '(' paramlist ')' '{' LdeclBlock Body '}' { $$ = $8; }
+    | type ID '(' ')' '{' LdeclBlock Body '}'           { $$ = $7; }
+    ;
+
+paramlist
+    : paramlist ',' param
+    | param
+    ;
+
+param
+    : type ID
+    | type PtrDecl ID
+    ;
+
+MainBlock
+    : INT MAIN '(' ')' '{' LdeclBlock Body '}' { $$ = $7; }
+    | INT MAIN '(' ')' '{' Body '}'            { $$ = $6; }
+    ;
+
+LdeclBlock
+    : DECL LdeclList ENDDECL
+    | DECL ENDDECL
+    ;
+
+LdeclList
+    : LdeclList Ldecl
+    | Ldecl
+    ;
+
+Ldecl
+    : type LidList ';'
+    ;
+
+LidList
+    : LidList ',' Lid
+    | Lid
+    ;
+
+Lid
+    : ID
+    | PtrDecl ID
+    ;
+
+Body
+    : START slist END ';' { $$ = $2; }
+    | START END ';'       { printf("Empty program\n"); $$ = NULL; }
     ;
 
 slist
@@ -156,18 +190,31 @@ whilestmt
 
 inputstmt
     : READ '(' var ')' ';'       { $$ = makeReadNode($3); }
-    | READ '(' STAR expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
+    | READ '(' '*' expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
     ;
 
 outputstmt
     : WRITE '(' expr ')' ';' { $$ = makeWriteNode($3); }
     ;
 
+assgstmt
+    : assg_lhs ASSIGN expr ';' { $$ = makeOperatorNode("=", $1, $3); }
+    ;
+
+assg_lhs
+    : var       { $$ = $1; }
+    | '*' expr { $$ = makeDeRefNode($2); }
+    ;
+
+var
+    : ID               { $$ = makeLeafNodeId($1); }
+    | var '[' expr ']' { $$ = makeArrayNode($1, $3); }
+    ;
 
 expr
     : expr PLUS expr          { $$ = makeOperatorNode("+", $1, $3); }
     | expr MINUS expr         { $$ = makeOperatorNode("-", $1, $3); }
-    | expr STAR expr          { $$ = makeOperatorNode("*", $1, $3); }
+    | expr '*' expr          { $$ = makeOperatorNode("*", $1, $3); }
     | expr DIV expr           { $$ = makeOperatorNode("/", $1, $3); }
     | expr LE expr            { $$ = makeOperatorNode("<=", $1, $3); }
     | expr GE expr            { $$ = makeOperatorNode(">=", $1, $3); }
@@ -175,30 +222,22 @@ expr
     | expr GT expr            { $$ = makeOperatorNode(">", $1, $3); }
     | expr EQ expr            { $$ = makeOperatorNode("==", $1, $3); }
     | expr NE expr            { $$ = makeOperatorNode("!=", $1, $3); }
-    | expr MOD expr           { $$ = makeOperatorNode("/", $1, $3); }
+    | expr MOD expr           { $$ = makeOperatorNode("%", $1, $3); }
     | '(' expr ')'            { $$ = $2; }
     | NUM                     { $$ = $1; }
     | TEXT                    { $$ = $1; }
     | var                     { $$ = $1; }
+    | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
+    | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
     | '&' var %prec ADDR      { $$ = makeAddressNode($2); }
-    | STAR expr %prec DEREF   { $$ = makeDeRefNode($2); }
+    | '*' expr %prec DEREF   { $$ = makeDeRefNode($2); }
     ;
 
-assgstmt
-    : assg_lhs ASSIGN expr ';' { $$ = makeOperatorNode("=", $1, $3); }
+ArgList
+    : ArgList ',' expr        { $$ = makeArgNode($1, $3); }
+    | expr                    { $$ = $1; }
     ;
 
-
-assg_lhs
-    : var                       { $$ = $1; }
-    | STAR expr                 { $$ = makeDeRefNode($2); }
-    ;
-
-var
-    : ID               { $$ = makeLeafNodeId($1); }
-    | var '[' expr ']' { $$ = makeArrayNode($1, $3); }
-    ;
-    
 %%
 
 void yyerror(char const *s)

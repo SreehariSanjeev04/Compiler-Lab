@@ -1,6 +1,7 @@
 #include <symboltable_utils.h>
 #include <symboltable.h>
 #include <constants.h>
+#include <dimnode.h>
 
 /**
  * This function frees the memory allocated for the symbol table and its associated structures.
@@ -62,6 +63,29 @@ int* createStrideArray(struct Gsymbol* symbol) {
 }
 
 /**
+ * This function handles the dimension sizes for a given symbol representing an array variable.
+ * It traverses the linked list of dimension sizes and adds each size to the symbol's dimension
+ * sizes linked list. It also updates the number of dimensions and the total size of the array.
+ * @param symbol: The symbol table entry for the array variable.
+ * @param DimNode: The head of the linked list containing the sizes of each dimension.
+ * @return: void
+ * @details: The dimension sizes are filled in the reverse order of the dimensions. For example
+ * for a 2D array declared as int arr[3][4], the first call to addDimensionSizes will add 4, and the second call will add 3.
+ */
+void handleDimensionSizes(struct Gsymbol* symbol, struct DimNode* DimNode) {
+    if (symbol == NULL || DimNode == NULL || Lookup(symbol->name) == NULL) {
+        fprintf(stderr, "Error: Invalid symbol or DimNode\n");
+        exit(1);
+    }
+
+    struct DimNode* currentDim = DimNode;
+    while (currentDim != NULL) {
+        addDimensionSizes(symbol, currentDim->size);
+        currentDim = currentDim->next;
+    }
+}
+
+/**
  * This function adds a new dimension size to the specified symbol representing an array variable.
  * It updates the linked list of dimension sizes, increments the number of dimensions, and adjusts the total size of the array.
  * @param symbol: The symbol table entry for the array variable.
@@ -83,17 +107,12 @@ void addDimensionSizes(struct Gsymbol* symbol, int size) {
         symbol->dimension_sizes->size = size;
         symbol->dimension_sizes->next = NULL;
     } else {
-        // Insert at the head so that the sizes are stored in the reverse order of
-        // the declaration (last dimension first), as expected by createStrideArray.
         struct dimension_sizes* newDim = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
         newDim->size = size;
         newDim->next = symbol->dimension_sizes;
         symbol->dimension_sizes = newDim;
     }
     symbol->dimensions += 1;
-    // An array name decays to a pointer to its first element, so its pointer
-    // level is its number of dimensions (2D array -> level 2, **a reaches the
-    // first element). Subscripting decrements the level per dimension.
     symbol->pointerLevel = symbol->dimensions;
     symbol->size *= size;
     if(symbol->size > MAX_ARRAY_ADDRESS) {
