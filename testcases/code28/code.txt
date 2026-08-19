@@ -1,0 +1,19 @@
+begin
+    read(n);
+    i = 1;
+    while (i <= n) do
+        j = 1;
+        while (j <= n) do
+            j = j + 1;
+            if (j == 2) then
+                continue;
+            endif;
+            write(i * 10 + j);
+        endwhile;
+        i = i + 1;
+        if (i == 3) then
+            continue;
+        endif;
+        write(i * 100);
+    endwhile;
+end;

@@ -169,6 +169,7 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: While condition must be of boolean type\n");
             exit(1);
         }
+        bool prevInsideWhileLoop = insideWhileLoop;
         insideWhileLoop = true;
         int labelStart = generateLabel();
         int labelEnd = generateLabel();
@@ -185,7 +186,7 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "L%d:\n", labelEnd);
         whileStartLabel = prevStart;
         whileEndLabel = prevEnd;
-        insideWhileLoop = false;
+        insideWhileLoop = prevInsideWhileLoop;
         return -1;
     }
     case NODE_TYPE_DO_WHILE: {
@@ -193,6 +194,7 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: Do-While condition must be of boolean type\n");
             exit(1);
         }
+        bool prevInsideWhileLoop = insideWhileLoop;
         insideWhileLoop = true;
         int labelStart = generateLabel();
         int labelEnd = generateLabel();
@@ -208,7 +210,7 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "L%d:\n", labelEnd);
         whileStartLabel = prevStart;
         whileEndLabel = prevEnd;
-        insideWhileLoop = false;
+        insideWhileLoop = prevInsideWhileLoop;
         return -1;
     }
     case NODE_TYPE_REPEAT_UNTIL: {
@@ -216,6 +218,7 @@ int codeGen(tnode *root, FILE *targetFile)
             fprintf(stderr, "Error: Repeat-Until condition must be of boolean type\n");
             exit(1);
         }
+        bool prevInsideWhileLoop = insideWhileLoop;
         insideWhileLoop = true;
         int labelStart = generateLabel();
         int labelEnd = generateLabel();
@@ -231,7 +234,7 @@ int codeGen(tnode *root, FILE *targetFile)
         fprintf(targetFile, "L%d:\n", labelEnd);
         whileStartLabel = prevStart;
         whileEndLabel = prevEnd;
-        insideWhileLoop = false;
+        insideWhileLoop = prevInsideWhileLoop;
         return -1;
     }
     default:
