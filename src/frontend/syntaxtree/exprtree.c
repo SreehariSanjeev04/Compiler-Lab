@@ -3,7 +3,7 @@
 #include <string.h>
 #include "exprtree.h"
 #include "constants.h"
-#include "symboltable.h"
+#include "gsymboltable.h"
 
 static tnode *tnodeInit(void) {
     tnode *temp = (tnode *)malloc(sizeof(tnode));
@@ -39,7 +39,7 @@ tnode *makeLeafNodeId(const char *c) {
         fprintf(stderr, "Error: Memory allocation failed for variable name\n");
         exit(1);
     }
-    struct Gsymbol *entry = Lookup(c);
+    struct Gsymbol *entry = GLookup(c);
     if (entry == NULL) {
         fprintf(stderr, "Error: Variable '%s' not declared\n", c);
         exit(1);

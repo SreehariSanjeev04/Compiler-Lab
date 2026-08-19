@@ -1,8 +1,8 @@
 #include "codegen.h"
 #include "expr_codegen.h"
 #include <codegen_utils.h>
-#include <symboltable.h>
-#include <symboltable_utils.h>
+#include <gsymboltable.h>
+#include <gsymboltable_utils.h>
 #include <register_alloc.h>
 #include <binding.h>
 
@@ -26,7 +26,7 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
         fprintf(stderr, "Error: Array node must have an ID as its leftmost child\n");
         exit(1);
     }
-    struct Gsymbol *symbol = Lookup(current->varname);
+    struct Gsymbol *symbol = GLookup(current->varname);
     if (symbol == NULL)
     {
         fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);

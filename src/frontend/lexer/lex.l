@@ -36,7 +36,7 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 
 {text} {
 	yylval.node = makeLeafNodeString(yytext); 
-	return TEXT;
+	return STRLIT;
 }
 {number}	{
 yylval.node = makeLeafNodeNum(atoi(yytext)); return NUM;}

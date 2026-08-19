@@ -1,5 +1,5 @@
-#include <symboltable_utils.h>
-#include <symboltable.h>
+#include <gsymboltable_utils.h>
+#include <gsymboltable.h>
 #include <constants.h>
 #include <dimnode.h>
 
@@ -69,11 +69,9 @@ int* createStrideArray(struct Gsymbol* symbol) {
  * @param symbol: The symbol table entry for the array variable.
  * @param DimNode: The head of the linked list containing the sizes of each dimension.
  * @return: void
- * @details: The dimension sizes are filled in the reverse order of the dimensions. For example
- * for a 2D array declared as int arr[3][4], the first call to addDimensionSizes will add 4, and the second call will add 3.
  */
 void handleDimensionSizes(struct Gsymbol* symbol, struct DimNode* DimNode) {
-    if (symbol == NULL || DimNode == NULL || Lookup(symbol->name) == NULL) {
+    if (symbol == NULL || DimNode == NULL || GLookup(symbol->name) == NULL) {
         fprintf(stderr, "Error: Invalid symbol or DimNode\n");
         exit(1);
     }
@@ -91,7 +89,6 @@ void handleDimensionSizes(struct Gsymbol* symbol, struct DimNode* DimNode) {
  * @param symbol: The symbol table entry for the array variable.
  * @param size: The size of the new dimension to be added.
  * @return: void
- * @details: The dimension sizes are filled in the reverse order of the dimensions. For example, for a 2D array declared as int arr[3][4], the first call to addDimensionSizes will add 4, and the second call will add 3.
  */
 void addDimensionSizes(struct Gsymbol* symbol, int size) {
     if(symbol == NULL) {
@@ -109,8 +106,11 @@ void addDimensionSizes(struct Gsymbol* symbol, int size) {
     } else {
         struct dimension_sizes* newDim = (struct dimension_sizes*)malloc(sizeof(struct dimension_sizes));
         newDim->size = size;
-        newDim->next = symbol->dimension_sizes;
-        symbol->dimension_sizes = newDim;
+        struct dimension_sizes* current = symbol->dimension_sizes;
+        while (current->next != NULL) {
+            current = current->next;
+        } 
+        current->next = newDim;
     }
     symbol->dimensions += 1;
     symbol->pointerLevel = symbol->dimensions;

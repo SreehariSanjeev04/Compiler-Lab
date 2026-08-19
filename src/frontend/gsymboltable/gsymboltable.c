@@ -1,4 +1,4 @@
-#include <symboltable.h>
+#include <gsymboltable.h>
 #include <constants.h>
 
 struct Gsymbol* head = NULL;
@@ -9,7 +9,7 @@ int currentBindingAddress = DEFAULT_BINDING_ADDRESS;
  * @param name: The name of the variable to look up
  * @return: A pointer to the Gsymbol structure if found, NULL otherwise
  */
-struct Gsymbol* Lookup(const char *name) {
+struct Gsymbol* GLookup(const char *name) {
     struct Gsymbol* current = head;
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
@@ -26,12 +26,12 @@ struct Gsymbol* Lookup(const char *name) {
  * @param type: The type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.)
  * @return: A pointer to the newly created Gsymbol structure for the variable
  */
-struct Gsymbol* Install(const char *name, int type, int pointerLevel) {
+struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
     if (name == NULL || strlen(name) == 0) {
         fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
     }
-    if (Lookup(name) != NULL) {
+    if (GLookup(name) != NULL) {
         fprintf(stderr, "Error: Variable %s already declared\n", name);
         exit(1);
     }
@@ -45,7 +45,8 @@ struct Gsymbol* Install(const char *name, int type, int pointerLevel) {
     newSymbol->next = NULL;
     newSymbol->dimensions = 0;
     newSymbol->dimension_sizes = NULL;
-
+    newSymbol->flabel = NULL;
+    newSymbol->paramList = NULL;
     if (head == NULL) {
         head = newSymbol;
     } else {

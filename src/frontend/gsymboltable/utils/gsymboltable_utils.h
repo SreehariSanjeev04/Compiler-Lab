@@ -1,6 +1,6 @@
-#ifndef SYMBOLTABLE_UTILS_H
-#define SYMBOLTABLE_UTILS_H
-#include <symboltable.h>
+#ifndef GSYMBOLTABLE_UTILS_H
+#define GSYMBOLTABLE_UTILS_H
+#include <gsymboltable.h>
 
 void freeSymbolTable(void);
 void addDimensionSizes(struct Gsymbol* symbol, int size);

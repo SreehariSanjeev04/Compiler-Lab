@@ -1,6 +1,6 @@
 #include <codegen_utils.h>
 #include <exprtree.h>
-#include <symboltable.h>
+#include <gsymboltable.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -9,7 +9,12 @@ typedef struct DimNode {
     struct DimNode *next;
 } DimNode;
 
+extern struct DimNode* headDimNode;
+
 struct DimNode* createDimNode(int size);
 struct DimNode* appendDimNode(struct DimNode* head, int size);
+struct DimNode* getDimNodeHead();
+void setDimNodeHead(struct DimNode* head);
+void clearDimNodeList(struct DimNode* head);
 
 #endif

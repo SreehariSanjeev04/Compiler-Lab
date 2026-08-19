@@ -1,8 +1,9 @@
 #include <dimnode.h>
 
+struct DimNode* headDimNode = NULL;
+
 struct DimNode* createDimNode(int size) {
-    
-    DimNode *newNode = (DimNode *)malloc(sizeof(DimNode));
+    struct DimNode* newNode = (struct DimNode*)malloc(sizeof(DimNode));
     if (newNode == NULL) {
         fprintf(stderr, "Error: Memory allocation failed for DimNode\n");
         exit(1);
@@ -22,4 +23,24 @@ struct DimNode* appendDimNode(struct DimNode* head, int size) {
     }
     current->next = newNode;
     return head;
+}
+
+struct DimNode* getDimNodeHead() {
+    return headDimNode;
+}
+
+void setDimNodeHead(struct DimNode* head) {
+    headDimNode = head;
+}
+
+void clearDimNodeList(struct DimNode* head) {
+    struct DimNode* current = head;
+    struct DimNode* nextNode;
+
+    while (current != NULL) {
+        nextNode = current->next;
+        free(current);
+        current = nextNode;
+    }
+    setDimNodeHead(NULL);
 }

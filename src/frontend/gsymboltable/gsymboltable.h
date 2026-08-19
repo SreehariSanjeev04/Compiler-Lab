@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <paramlist.h>
 
 typedef struct dimension_sizes {
     int size;
@@ -18,13 +19,15 @@ typedef struct Gsymbol {
     int binding;      // stores the static memory address allocated to the variable
     int dimensions;    // number of dimensions for arrays
     struct dimension_sizes* dimension_sizes; // linked list to hold the sizes of each dimension for arrays
+    char* flabel;      // label for functions
+    struct ParamList* paramList; // linked list to hold the parameters for functions
     struct Gsymbol *next;
 } Gsymbol;
 
 extern struct Gsymbol *head;
 extern int currentBindingAddress;
 
-struct Gsymbol* Lookup(const char *name);
-struct Gsymbol* Install(const char *name, int type, int pointerLevel);
+struct Gsymbol* GLookup(const char *name);
+struct Gsymbol* GInstall(const char *name, int type, int pointerLevel);
 
 #endif // SYMBOLTABLE_H
