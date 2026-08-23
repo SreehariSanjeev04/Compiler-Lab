@@ -3,13 +3,12 @@
 
 struct TypeTable* head = NULL;
 
-
 /**
  * Initializes the TypeTable with predefined types: int, bool, str, and void.
  */
 void TypeTableCreate() {
     char* types[] = {"int", "bool", "str", "void"};
-    int sizes[] = {1,1,1,1};
+    int sizes[] = {1,1,1,0};
     
     for(int i = 0; i < 4; i++) {
         if(TInstall(types[i], sizes[i], NULL) == NULL) {

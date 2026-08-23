@@ -10,5 +10,9 @@ typedef struct Lsymbol {
     struct Lsymbol *next; // pointer to the next symbol in the list
 } Lsymbol;
 
+extern struct Lsymbol* head;
+
+struct Lsymbol* LInstall(char* name, int type, int binding);
+struct Lsymbol* LLookup(char* name);
 
 #endif
