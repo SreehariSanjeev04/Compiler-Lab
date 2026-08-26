@@ -4,6 +4,12 @@
 #include "exprtree.h"
 #include "constants.h"
 #include "gsymboltable.h"
+#include <lsymboltable.h>
+
+static tnode *tnodeInit(void);
+static int countCallArgs(tnode *argsNode);
+static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index);
+static void checkCallArguments(struct Gsymbol *entry, tnode *args);
 
 static tnode *tnodeInit(void) {
     tnode *temp = (tnode *)malloc(sizeof(tnode));
@@ -39,12 +45,22 @@ tnode *makeLeafNodeId(const char *c) {
         fprintf(stderr, "Error: Memory allocation failed for variable name\n");
         exit(1);
     }
+    temp->nodetype = NODE_TYPE_ID;
+    // Scope check at AST-build time: local declarations override globals. The
+    // binding itself is resolved again at code-generation time (LLookup then
+    // GLookup), which is valid because each function's code is generated while
+    // its local symbol table is still installed.
+    struct Lsymbol *lentry = LLookup(temp->varname);
+    if (lentry != NULL) {
+        temp->type = lentry->type;
+        temp->pointerLevel = 0; // stage-5 locals are scalars
+        return temp;
+    }
     struct Gsymbol *entry = GLookup(c);
     if (entry == NULL) {
         fprintf(stderr, "Error: Variable '%s' not declared\n", c);
         exit(1);
     }
-    temp->nodetype = NODE_TYPE_ID;
     temp->Gentry = entry;
     temp->type = entry->type;
     temp->pointerLevel = entry->pointerLevel;
@@ -74,7 +90,6 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
     {
         temp->nodetype = NODE_TYPE_PLUS;
         temp->type = TYPE_INT;
-        // pointer + integer (or integer + pointer) keeps the pointer level and base type
         if (l->pointerLevel > 0)
         {
             temp->pointerLevel = l->pointerLevel;
@@ -99,6 +114,7 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
     }
     else if (strcmp(op, "*") == 0)  { temp->nodetype = NODE_TYPE_MUL; temp->type = TYPE_INT; }
     else if (strcmp(op, "/") == 0)  { temp->nodetype = NODE_TYPE_DIV; temp->type = TYPE_INT; }
+    else if (strcmp(op, "%") == 0)  { temp->nodetype = NODE_TYPE_MOD; temp->type = TYPE_INT; }
     else if (strcmp(op, "=") == 0)  { temp->nodetype = NODE_TYPE_ASSIGN; temp->type = TYPE_VOID; }
     else if (strcmp(op, "<") == 0)  { temp->nodetype = NODE_TYPE_LT; temp->type = TYPE_BOOL; }
     else if (strcmp(op, ">") == 0)  { temp->nodetype = NODE_TYPE_GT; temp->type = TYPE_BOOL; }
@@ -106,12 +122,58 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
     else if (strcmp(op, ">=") == 0) { temp->nodetype = NODE_TYPE_GE; temp->type = TYPE_BOOL; }
     else if (strcmp(op, "==") == 0) { temp->nodetype = NODE_TYPE_EQ; temp->type = TYPE_BOOL; }
     else if (strcmp(op, "!=") == 0) { temp->nodetype = NODE_TYPE_NE; temp->type = TYPE_BOOL; }
+    else if (strcmp(op, "AND") == 0) {
+        temp->nodetype = NODE_TYPE_AND;
+        temp->type = TYPE_BOOL;
+        if (!((l->type == TYPE_BOOL || l->type == TYPE_INT) && (r->type == TYPE_BOOL || r->type == TYPE_INT))) {
+            fprintf(stderr, "Error: AND requires boolean or integer operands\n");
+            exit(1);
+        }
+    }
+    else if (strcmp(op, "OR") == 0) {
+        temp->nodetype = NODE_TYPE_OR;
+        temp->type = TYPE_BOOL;
+        if (!((l->type == TYPE_BOOL || l->type == TYPE_INT) && (r->type == TYPE_BOOL || r->type == TYPE_INT))) {
+            fprintf(stderr, "Error: OR requires boolean or integer operands\n");
+            exit(1);
+        }
+    }
     else {
         fprintf(stderr, "Error: Unknown operator %s\n", op);
         exit(1);
     }
 
     return temp;
+}
+
+tnode *makeNotNode(tnode *operand) {
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_NOT;
+    temp->type = TYPE_BOOL;
+    temp->left = operand;
+    if (operand == NULL || (operand->type != TYPE_BOOL && operand->type != TYPE_INT)) {
+        fprintf(stderr, "Error: NOT requires a boolean or integer operand\n");
+        exit(1);
+    }
+    return temp;
+}
+
+tnode *makeReturnNode(tnode *expr) {
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_RETURN;
+    temp->left = expr;
+    return temp;
+}
+
+void freeTree(tnode *root) {
+    if (root == NULL) {
+        return;
+    }
+    freeTree(root->left);
+    freeTree(root->middle);
+    freeTree(root->right);
+    free(root->varname);
+    free(root);
 }
 
 tnode *makeArrayNode(tnode *idNode, tnode *indexExpr) {
@@ -138,8 +200,7 @@ tnode *makeAddressNode(tnode *varNode) {
 }
 
 tnode *makeDeRefNode(tnode *varNode) {
-    // Note: pointer validity (level >= 1) is NOT checked here; it is checked
-    // during code generation (codeGen NODE_TYPE_DEREF case).
+   
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_DEREF;
     temp->left = varNode;
@@ -229,4 +290,76 @@ tnode *makeBreakPointNode(void) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_BREAKPOINT;
     return temp;
+}
+
+tnode *makeArgNode(tnode *argList, tnode *arg) {
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_ARG;
+    temp->left = argList;
+    temp->right = arg;
+    return temp;
+}
+
+tnode *makeFuncCallNode(char *name, tnode *args) {
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_FUNC_CALL;
+    temp->varname = strdup(name);
+    temp->left = args;
+    struct Gsymbol *entry = GLookup(name);
+    if (entry == NULL) {
+        fprintf(stderr, "Error: Function '%s' not declared\n", name);
+        exit(1);
+    }
+    checkCallArguments(entry, args);
+    temp->Gentry = entry;
+    temp->type = entry->type;
+    temp->pointerLevel = entry->pointerLevel;
+    return temp;
+}
+
+static int countCallArgs(tnode *argsNode) {
+    if (argsNode == NULL) return 0;
+    if (argsNode->nodetype != NODE_TYPE_ARG) return 1;
+    return countCallArgs(argsNode->left) + 1;
+}
+
+static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index) {
+    if (argsNode == NULL) return;
+    if (argsNode->nodetype != NODE_TYPE_ARG) {
+        argArray[(*index)++] = argsNode;
+        return;
+    }
+    flattenCallArgs(argsNode->left, argArray, index);
+    argArray[(*index)++] = argsNode->right;
+}
+
+static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
+    int argc = countCallArgs(args);
+    int paramCount = 0;
+    for (struct ParamList *p = entry->paramList; p != NULL; p = p->next) {
+        paramCount++;
+    }
+    if (argc != paramCount) {
+        fprintf(stderr, "Error: Function '%s' expects %d argument(s), got %d\n",
+                entry->name, paramCount, argc);
+        exit(1);
+    }
+    if (argc == 0) return;
+    tnode **argArray = (tnode **)malloc(argc * sizeof(tnode *));
+    if (argArray == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed for argument array\n");
+        exit(1);
+    }
+    int index = 0;
+    flattenCallArgs(args, argArray, &index);
+    struct ParamList *param = entry->paramList;
+    for (int i = 0; i < argc; i++, param = param->next) {
+        if (argArray[i]->type != param->type ||
+            argArray[i]->pointerLevel != 0) {
+            fprintf(stderr, "Error: Argument %d of function '%s' has an incompatible type\n",
+                    i + 1, entry->name);
+            exit(1);
+        }
+    }
+    free(argArray);
 }

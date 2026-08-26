@@ -1,11 +1,17 @@
-begin
-decl
+int main() {
+  decl
     int n, i;
-enddecl
+  enddecl
+
+  begin
 read(n);
 i = 1;
-repeat
+while (i <= n) do
     write(i);
+    if (i > 3) then
+        break;
+    endif;
     i = i + 1;
-until (i > n);
-end;
+endwhile;
+  end
+}

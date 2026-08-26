@@ -1,0 +1,11 @@
+begin
+decl
+    int n, i;
+enddecl
+read(n);
+i = 1;
+repeat
+    write(i);
+    i = i + 1;
+until (i > n);
+end;

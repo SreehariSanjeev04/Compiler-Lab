@@ -1,2 +1,2 @@
-100
-Machine is halting.
+1
+1

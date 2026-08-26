@@ -1,8 +1,30 @@
-begin
-decl
-    int a, b;
-enddecl
+int main() {
+  decl
+    int a, b, c, d;
+  enddecl
+
+  begin
 read(a);
 read(b);
-write(a == b);
-end;
+read(c);
+read(d);
+
+if (a < b) then
+    if (b < c) then
+        if (c < d) then
+            write(d);
+        else
+            write(c);
+        endif;
+    else
+        write(b);
+    endif;
+else
+    if (a < d) then
+        write(d);
+    else
+        write(a);
+    endif;
+endif;
+  end
+}

@@ -1,0 +1,23 @@
+begin
+decl
+    int a[2][3];
+    int *p, *q;
+enddecl
+a[0][0] = 1;
+a[0][1] = 2;
+a[0][2] = 3;
+a[1][0] = 4;
+a[1][1] = 5;
+a[1][2] = 6;
+write(**a);
+p = a[0];
+write(*p);
+write(*(p + 2));
+q = *a;
+write(*q);
+write(*(q + 1));
+**a = 7;
+write(a[0][0]);
+*(a[1] + 1) = 8;
+write(a[1][1]);
+end;

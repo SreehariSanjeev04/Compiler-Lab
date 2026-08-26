@@ -5,6 +5,9 @@
 #include "exprtree.h"
 
 int codeGenArrayAddress(tnode* root, FILE* targetFile);
+void emitVarAddressInto(int reg, const char* varname, FILE* targetFile);
+int codeGenFuncCall(tnode* root, FILE* targetFile);
+int codeGenNot(tnode* root, FILE* targetFile);
 int codeGenAddressOperand(tnode* root, FILE* targetFile);
 int codeGenLeafValue(tnode* root, FILE* targetFile);
 int codeGenAddressExpr(tnode* root, FILE* targetFile);

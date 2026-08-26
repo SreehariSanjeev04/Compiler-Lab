@@ -1,0 +1,40 @@
+begin
+decl
+    int a[3][3];
+    int md, ad, cnt, i, j;
+enddecl
+i = 0;
+while (i < 3) do
+    j = 0;
+    while (j < 3) do
+        read(a[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+md = 0;
+ad = 0;
+cnt = 0;
+i = 0;
+while (i < 3) do
+    j = 0;
+    while (j < 3) do
+        if (i == j) then
+            md = md + a[i][j];
+        endif;
+        if ((i + j) == 2) then
+            ad = ad + a[i][j];
+        endif;
+        if (a[i][j] > 0) then
+            cnt = cnt + 1;
+        endif;
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+write(md);
+write(ad);
+write(cnt);
+end;

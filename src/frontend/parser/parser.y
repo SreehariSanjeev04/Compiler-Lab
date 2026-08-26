@@ -10,6 +10,7 @@
     #include <dimnode.h>
     #include <paramlist.h>
     #include <flabel.h>
+    #include <lsymboltable.h>
 
     int yylex(void);
     void yyerror(char const *s);
@@ -23,6 +24,7 @@
     
     tnode* root; // Root of the AST
     int currentType = -1; // Keeping track of the current type
+    struct Gsymbol* currentFunction = NULL; // Function whose body is being parsed
 %}
 
 %define parse.error verbose
@@ -36,17 +38,19 @@
 
 %token <node> NUM STRLIT BREAKPOINT CONTINUE BREAK
 %token <vartype> INT STRING
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT
 %token <str> ID
 
-%type <node> expr program SList Stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs Body MainBlock Fdef FdefBlock
+%type <node> expr program SList Stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs Body MainBlock Fdef FdefBlock ArgList
 %type <vartype> type PtrDecl
 
+%left OR
+%left AND
 %left EQ NE
 %left LT GT LE GE
 %left PLUS MINUS
 %left '*' DIV MOD
-%right ADDR DEREF 
+%right ADDR DEREF NOT
 
 %%
 
@@ -57,16 +61,24 @@ program
     ;
 
 GDeclBlock
-    : DECL GdeclList ENDDECL { assignBindingAddresses(); }
-    | DECL ENDDECL         { assignBindingAddresses(); }
+    : DECL GDecList ENDDECL {
+        assignBindingAddresses();
+        generateProgramStart(targetFile); // stack base is final now
+        if(showGlobalSymbolTable) printGlobalSymbolTable();
+    }
+    | DECL ENDDECL         {
+        assignBindingAddresses();
+        generateProgramStart(targetFile);
+        if(showGlobalSymbolTable) printGlobalSymbolTable();
+    }
     ;
 
-GdeclList
-    : GdeclList Gdecl {}
-    | Gdecl {}
+GDecList
+    : GDecList GDecl {}
+    | GDecl {}
     ;
 
-Gdecl
+GDecl
     : type GidList ';' { currentType = -1; }
     ;
 
@@ -84,30 +96,31 @@ Gid
     }
     | ID DeclDimList {
         GInstall($1, currentType, 0);
-        struct DimNode* headDimNode = getDimNodeHead();
+        struct DimNode* headDimNode = DimNodeGetHead();
         handleDimensionSizes(GLookup($1), headDimNode);
-        setDimNodeHead(NULL);
+        DimNodeReset();
     }
     | ID '(' ParamList ')' {
         struct Gsymbol* funcSymbol = GInstall($1, currentType, 0);
-        struct ParamList* head = getParamListHead();
+        struct ParamList* head = ParamListGetHead();
         funcSymbol->paramList = head;
         funcSymbol->flabel = generateFunctionLabel();
-        setParamListHead(NULL);
+        ParamListReset();
     }
     | ID '(' ')' {
-        GInstall($1, currentType, 0);
+        struct Gsymbol* funcSymbol = GInstall($1, currentType, 0);
         funcSymbol->flabel = generateFunctionLabel();
-        setParamListHead(NULL);
+        ParamListReset();
     }
     ;
 
 DeclDimList
+// Todo - change the lexer to only return the token, not the node
     : DeclDimList '[' NUM ']' {
-        headDimNode = appendDimNode(headDimNode, $3);
+        DimNodeAppendNode($3->val);
     }
     | '[' NUM ']' {
-        headDimNode = appendDimNode(headDimNode, $2);
+        DimNodeAppendNode($2->val);
     }
     ;
 
@@ -117,8 +130,8 @@ PtrDecl
     ;
 
 type
-    : INT    { currentType = TYPE_INT; }
-    | STRING { currentType = TYPE_STRING; }
+    : INT    { currentType = TYPE_INT; $$ = TYPE_INT; }
+    | STRING { currentType = TYPE_STRING; $$ = TYPE_STRING; }
     ;
 
 FdefBlock
@@ -127,8 +140,60 @@ FdefBlock
     ;
 
 Fdef
-    : type ID '(' ParamList ')' '{' LdeclBlock Body '}' { $$ = $8; }
-    | type ID '(' ')' '{' LdeclBlock Body '}'           { $$ = $7; }
+    : FdefSig '{' LdeclBlock Body '}' {
+        // On-the-fly: emit this function's code now that its body is parsed,
+        // then deallocate its AST and local symbol table.
+        generateFunctionCode(currentFunction, $4, targetFile);
+        $$ = NULL;
+    }
+    ;
+
+FdefSig
+    : type ID '(' ParamList ')' {
+        if(strcmp($2, "main") == 0) {
+            fprintf(stderr, "Error: Function name 'main' is reserved\n");
+            exit(1);
+        }
+        LSymbolReset();
+        struct Gsymbol* funcSymbol = GLookup($2);
+        if (funcSymbol == NULL) {
+            fprintf(stderr, "Error: Function '%s' not declared.\n", $2);
+            exit(1);
+        }
+        struct ParamList* head = ParamListGetHead();
+        struct ParamList* funcParams = funcSymbol->paramList;
+        if(ParamListCheckIfParamsMatch(head, funcParams) == false) {
+            fprintf(stderr, "Error: Function '%s' parameters do not match declaration.\n", $2);
+            exit(1);
+        }
+        struct ParamList* current = head;
+
+        // Install parameters into the local symbol table
+        int paramBinding = -3; // Todo - check this value
+        while(current != NULL) {
+            LInstall(current->name, current->type, paramBinding--);
+            current = current->next;
+        }
+        ParamListDestroy();
+        currentFunction = funcSymbol;
+    }
+    | type ID '(' ')' {
+        if(strcmp($2, "main") == 0) {
+            fprintf(stderr, "Error: Function name 'main' is reserved\n");
+            exit(1);
+        }
+        LSymbolReset();
+        struct Gsymbol* funcSymbol = GLookup($2);
+        if (funcSymbol == NULL) {
+            fprintf(stderr, "Error: Function '%s' not declared.\n", $2);
+            exit(1);
+        }
+        if(funcSymbol->paramList != NULL) {
+            fprintf(stderr, "Error: Function '%s' parameters do not match declaration.\n", $2);
+            exit(1);
+        }
+        currentFunction = funcSymbol;
+    }
     ;
 
 ParamList
@@ -138,23 +203,50 @@ ParamList
 
 Param
     : type ID { 
-        struct ParamList* head = getParamListHead();
-        appendParamListNode(head, $2, $1);
+        ParamListAppendNode($2, $1);
     }
     ;
 
 MainBlock
-    : INT MAIN '(' ')' '{' LdeclBlock Body '}' { $$ = $7; }
-    | INT MAIN '(' ')' '{' Body '}'            { $$ = $6; }
+    : type MAIN '(' ')' '{' {
+        LSymbolReset();
+        generateProgramStart(targetFile); // covers programs without a decl block
+    } LdeclBlock Body '}' {
+        if($1 != TYPE_INT) {
+            fprintf(stderr, "Error: Main function must have return type int.\n");
+            exit(1);
+        }
+
+        struct Gsymbol* funcSymbol = GInstall("MAIN", TYPE_INT, 0);
+        funcSymbol->flabel = generateFunctionLabel();
+        currentFunction = funcSymbol;
+        generateFunctionCode(funcSymbol, $8, targetFile);
+        $$ = NULL;
+    }
+    | type MAIN '(' ')' '{' {
+        LSymbolReset();
+        generateProgramStart(targetFile); // covers programs without a decl block
+    } Body '}'  {
+        if(currentType != TYPE_INT) {
+            fprintf(stderr, "Error: Main function must have return type int.\n");
+            exit(1);
+        }
+
+        struct Gsymbol* funcSymbol = GInstall("MAIN", TYPE_INT, 0);
+        funcSymbol->flabel = generateFunctionLabel();
+        currentFunction = funcSymbol;
+        generateFunctionCode(funcSymbol, $7, targetFile);
+        $$ = NULL;
+    }
     ;
 
 LdeclBlock
-    : DECL LdeclList ENDDECL
-    | DECL ENDDECL
+    : DECL LdeclList ENDDECL { assignLocalBindingAddresses(); }
+    | DECL ENDDECL           { assignLocalBindingAddresses(); }
     ;
 
 LdeclList
-    : LdeclList Ldecl
+    : LdeclList Ldecl 
     | Ldecl
     ;
 
@@ -168,13 +260,14 @@ LidList
     ;
 
 Lid
-    : ID
-    | PtrDecl ID
+    : ID             { LInstall($1, currentType, 0); }
     ;
 
 Body
     : START SList END ';' { $$ = $2; }
+    | START SList END     { $$ = $2; }
     | START END ';'       { printf("Empty program\n"); $$ = NULL; }
+    | START END           { printf("Empty program\n"); $$ = NULL; }
     ;
 
 SList
@@ -191,6 +284,15 @@ Stmt
     | BREAKPOINT ';' { $$ = makeBreakPointNode(); }
     | BREAK ';'      { $$ = makeBreakNode(); }
     | CONTINUE ';'   { $$ = makeContinueNode(); }
+    | RETURN expr ';' {
+        if(currentFunction != NULL &&
+           ($2->type != currentFunction->type || $2->pointerLevel != 0)) {
+            fprintf(stderr, "Error: Return type of function '%s' does not match its declaration\n",
+                    currentFunction->name);
+            exit(1);
+        }
+        $$ = makeReturnNode($2);
+    }
     ;
 
 ifstmt
@@ -238,6 +340,8 @@ expr
     | expr GT expr            { $$ = makeOperatorNode(">", $1, $3); }
     | expr EQ expr            { $$ = makeOperatorNode("==", $1, $3); }
     | expr NE expr            { $$ = makeOperatorNode("!=", $1, $3); }
+    | expr AND expr           { $$ = makeOperatorNode("AND", $1, $3); }
+    | expr OR expr            { $$ = makeOperatorNode("OR", $1, $3); }
     | expr MOD expr           { $$ = makeOperatorNode("%", $1, $3); }
     | '(' expr ')'            { $$ = $2; }
     | NUM                     { $$ = $1; }
@@ -247,6 +351,7 @@ expr
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
     | '&' var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' expr %prec DEREF   { $$ = makeDeRefNode($2); }
+    | NOT expr %prec NOT     { $$ = makeNotNode($2); }
     ;
 
 ArgList

@@ -1,12 +1,13 @@
-begin
-decl
-    int n, i;
-enddecl
-read(n);
-i = 1;
+int main() {
+  decl
+    int x;
+  enddecl
 
-while (i <= n) do
-    write(i);
-    i = i + 1;
-endwhile;
-end;
+  begin
+read(x);
+x = x + 1;
+write(x);
+x = x * 2;
+write(x);
+  end
+}

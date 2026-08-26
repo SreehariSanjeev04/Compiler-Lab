@@ -1,0 +1,8 @@
+begin
+decl
+    int a, b;
+enddecl
+read(a);
+read(b);
+write(a == b);
+end;

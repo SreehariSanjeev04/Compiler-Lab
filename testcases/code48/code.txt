@@ -1,36 +1,39 @@
-begin
 decl
-    str s[2][3];
-    str *a;
-    int i, j;
+    int *p;
+    int **q;
 enddecl
-s[0][0] = "AA";
-s[0][1] = "BB";
-s[0][2] = "CC";
-s[1][0] = "DD";
-s[1][1] = "EE";
-s[1][2] = "FF";
-write(**s);
-write(*s[1]);
-write(*(s[1] + 1));
-a = s[0];
-write(*a);
-a = &s[1][2];
-write(*a);
-*(a - 1) = "NN";
-write(*a);
-write(s[1][1]);
-a = s[0];
-*(a + 2) = "ZZ";
-write(*(a + 2));
-write(s[0][2]);
-i = 0;
-while (i < 2) do
-    j = 0;
-    while (j < 3) do
-        write(s[i][j]);
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
-end;
+
+int main() {
+  decl
+    int a, b;
+    int sum;
+  enddecl
+
+  begin
+p = &a;
+q = &p;
+read(**q);
+read(*(p + 0));
+read(b);
+sum = a + b;
+write(sum);
+if (q) then
+    write(1);
+else
+    write(0);
+endif;
+if (*q) then
+    write(2);
+else
+    write(0);
+endif;
+do
+    sum = sum - 1;
+while (sum) endwhile;
+write(sum);
+repeat
+    sum = sum + 3;
+until (sum);
+write(sum);
+  end
+}

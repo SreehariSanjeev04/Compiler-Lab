@@ -40,12 +40,12 @@ struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
     strcpy(newSymbol->name, name);
     newSymbol->type = type;
     newSymbol->pointerLevel = pointerLevel;
-    newSymbol->size = 1; // default size
+    newSymbol->size = DEFAULT_VAR_SIZE; // scalars occupy one word; arrays grow via addDimensionSizes()
     newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
     newSymbol->dimensions = 0;
     newSymbol->dimension_sizes = NULL;
-    newSymbol->flabel = NULL;
+    newSymbol->flabel = 0;
     newSymbol->paramList = NULL;
     if (head == NULL) {
         head = newSymbol;

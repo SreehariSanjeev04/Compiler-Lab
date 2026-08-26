@@ -4,6 +4,7 @@ set -e
 
 COUNTEREXAMPLE=false
 FIX=false
+SHOW_GST=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -15,12 +16,22 @@ while [[ $# -gt 0 ]]; do
             FIX=true
             shift
             ;;
-        *)
-            echo "Unknown option: $1"
-            exit 1
+        -g|--gst)
+            SHOW_GST=true
+            shift
             ;;
-    esac 
+        *)
+            break
+            ;;
+    esac
 done
+
+INPUT_FILE="${1:-input.xsm}"
+OUTPUT_FILE="output.xsm"
+echo "Input file: $INPUT_FILE"
+
+echo "Generating lexer..."
+flex -o build/lex.yy.c src/frontend/lexer/lex.l
 
 echo "Generating parser..."
 
@@ -45,7 +56,7 @@ echo "Generating label translation lexer..."
 flex --prefix=translate -o build/translate.yy.c src/backend/translate/label_translate.l
 
 echo "Compiling..."
-gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils -lfl
+gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c src/frontend/gsymboltable/utils/paramlist.c src/frontend/gsymboltable/utils/dimnode.c src/frontend/gsymboltable/utils/flabel.c src/frontend/lsymboltable/lsymboltable.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils -Isrc/frontend/lsymboltable -lfl
 
 
 if [ $? -ne 0 ]; then
@@ -59,7 +70,13 @@ echo "========================================"
 echo "Build successful!"
 echo "========================================"
 
-./compiler input.xsm output.xsm
+GST_FLAG=""
+if $SHOW_GST; then
+    GST_FLAG="-g"
+    echo "Global symbol table display: enabled"
+fi
+
+./compiler $GST_FLAG "$INPUT_FILE" "$OUTPUT_FILE"
 
 status=$?
 if [ $status -ne 0 ]; then

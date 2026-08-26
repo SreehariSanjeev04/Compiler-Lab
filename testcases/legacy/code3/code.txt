@@ -1,0 +1,10 @@
+begin
+decl
+    int x;
+enddecl
+read(x);
+x = x + 1;
+write(x);
+x = x * 2;
+write(x);
+end;

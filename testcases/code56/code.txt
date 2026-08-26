@@ -1,0 +1,28 @@
+decl
+    str m[2][2];
+    str *row;
+enddecl
+
+int main() {
+  decl
+  enddecl
+
+  begin
+m[0][0] = "a";
+m[0][1] = "b";
+m[1][0] = "c";
+m[1][1] = "d";
+write(**m);
+write(*m[1]);
+write(*(m[1] + 1));
+row = &m[0][1];
+write(*row);
+read(*row);
+write(*row);
+write(m[0][1]);
+row = m[0];
+write(*(row + 1));
+row = &m[1][0];
+write(*row);
+  end
+}

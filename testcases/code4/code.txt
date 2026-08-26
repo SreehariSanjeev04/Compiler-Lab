@@ -1,13 +1,20 @@
-begin
 decl
-    int a, b, c;
+  int a, b;
 enddecl
-read(a);
-read(b);
-read(c);
-if (a < b) then
-    if (b < c) then write(c); else write(b); endif;
-else
-    if (a < c) then write(c); else write(a); endif;
-endif;
-end;
+
+int main() {
+  decl
+    int t;
+  enddecl
+  begin
+    read(a);
+    read(b);
+    while(b != 0) do
+      t = b;
+      b = a % b;
+      a = t;
+    endwhile;
+    write(a);
+    return 0;
+  end
+}

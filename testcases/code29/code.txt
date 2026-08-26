@@ -1,39 +1,17 @@
-begin
-decl
-    int a[3][3];
-    int rs, cs, i, j;
-enddecl
-i = 0;
-while (i < 3) do
-    j = 0;
-    while (j < 3) do
-        read(a[i][j]);
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
+int main() {
+  decl
+    int n, i;
+  enddecl
 
-i = 0;
-while (i < 3) do
-    rs = 0;
-    j = 0;
-    while (j < 3) do
-        rs = rs + a[i][j];
-        j = j + 1;
-    endwhile;
-    write(rs);
+  begin
+read(n);
+i = 1;
+repeat
+    write(i);
+    if (i == 3) then
+        break;
+    endif;
     i = i + 1;
-endwhile;
-
-j = 0;
-while (j < 3) do
-    cs = 0;
-    i = 0;
-    while (i < 3) do
-        cs = cs + a[i][j];
-        i = i + 1;
-    endwhile;
-    write(cs);
-    j = j + 1;
-endwhile;
-end;
+until (i > n);
+  end
+}

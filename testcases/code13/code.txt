@@ -1,12 +1,15 @@
-begin
-decl
-    int a, b;
-enddecl
-read(a);
-read(b);
-if (a < b) then
-    write(a);
-else
-    write(b);
-endif;
-end;
+int main() {
+  decl
+    int n, i;
+  enddecl
+
+  begin
+read(n);
+i = 1;
+
+while (i <= n) do
+    write(i);
+    i = i + 1;
+endwhile;
+  end
+}

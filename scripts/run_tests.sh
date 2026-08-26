@@ -37,7 +37,7 @@ flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
 flex --prefix=translate -o build/translate.yy.c src/backend/translate/label_translate.l
 
 # Run GCC
-gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils
+gcc -g build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c src/frontend/gsymboltable/utils/paramlist.c src/frontend/gsymboltable/utils/dimnode.c src/frontend/gsymboltable/utils/flabel.c src/frontend/lsymboltable/lsymboltable.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils -Isrc/frontend/lsymboltable
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GCC compilation failed.${NC}"
@@ -58,7 +58,7 @@ TOTAL_PASSED=0
 TOTAL_FAILED=0
 
 # Sort the subdirectories naturally (code1, code2, etc.)
-subdirs=$(find "$TESTCASE_DIR" -maxdepth 1 -mindepth 1 -type d | sort -V)
+subdirs=$(find "$TESTCASE_DIR" -maxdepth 1 -mindepth 1 -type d -name 'code*' | sort -V)
 
 for code_dir in $subdirs; do
     code_name=$(basename "$code_dir")
@@ -115,10 +115,13 @@ for code_dir in $subdirs; do
         # Execute target code in XSM simulator
         # Passing standard library using library.lib and redirecting stdin/stdout
         if [ -f "library.lib" ]; then
-            ./xsm -l library.lib -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
+            timeout 120 ./xsm -l library.lib -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
         else
-            ./xsm -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
+            timeout 120 ./xsm -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
         fi
+
+        # Drop the simulator's own shutdown banner before comparing
+        sed -i '/^Machine is halting\.$/d' "$temp_output"
 
         # Compare outputs while ignoring trailing spaces/newlines
         if diff -Z -B -q "$temp_output" "$expected_output" &> /dev/null; then

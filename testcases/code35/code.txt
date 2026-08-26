@@ -1,40 +1,42 @@
-begin
 decl
-    int a[3][3];
-    int md, ad, cnt, i, j;
+    int a[3][2];
 enddecl
+
+int main() {
+  decl
+    int mx, mi, mj, i, j;
+  enddecl
+
+  begin
 i = 0;
 while (i < 3) do
     j = 0;
-    while (j < 3) do
+    while (j < 2) do
         read(a[i][j]);
         j = j + 1;
     endwhile;
     i = i + 1;
 endwhile;
 
-md = 0;
-ad = 0;
-cnt = 0;
+mx = a[0][0];
+mi = 0;
+mj = 0;
 i = 0;
 while (i < 3) do
     j = 0;
-    while (j < 3) do
-        if (i == j) then
-            md = md + a[i][j];
-        endif;
-        if ((i + j) == 2) then
-            ad = ad + a[i][j];
-        endif;
-        if (a[i][j] > 0) then
-            cnt = cnt + 1;
+    while (j < 2) do
+        if (a[i][j] > mx) then
+            mx = a[i][j];
+            mi = i;
+            mj = j;
         endif;
         j = j + 1;
     endwhile;
     i = i + 1;
 endwhile;
 
-write(md);
-write(ad);
-write(cnt);
-end;
+write(mx);
+write(mi);
+write(mj);
+  end
+}

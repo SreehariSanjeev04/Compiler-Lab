@@ -1,23 +1,22 @@
-begin
 decl
-    int n,i,j,sum,k;
+    int *p;
+    int **q;
 enddecl
-    read(n);
-    sum=0;
-    k=1;
-    while(k<=n)do
-        if(n<=1) then
-            sum=sum+1;
-        else
-            i=1;
-            j=1;
-            while(i<=k)do
-                j=j*i;
-                i=i+1;
-            endwhile;
-            sum=sum+j;
-        endif;
-        k=k+1;
-    endwhile;
-    write(sum);
-end;
+
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
+p = &a;
+q = &p;
+**q = 42;
+write(a);
+write(**q);
+*p = *p + 1;
+write(a);
+b = *p;
+write(b);
+  end
+}

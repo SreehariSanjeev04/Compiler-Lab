@@ -1,4 +1,4 @@
 1
-2
 3
-Machine is halting.
+4
+5

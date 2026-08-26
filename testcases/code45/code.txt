@@ -1,22 +1,20 @@
-begin
 decl
-    int n,f2,f0,f1,i;
+    int a[3];
+    int *p;
 enddecl
-read(n);
-if(n>=2) then
-    f0=0;
-    f1=1;
-    n=n-1;
-    while(n!=0) do
-        f2=f1+f0;
-        f0=f1;
-        f1=f2;
-        n=n-1;
-    endwhile;
-    write(f1);
-else if(n==1) then
-        write(1);
-    else write(0);
-    endif;
-endif;
-end;
+
+int main() {
+  decl
+  enddecl
+
+  begin
+p = a;
+read(*p);
+read(*(p + 1));
+read(*(p + 2));
+write(a[0]);
+write(a[1]);
+write(a[2]);
+write(*p + *(p + 1) + *(p + 2));
+  end
+}

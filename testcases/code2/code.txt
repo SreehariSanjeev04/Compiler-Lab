@@ -1,10 +1,29 @@
-begin
 decl
-    int a, b, c, d;
+  int n, factorial(int m);
 enddecl
-read(a);
-read(b);
-read(c);
-d = a + b * c - (a / b);
-write(d);
-end;
+
+int factorial(int m) {
+  decl
+    int f;
+  enddecl
+  begin
+    if(m <= 1) then
+      f = 1;
+    else
+      f = m * factorial(m-1);
+    endif;
+    return f;
+  end
+}
+
+int main() {
+  decl
+    int r;
+  enddecl
+  begin
+    read(n);
+    r = factorial(n);
+    write(r);
+    return 0;
+  end
+}

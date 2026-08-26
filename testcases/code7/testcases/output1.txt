@@ -1,4 +1,1 @@
-14
-20
-32
-Machine is halting.
+19

@@ -1,2 +1,1 @@
-55
-Machine is halting.
+720

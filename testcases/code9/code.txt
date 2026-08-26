@@ -1,16 +1,16 @@
-begin
-decl
-    int n, f, i;
-enddecl
-read(n);
+int main() {
+  decl
+    int a, b, c;
+  enddecl
 
-f = 1;
-i = 1;
-
-while (i <= n) do
-    f = f * i;
-    i = i + 1;
-endwhile;
-
-write(f);
-end;
+  begin
+read(a);
+read(b);
+read(c);
+if (a < b) then
+    if (b < c) then write(c); else write(b); endif;
+else
+    if (a < c) then write(c); else write(a); endif;
+endif;
+  end
+}

@@ -1,0 +1,5 @@
+28
+5
+2
+7
+Machine is halting.

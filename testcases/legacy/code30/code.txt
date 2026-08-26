@@ -1,0 +1,36 @@
+begin
+decl
+    int a[3][2];
+    int mx, mi, mj, i, j;
+enddecl
+i = 0;
+while (i < 3) do
+    j = 0;
+    while (j < 2) do
+        read(a[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+mx = a[0][0];
+mi = 0;
+mj = 0;
+i = 0;
+while (i < 3) do
+    j = 0;
+    while (j < 2) do
+        if (a[i][j] > mx) then
+            mx = a[i][j];
+            mi = i;
+            mj = j;
+        endif;
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+write(mx);
+write(mi);
+write(mj);
+end;

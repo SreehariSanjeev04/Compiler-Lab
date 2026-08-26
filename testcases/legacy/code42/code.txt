@@ -1,0 +1,13 @@
+begin
+decl
+    int a[2][3][4];
+    int *p;
+enddecl
+a[0][0][0] = 7;
+a[1][2][3] = 99;
+write(**a[0]);
+p = a[0][0];
+write(*p);
+p = a[1][2];
+write(*(p + 3));
+end;

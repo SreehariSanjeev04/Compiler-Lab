@@ -1,29 +1,37 @@
-begin
 decl
-   int n,arr[50],i,j,dup;
+    int a[10];
+    int *p, *q;
 enddecl
-read(n);
-i=0;
-while(i<n) do
-    read(arr[i]);
-    i = i+1;
+
+int main() {
+  decl
+    int i;
+  enddecl
+
+  begin
+i = 0;
+while (i < 10) do
+    a[i] = i * 10;
+    i = i + 1;
 endwhile;
-i=0;
-while(i<n) do
-    j=i;
-    while(j<n) do
-        if(arr[i]>arr[j]) then
-            dup = arr[i];
-            arr[i] = arr[j];
-            arr[j] = dup;
-        endif;
-        j = j + 1;
-    endwhile;
-    i = i+1;
+p = a;
+q = a + 5;
+write(q - p);
+write(*(p + (q - p) - 1));
+if (p) then
+    write(1);
+else
+    write(0);
+endif;
+if (*p) then
+    write(2);
+else
+    write(3);
+endif;
+i = 10;
+while (i) do
+    i = i - 1;
 endwhile;
-i=0;
-while(i<n) do
-    write(arr[i]);
-    i = i+1;
-endwhile;
-end;
+write(i);
+  end
+}

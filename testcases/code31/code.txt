@@ -1,36 +1,27 @@
-begin
 decl
     int a[2][3];
-    int b[3][2];
-    int i, j;
+    int b[2][3];
 enddecl
-i = 0;
-while (i < 2) do
-    j = 0;
-    while (j < 3) do
-        read(a[i][j]);
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
 
-i = 0;
-while (i < 2) do
-    j = 0;
-    while (j < 3) do
-        b[j][i] = a[i][j];
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
+int main() {
+  decl
+    int i, j;
+  enddecl
 
-i = 0;
-while (i < 3) do
-    j = 0;
-    while (j < 2) do
-        write(b[i][j]);
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
-end;
+  begin
+read(i);
+read(j);
+a[0][0] = 10;
+a[0][1] = 20;
+a[0][2] = 30;
+a[1][0] = 40;
+a[1][1] = 50;
+a[1][2] = 60;
+b[0][0] = 1;
+b[1][2] = 2;
+write(a[i][j]);
+write(b[0][0] + b[1][2]);
+a[i][j] = a[i][j] + b[0][0];
+write(a[i][j]);
+  end
+}

@@ -4,7 +4,8 @@
 void addHeader(FILE *targetFile)
 {
     fprintf(targetFile, "0\n2056\n0\n0\n0\n0\n0\n0\n");
-    fprintf(targetFile, "MOV SP, 4121\n");
+    fprintf(targetFile, "MOV SP, 8192\n"); // stack top, safely above static data (4096..4121)
+    fprintf(targetFile, "CALL MAIN\n");
 }
 
 void printValue(int reg, FILE *targetFile)

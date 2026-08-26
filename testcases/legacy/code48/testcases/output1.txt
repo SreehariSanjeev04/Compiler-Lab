@@ -1,0 +1,16 @@
+AA
+DD
+EE
+AA
+FF
+FF
+NN
+ZZ
+ZZ
+AA
+BB
+ZZ
+DD
+NN
+FF
+Machine is halting.

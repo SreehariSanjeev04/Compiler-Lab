@@ -5,6 +5,7 @@
 
 int getReg(void);
 void freeReg(void);
+int getRegCount(void);
 int generateLabel(void);
 void saveRegisters(FILE *targetFile);
 void restoreRegisters(FILE *targetFile);

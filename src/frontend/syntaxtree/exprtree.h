@@ -37,5 +37,10 @@ tnode* makeDoWhileNode(tnode* bodyStmt, tnode* boolExpr);
 tnode* makeArrayNode(tnode* idNode, tnode* indexExpr);
 tnode* makeAddressNode(tnode* varNode);
 tnode* makeDeRefNode(tnode* varNode);
+tnode* makeFuncCallNode(char* name, tnode* args);
+tnode* makeArgNode(tnode* argList, tnode* arg);
+tnode* makeNotNode(tnode* operand);
+tnode* makeReturnNode(tnode* expr);
+void freeTree(tnode* root);
 
 #endif // SYNTAXTREE_H

@@ -1,9 +1,24 @@
-begin
-decl
-    int a;
-enddecl
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
 read(a);
-if (a > 10) then
-    write(a);
+read(b);
+
+if(a>b) then
+    if(a>100) then
+        write(a);
+    else
+        write(b);
+    endif;
+else
+    if(b>100) then
+        write(b);
+    else
+        write(a);
+    endif;
 endif;
-end;
+  end
+}

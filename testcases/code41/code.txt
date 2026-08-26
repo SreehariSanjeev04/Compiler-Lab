@@ -1,16 +1,22 @@
-begin
 decl
-    int a, b;
-    int *p;
-    int **q;
+    int *p, *q;
 enddecl
+
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
 p = &a;
-q = &p;
-**q = 42;
+q = &b;
+*p = 10;
+*q = 20;
 write(a);
-write(**q);
-*p = *p + 1;
-write(a);
-b = *p;
 write(b);
-end;
+write(*p + *q);
+a = 5;
+write(*p);
+write(a + b);
+  end
+}

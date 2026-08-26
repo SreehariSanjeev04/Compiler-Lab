@@ -1,0 +1,32 @@
+begin
+decl
+    int t[4][4];
+    int i, j;
+enddecl
+i = 0;
+while (i < 4) do
+    t[i][0] = 1;
+    t[i][i] = 1;
+    i = i + 1;
+endwhile;
+
+i = 2;
+while (i < 4) do
+    j = 1;
+    while (j < i) do
+        t[i][j] = t[i-1][j-1] + t[i-1][j];
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 4) do
+    j = 0;
+    while (j <= i) do
+        write(t[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+end;

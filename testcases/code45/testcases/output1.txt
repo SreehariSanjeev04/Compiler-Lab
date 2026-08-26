@@ -1,2 +1,4 @@
-5
-Machine is halting.
+11
+22
+33
+66

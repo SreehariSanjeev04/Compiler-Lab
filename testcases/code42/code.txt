@@ -1,13 +1,28 @@
-begin
 decl
-    int a[2][3][4];
-    int *p;
+    int a[5];
+    int *p, *q;
 enddecl
-a[0][0][0] = 7;
-a[1][2][3] = 99;
-write(**a[0]);
-p = a[0][0];
-write(*p);
-p = a[1][2];
-write(*(p + 3));
-end;
+
+int main() {
+  decl
+    int i;
+  enddecl
+
+  begin
+p = a;
+*p = 10;
+*(p + 1) = 20;
+*(p + 2) = 30;
+*(p + 3) = 40;
+*(p + 4) = 50;
+i = 0;
+while (i < 5) do
+    write(a[i]);
+    i = i + 1;
+endwhile;
+q = a + 2;
+write(*q);
+write(*(q + 2));
+write(*(p + 1) + *(p + 4));
+  end
+}

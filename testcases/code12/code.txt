@@ -1,16 +1,19 @@
-begin
-decl
-    int a, b;
-enddecl
+int main() {
+  decl
+    int a, b, c, x, y, z;
+  enddecl
+
+  begin
 read(a);
 read(b);
-if (a > b) then
-    write(a);
-else
-    if (a != b) then
-        write(b);
-    else
-        write(0);
-    endif;
-endif;
-end;
+read(c);
+
+x = a + b * c;
+y = (a + b) * c;
+z = x + y - a * b + c;
+
+write(x);
+write(y);
+write(z);
+  end
+}

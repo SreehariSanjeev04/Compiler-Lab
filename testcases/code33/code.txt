@@ -1,53 +1,33 @@
-begin
 decl
-    int a[2][2];
-    int b[2][2];
-    int c[2][2];
-    int s, i, j, k;
+    int m[3][3];
 enddecl
+
+int main() {
+  decl
+    int i, j;
+  enddecl
+
+  begin
 i = 0;
-while (i < 2) do
+while (i < 3) do
     j = 0;
-    while (j < 2) do
-        read(a[i][j]);
+    while (j < 3) do
+        m[i][j] = (i + 1) * (j + 1);
         j = j + 1;
     endwhile;
     i = i + 1;
 endwhile;
 
 i = 0;
-while (i < 2) do
+while (i < 3) do
     j = 0;
-    while (j < 2) do
-        read(b[i][j]);
+    while (j < 3) do
+        write(m[i][j]);
         j = j + 1;
     endwhile;
     i = i + 1;
 endwhile;
 
-i = 0;
-while (i < 2) do
-    j = 0;
-    while (j < 2) do
-        s = 0;
-        k = 0;
-        while (k < 2) do
-            s = s + a[i][k] * b[k][j];
-            k = k + 1;
-        endwhile;
-        c[i][j] = s;
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
-
-i = 0;
-while (i < 2) do
-    j = 0;
-    while (j < 2) do
-        write(c[i][j]);
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
-end;
+write(m[0][0] + m[1][1] + m[2][2]);
+  end
+}

@@ -33,6 +33,11 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "enddecl" {return ENDDECL;}
 "int" {return INT;}
 "str" {return STRING;}
+"return" {return RETURN;}
+"AND"|"and" {return AND;}
+"OR"|"or" {return OR;}
+"NOT"|"not" {return NOT;}
+"main" {return MAIN;}
 
 {text} {
 	yylval.node = makeLeafNodeString(yytext); 
@@ -62,6 +67,8 @@ return ID;
 ")" { return *yytext; }
 "[" { return *yytext; }
 "]" { return *yytext; }
+"{" { return *yytext; }
+"}" { return *yytext; }
 ";" { return *yytext; }
 "," { return *yytext; }
 "&" { return *yytext; }

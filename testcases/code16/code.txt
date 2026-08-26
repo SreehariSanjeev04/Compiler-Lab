@@ -1,10 +1,11 @@
-begin
-decl
-    int n;
-enddecl
-read(n);
-while (n > 0) do
-    write(n);
-    n = n - 1;
-endwhile;
-end;
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
+read(a);
+read(b);
+write(a == b);
+  end
+}

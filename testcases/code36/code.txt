@@ -1,16 +1,42 @@
-begin
 decl
-    int a, b;
-    int *p, *q;
+    int a[2][3];
+    int b[3][2];
 enddecl
-p = &a;
-q = &b;
-*p = 10;
-*q = 20;
-write(a);
-write(b);
-write(*p + *q);
-a = 5;
-write(*p);
-write(a + b);
-end;
+
+int main() {
+  decl
+    int i, j;
+  enddecl
+
+  begin
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 3) do
+        read(a[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 3) do
+        b[j][i] = a[i][j];
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 3) do
+    j = 0;
+    while (j < 2) do
+        write(b[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+  end
+}

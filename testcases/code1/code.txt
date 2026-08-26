@@ -1,9 +1,16 @@
-begin
 decl
-    int a, b, d;
+  int x, y;
 enddecl
-read(a);
-read(b);
-d = a + 2 * b;
-write(a+d);
-end;
+
+int main() {
+  decl
+    int s;
+  enddecl
+  begin
+    read(x);
+    read(y);
+    s = x + y;
+    write(s);
+    return 0;
+  end
+}

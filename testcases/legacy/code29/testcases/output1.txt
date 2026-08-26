@@ -1,0 +1,7 @@
+6
+15
+24
+12
+15
+18
+Machine is halting.

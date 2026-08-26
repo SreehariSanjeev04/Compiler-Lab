@@ -1,14 +1,19 @@
-begin
-decl
-    int n, i;
-enddecl
-read(n);
-i = 1;
-while (i <= n) do
-    write(i);
-    if (i > 3) then
-        break;
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
+read(a);
+read(b);
+if (a > b) then
+    write(a);
+else
+    if (a != b) then
+        write(b);
+    else
+        write(0);
     endif;
-    i = i + 1;
-endwhile;
-end;
+endif;
+  end
+}

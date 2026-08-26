@@ -1,32 +1,45 @@
-begin
 decl
-    int t[4][4];
-    int i, j;
+    int a[3][3];
 enddecl
-i = 0;
-while (i < 4) do
-    t[i][0] = 1;
-    t[i][i] = 1;
-    i = i + 1;
-endwhile;
 
-i = 2;
-while (i < 4) do
-    j = 1;
-    while (j < i) do
-        t[i][j] = t[i-1][j-1] + t[i-1][j];
-        j = j + 1;
-    endwhile;
-    i = i + 1;
-endwhile;
+int main() {
+  decl
+    int rs, cs, i, j;
+  enddecl
 
+  begin
 i = 0;
-while (i < 4) do
+while (i < 3) do
     j = 0;
-    while (j <= i) do
-        write(t[i][j]);
+    while (j < 3) do
+        read(a[i][j]);
         j = j + 1;
     endwhile;
     i = i + 1;
 endwhile;
-end;
+
+i = 0;
+while (i < 3) do
+    rs = 0;
+    j = 0;
+    while (j < 3) do
+        rs = rs + a[i][j];
+        j = j + 1;
+    endwhile;
+    write(rs);
+    i = i + 1;
+endwhile;
+
+j = 0;
+while (j < 3) do
+    cs = 0;
+    i = 0;
+    while (i < 3) do
+        cs = cs + a[i][j];
+        i = i + 1;
+    endwhile;
+    write(cs);
+    j = j + 1;
+endwhile;
+  end
+}

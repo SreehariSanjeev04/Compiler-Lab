@@ -1,33 +1,29 @@
-begin
 decl
-    int a, b;
-    int *p;
-    int **q;
-    int sum;
+    int a[2][3];
+    int *p, *q;
 enddecl
-p = &a;
-q = &p;
-read(**q);
-read(*(p + 0));
-read(b);
-sum = a + b;
-write(sum);
-if (q) then
-    write(1);
-else
-    write(0);
-endif;
-if (*q) then
-    write(2);
-else
-    write(0);
-endif;
-do
-    sum = sum - 1;
-while (sum) endwhile;
-write(sum);
-repeat
-    sum = sum + 3;
-until (sum);
-write(sum);
-end;
+
+int main() {
+  decl
+  enddecl
+
+  begin
+a[0][0] = 1;
+a[0][1] = 2;
+a[0][2] = 3;
+a[1][0] = 4;
+a[1][1] = 5;
+a[1][2] = 6;
+write(**a);
+p = a[0];
+write(*p);
+write(*(p + 2));
+q = *a;
+write(*q);
+write(*(q + 1));
+**a = 7;
+write(a[0][0]);
+*(a[1] + 1) = 8;
+write(a[1][1]);
+  end
+}

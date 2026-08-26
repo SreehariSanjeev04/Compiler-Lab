@@ -23,6 +23,11 @@ int generateLabel(void)
     return labelCount++;
 }
 
+int getRegCount(void)
+{
+    return regCount;
+}
+
 void freeReg(void)
 {
     if (regCount > 0)

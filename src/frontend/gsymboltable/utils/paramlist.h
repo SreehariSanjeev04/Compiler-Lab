@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct ParamList {
     char *name;
@@ -11,11 +12,14 @@ typedef struct ParamList {
 } ParamList;
 
 extern struct ParamList* headParamList;
+extern struct ParamList* tailParamList;
 
-struct ParamList* createParamListNode(char *name, int type);
-struct ParamList* appendParamListNode(struct ParamList* head, char *name, int type);
-struct ParamList* getParamListHead();
-struct ParamList* setParamListHead(struct ParamList* head);
-struct ParamList* getParam(char *name);
-void freeParamList(struct ParamList* head);
+struct ParamList* ParamListCreateNode(char *name, int type);
+struct ParamList* ParamListGetHead();
+struct ParamList* ParamListGetParam(char *name);
+bool ParamListCheckIfParamsMatch(struct ParamList* list1, struct ParamList* list2);
+void ParamListDestroy();
+void ParamListReset();
+void ParamListAppendNode(char *name, int type);
+
 #endif

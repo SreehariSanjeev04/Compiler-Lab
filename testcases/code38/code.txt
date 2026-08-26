@@ -1,23 +1,59 @@
-begin
 decl
-    int a[2][3];
-    int *p, *q;
+    int a[2][2];
+    int b[2][2];
+    int c[2][2];
 enddecl
-a[0][0] = 1;
-a[0][1] = 2;
-a[0][2] = 3;
-a[1][0] = 4;
-a[1][1] = 5;
-a[1][2] = 6;
-write(**a);
-p = a[0];
-write(*p);
-write(*(p + 2));
-q = *a;
-write(*q);
-write(*(q + 1));
-**a = 7;
-write(a[0][0]);
-*(a[1] + 1) = 8;
-write(a[1][1]);
-end;
+
+int main() {
+  decl
+    int s, i, j, k;
+  enddecl
+
+  begin
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        read(a[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        read(b[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        s = 0;
+        k = 0;
+        while (k < 2) do
+            s = s + a[i][k] * b[k][j];
+            k = k + 1;
+        endwhile;
+        c[i][j] = s;
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 2) do
+    j = 0;
+    while (j < 2) do
+        write(c[i][j]);
+        j = j + 1;
+    endwhile;
+    i = i + 1;
+endwhile;
+  end
+}

@@ -1,2 +1,1 @@
-120
-Machine is halting.
+5

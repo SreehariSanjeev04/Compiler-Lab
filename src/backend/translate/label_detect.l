@@ -6,13 +6,13 @@
     int line_number = 0;
 %}
 
-label  (L[0-9]+):[ \t]*\r?\n
+label  ([LF][0-9]+|MAIN):[ \t]*\r?\n
 
 %%
 
 {label} {
     char labelName[32];
-    sscanf(yytext, "%[^:]", labelName);
+    sscanf(yytext, "%31[^:]", labelName);
 
     // The program header occupies 8 words starting at address 2048 and each
     // instruction is 2 words. A label occupies a file line but no instruction

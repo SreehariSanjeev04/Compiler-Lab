@@ -1,0 +1,25 @@
+decl
+    str *a;
+    str **b;
+enddecl
+
+int main() {
+  decl
+    str s;
+  enddecl
+
+  begin
+a = &s;
+b = &a;
+**b = "Hello";
+write(**b);
+write(*a);
+write(s);
+**b = "World";
+write(**b);
+read(**b);
+write(**b);
+write(*a);
+write(s);
+  end
+}

@@ -64,6 +64,13 @@ bool isArithmeticCompatible(tnode *left, tnode *right, int op)
     }
     int lLevel = effectivePointerLevel(left);
     int rLevel = effectivePointerLevel(right);
+    // Logical operators accept boolean or integer operands
+    if (op == NODE_TYPE_AND || op == NODE_TYPE_OR)
+    {
+        bool leftOk = (left->type == TYPE_BOOL || left->type == TYPE_INT) && lLevel == 0;
+        bool rightOk = (right->type == TYPE_BOOL || right->type == TYPE_INT) && rLevel == 0;
+        return leftOk && rightOk;
+    }
     bool stringArithmetic = (left->type == TYPE_STRING && right->type == TYPE_STRING) || (left->type == TYPE_INT && right->type == TYPE_STRING) || (left->type == TYPE_STRING && right->type == TYPE_INT);
     bool intArithmetic = (left->type == TYPE_INT && right->type == TYPE_INT);
     if (!intArithmetic && !stringArithmetic)

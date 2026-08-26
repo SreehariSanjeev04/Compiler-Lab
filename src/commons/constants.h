@@ -37,6 +37,13 @@
 #define NODE_TYPE_ARRAY 25
 #define NODE_TYPE_DEREF 26
 #define NODE_TYPE_ADDRESS 27
+#define NODE_TYPE_FUNC_CALL 28
+#define NODE_TYPE_ARG 29
+#define NODE_TYPE_RETURN 30
+#define NODE_TYPE_AND 31
+#define NODE_TYPE_OR 32
+#define NODE_TYPE_NOT 33
+#define NODE_TYPE_MOD 34
 
 // Type values
 #define TYPE_INT 0

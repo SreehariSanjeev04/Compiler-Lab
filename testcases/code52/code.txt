@@ -1,0 +1,17 @@
+decl
+    str *a;
+enddecl
+
+int main() {
+  decl
+    str p;
+  enddecl
+
+  begin
+a = &p;
+*a = "Hello";
+write(*a);
+read(*a);
+write(*a);
+  end
+}

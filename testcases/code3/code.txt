@@ -1,10 +1,29 @@
-begin
 decl
-    int x;
+  int n, fib(int k);
 enddecl
-read(x);
-x = x + 1;
-write(x);
-x = x * 2;
-write(x);
-end;
+
+int fib(int k) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(k < 2) then
+      r = k;
+    else
+      r = fib(k-1) + fib(k-2);
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int res;
+  enddecl
+  begin
+    read(n);
+    res = fib(n);
+    write(res);
+    return 0;
+  end
+}

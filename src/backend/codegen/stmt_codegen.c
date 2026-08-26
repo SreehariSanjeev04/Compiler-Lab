@@ -4,6 +4,7 @@
 #include <register_alloc.h>
 #include <runtime.h>
 #include <binding.h>
+#include <lsymboltable.h>
 #include "expr_codegen.h"
 
 static bool insideWhileLoop = false;
@@ -176,9 +177,8 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         int addressReg;
         if (variableNode->nodetype == NODE_TYPE_ID)
         {
-            int address = returnStaticBindAddress(variableNode->varname);
             addressReg = getReg();
-            fprintf(targetFile, "MOV R%d, %d\n", addressReg, address);
+            emitVarAddressInto(addressReg, variableNode->varname, targetFile);
         }
         // allowing reading into dereferenced pointers as well, but only if the pointer level is 0
         else if (variableNode->nodetype == NODE_TYPE_DEREF)
@@ -196,6 +196,41 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         }
         readValue(addressReg, targetFile);
         freeReg();
+        return -1;
+    }
+    case NODE_TYPE_RETURN:
+    {
+        if (root->left == NULL)
+        {
+            fprintf(stderr, "Error: RETURN statement requires an expression\n");
+            exit(1);
+        }
+        int valueReg = codeGen(root->left, targetFile);
+        // Store the return value at [BP-2], the slot reserved by the caller.
+        int addressReg = getReg();
+        fprintf(targetFile, "MOV R%d, BP\n", addressReg);
+        fprintf(targetFile, "SUB R%d, 2\n", addressReg);
+        fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
+        freeReg(); // free addressReg
+        freeReg(); // free valueReg
+        // Deallocate the local variables, restore the caller's BP and return.
+        int localCount = 0;
+        for (struct Lsymbol* current = LSymbolGetHead(); current != NULL; current = current->next)
+        {
+            if (current->binding > 0)
+            {
+                localCount++;
+            }
+        }
+        if (localCount > 0)
+        {
+            int countReg = getReg();
+            fprintf(targetFile, "MOV R%d, %d\n", countReg, localCount);
+            fprintf(targetFile, "SUB SP, R%d\n", countReg);
+            freeReg();
+        }
+        fprintf(targetFile, "POP BP\n");
+        fprintf(targetFile, "RET\n");
         return -1;
     }
     case NODE_TYPE_WRITE:
@@ -229,8 +264,10 @@ int codeGenStatement(tnode *root, FILE *targetFile)
 
         if (root->left->nodetype == NODE_TYPE_ID)
         {
-            int address = returnStaticBindAddress(root->left->varname);
-            fprintf(targetFile, "MOV [%d], R%d\n", address, rightReg);
+            int addressReg = getReg();
+            emitVarAddressInto(addressReg, root->left->varname, targetFile);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            freeReg(); // free addressReg
         }
         else if (root->left->nodetype == NODE_TYPE_DEREF)
         {
