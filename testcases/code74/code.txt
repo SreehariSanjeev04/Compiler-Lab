@@ -1,0 +1,28 @@
+decl
+  int n;
+  int count(int *p);
+enddecl
+
+int count(int *p) {
+  begin
+    if(*p <= 0) then
+      return 0;
+    else
+      *p = *p - 1;
+      return count(p) + 1;
+    endif;
+  end
+}
+
+int main() {
+  decl
+    int res;
+  enddecl
+  begin
+    read(n);
+    res = count(&n);
+    write(res);
+    write(n);
+    return 0;
+  end
+}

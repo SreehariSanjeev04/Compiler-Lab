@@ -9,9 +9,10 @@ struct Lsymbol* Ltail = NULL;
  * @param name The name of the variable.
  * @param type The type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.).
  * @param binding The pseudo memory offset for the variable
+ * @param pointerLevel The pointer level of the parameter
  * @return A pointer to the newly created Lsymbol, or NULL if memory allocation fails.
  */
-struct Lsymbol* LInstall(char* name, int type, int binding) {
+struct Lsymbol* LInstall(char* name, int type, int pointerLevel, int binding) {
     struct Lsymbol* newSymbol = (struct Lsymbol*)malloc(sizeof(struct Lsymbol));
     if(!newSymbol) {
         fprintf(stderr, "Memory allocation failed for Lsymbol\n");
@@ -25,6 +26,7 @@ struct Lsymbol* LInstall(char* name, int type, int binding) {
     newSymbol->name = strdup(name);
     newSymbol->type = type;
     newSymbol->binding = binding;
+    newSymbol->pointerLevel = pointerLevel; 
     newSymbol->next = NULL;
 
     if(Lhead == NULL) {

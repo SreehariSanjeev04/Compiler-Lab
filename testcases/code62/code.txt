@@ -1,0 +1,42 @@
+decl
+  int n;
+  int a[32];
+  int t;
+  int reverse(int l, int r);
+enddecl
+
+int reverse(int l, int r) {
+  decl
+    int s;
+  enddecl
+  begin
+    if(l < r) then
+      t = a[l];
+      a[l] = a[r];
+      a[r] = t;
+      s = reverse(l + 1, r - 1);
+    endif;
+    return 0;
+  end
+}
+
+int main() {
+  decl
+    int s, i;
+  enddecl
+  begin
+    read(n);
+    i = 0;
+    while(i < n) do
+      read(a[i]);
+      i = i + 1;
+    endwhile;
+    s = reverse(0, n - 1);
+    i = 0;
+    while(i < n) do
+      write(a[i]);
+      i = i + 1;
+    endwhile;
+    return 0;
+  end
+}

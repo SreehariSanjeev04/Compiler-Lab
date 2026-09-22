@@ -15,14 +15,11 @@
     int yylex(void);
     void yyerror(char const *s);
 
-    extern FILE* yyin;
     extern int yylineno;
 
-    FILE* targetFile;
-    FILE* inputFile;
+    extern FILE* targetFile;
     extern int yydebug;
     
-    tnode* root; // Root of the AST
     int currentType = -1; // Keeping track of the current type
     struct Gsymbol* currentFunction = NULL; // Function whose body is being parsed
 %}
@@ -55,16 +52,16 @@
 %%
 
 program
-    : GDeclBlock FdefBlock MainBlock    { root = $3; }
-    | GDeclBlock MainBlock           { root = $2; }
-    | MainBlock                      { root = $1; }
+    : GDeclBlock FdefBlock MainBlock    { }
+    | GDeclBlock MainBlock           { }
+    | MainBlock                      { }
     ;
 
 GDeclBlock
     : DECL GDecList ENDDECL {
-        assignBindingAddresses();
-        generateProgramStart(targetFile); // stack base is final now
-        if(showGlobalSymbolTable) printGlobalSymbolTable();
+        assignBindingAddresses(); // assigns binding addresses to global variables
+        generateProgramStart(targetFile); // generate the header values
+        if(showGlobalSymbolTable) printGlobalSymbolTable(); // optional btw
     }
     | DECL ENDDECL         {
         assignBindingAddresses();
@@ -141,9 +138,11 @@ FdefBlock
 
 Fdef
     : FdefSig '{' LdeclBlock Body '}' {
-        // On-the-fly: emit this function's code now that its body is parsed,
-        // then deallocate its AST and local symbol table.
         generateFunctionCode(currentFunction, $4, targetFile);
+        $$ = NULL;
+    }
+    | FdefSig '{' Body '}' {
+        generateFunctionCode(currentFunction, $3, targetFile);
         $$ = NULL;
     }
     ;
@@ -168,10 +167,9 @@ FdefSig
         }
         struct ParamList* current = head;
 
-        // Install parameters into the local symbol table
-        int paramBinding = -3; // Todo - check this value
+        int paramBinding = -3; // the first parameter would be at BP-3
         while(current != NULL) {
-            LInstall(current->name, current->type, paramBinding--);
+            LInstall(current->name, current->type, current->pointerLevel, paramBinding--);
             current = current->next;
         }
         ParamListDestroy();
@@ -203,7 +201,10 @@ ParamList
 
 Param
     : type ID { 
-        ParamListAppendNode($2, $1);
+        ParamListAppendNode($2, $1, 0);
+    }
+    | type PtrDecl ID {
+       ParamListAppendNode($3, $1, $2);
     }
     ;
 
@@ -260,7 +261,7 @@ LidList
     ;
 
 Lid
-    : ID             { LInstall($1, currentType, 0); }
+    : ID             { LInstall($1, currentType, 0, 0); } // as of now, no pointers within the local function
     ;
 
 Body

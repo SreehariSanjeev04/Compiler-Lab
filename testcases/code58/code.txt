@@ -1,0 +1,46 @@
+decl
+  int n;
+  int a[32];
+  int bsearch(int lo, int hi, int key);
+enddecl
+
+int bsearch(int lo, int hi, int key) {
+  decl
+    int mid, r;
+  enddecl
+  begin
+    if(lo > hi) then
+      r = -1;
+    else
+      mid = (lo + hi) / 2;
+      if(a[mid] == key) then
+        r = mid;
+      else
+        if(a[mid] < key) then
+          r = bsearch(mid + 1, hi, key);
+        else
+          r = bsearch(lo, mid - 1, key);
+        endif;
+      endif;
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int r, i, key;
+  enddecl
+  begin
+    read(n);
+    i = 0;
+    while(i < n) do
+      read(a[i]);
+      i = i + 1;
+    endwhile;
+    read(key);
+    r = bsearch(0, n - 1, key);
+    write(r);
+    return 0;
+  end
+}

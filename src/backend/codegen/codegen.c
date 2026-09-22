@@ -58,10 +58,6 @@ static void emitEpilogue(int localCount, FILE* targetFile) {
     fprintf(targetFile, "RET\n");
 }
 
-/* Emits the program header exactly once, lazily: the stack base must be
- * computed from the final global-data extent (currentBindingAddress), which
- * is only known after the declaration block is parsed. The Exit routine is
- * placed right after CALL MAIN so every return path out of main lands on it. */
 void generateProgramStart(FILE* targetFile) {
     static bool programStarted = false;
     if (programStarted) {

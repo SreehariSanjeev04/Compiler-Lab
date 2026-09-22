@@ -1,0 +1,31 @@
+decl
+  int a, b;
+  int gcd(int x, int y);
+enddecl
+
+int gcd(int x, int y) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(y == 0) then
+      r = x;
+    else
+      r = gcd(y, x % y);
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int r;
+  enddecl
+  begin
+    read(a);
+    read(b);
+    r = gcd(a, b);
+    write(r);
+    return 0;
+  end
+}

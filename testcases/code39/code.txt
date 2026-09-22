@@ -19,7 +19,7 @@ i = 2;
 while (i < 4) do
     j = 1;
     while (j < i) do
-        t[i][j] = t[i-1][j-1] + t[i-1][j];
+        t[i][j] = t[i - 1][j - 1] + t[i - 1][j];
         j = j + 1;
     endwhile;
     i = i + 1;

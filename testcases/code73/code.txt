@@ -1,0 +1,35 @@
+decl
+  int val;
+  int helper(int *p);
+  int twice(int *p);
+enddecl
+
+int helper(int *p) {
+  begin
+    *p = *p + 5;
+    return *p;
+  end
+}
+
+int twice(int *p) {
+  decl
+    int r;
+  enddecl
+  begin
+    r = helper(p);
+    return r * 2;
+  end
+}
+
+int main() {
+  decl
+    int out;
+  enddecl
+  begin
+    read(val);
+    out = twice(&val);
+    write(out);
+    write(val);
+    return 0;
+  end
+}

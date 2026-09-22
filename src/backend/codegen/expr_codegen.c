@@ -186,7 +186,7 @@ int codeGenFuncCall(tnode *root, FILE *targetFile)
 
     fprintf(targetFile, "CALL F%d\n", funcSymbol->flabel);
 
-    int resultReg = getReg(); // reuses register index == savedCount
+    int resultReg = getReg(); 
     fprintf(targetFile, "POP R%d\n", resultReg);
 
     for (int i = 0; i < argc; i++)
@@ -283,9 +283,7 @@ int codeGenAddressExpr(tnode *root, FILE *targetFile)
         if (root->left->nodetype == NODE_TYPE_ARRAY ||
             (root->left->nodetype == NODE_TYPE_ID && root->left->Gentry != NULL && root->left->Gentry->dimensions > 0))
         {
-            // Array operand: *arr is the first element of arr. If that element
-            // is itself an array (remaining dimensions), it decays to its
-            // address and no load is performed; otherwise one load yields it.
+
             int reg = codeGenAddressOperand(root->left, targetFile);
             if (root->pointerLevel > 0)
             {

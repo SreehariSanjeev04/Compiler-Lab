@@ -3,22 +3,17 @@
 #include <codegen.h>
 #include <gsymboltable_utils.h>
 
-extern FILE* inputFile;
-extern FILE* targetFile;
+FILE* targetFile;
+FILE* inputFile;
 extern FILE* yyin;
-extern tnode* root;
 extern int yydebug;
 extern int yyparse();
 
-/* Orchestration: the parser drives code generation -- the program header is
- * emitted lazily once global declarations fix the stack base, each function
- * definition (and main) emits its own code on-the-fly as soon as its body is
- * parsed, and labels are translated to addresses afterwards.
- * Usage: ./compiler [-g] <input_file> <output_file>
- *   -g  print the global symbol table after parsing declarations */
 int main(int argc, char* argv[]) {
 	yydebug = 0; // toggle for debugging
 	int argStart = 1;
+
+	// To print global symbol table 
 	if(argc > argStart && argv[argStart][0] == '-' && argv[argStart][1] == 'g') {
 		showGlobalSymbolTable = 1;
 		argStart++;

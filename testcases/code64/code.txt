@@ -1,0 +1,47 @@
+decl
+  int n;
+  int isEven(int x);
+  int isOdd(int x);
+enddecl
+
+int isEven(int x) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(x == 0) then
+      r = 1;
+    else
+      r = isOdd(x - 1);
+    endif;
+    return r;
+  end
+}
+
+int isOdd(int x) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(x == 0) then
+      r = 0;
+    else
+      r = isEven(x - 1);
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int r, s;
+  enddecl
+  begin
+    read(n);
+    r = isEven(n);
+    s = isOdd(n);
+    write(r);
+    write(s);
+    return 0;
+  end
+}

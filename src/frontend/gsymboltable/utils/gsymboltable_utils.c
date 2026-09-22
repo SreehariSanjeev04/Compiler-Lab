@@ -3,7 +3,7 @@
 #include <constants.h>
 #include <dimnode.h>
 
-// Set from the compiler command line (-g); gates printGlobalSymbolTable().
+// Compiler flag to display the global symbol table
 int showGlobalSymbolTable = 0;
 
 /**
@@ -149,7 +149,7 @@ void assignBindingAddresses(void) {
     while (current != NULL) {
         if (current->paramList != NULL) {
             current = current->next;
-            continue; // Skip function symbols
+            continue;
         }
         current->binding = currentBindingAddress;
         if(current->size > MAX_ARRAY_ADDRESS) {

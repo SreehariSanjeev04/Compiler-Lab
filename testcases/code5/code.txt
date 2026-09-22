@@ -16,7 +16,7 @@ int BubbleSort(int first, int last) {
        endif;
 
        dup = BubbleSort(first+1, last);
-       dup = BubbleSort(first, last-1);
+       dup = BubbleSort(first, last - 1);
     endif;
 
     return 0;
@@ -37,7 +37,7 @@ int main() {
       i = i+1;
     endwhile;
 
-    r = BubbleSort(0,n-1);
+    r = BubbleSort(0,n - 1);
 
     i=0;
     while(i<n) do

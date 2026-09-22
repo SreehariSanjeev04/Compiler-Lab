@@ -27,6 +27,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 INPUT_FILE="${1:-input.xsm}"
+SIM_INPUT="${2:-}"
 OUTPUT_FILE="output.xsm"
 echo "Input file: $INPUT_FILE"
 
@@ -35,19 +36,16 @@ flex -o build/lex.yy.c src/frontend/lexer/lex.l
 
 echo "Generating parser..."
 
+BISON_ARGS=""
 if $COUNTEREXAMPLE; then
     echo "Generating parser with counterexample support..."
-    bison -d -o build/parser.tab.c src/frontend/parser/parser.y --counterexample
-else
-    bison -d -o build/parser.tab.c src/frontend/parser/parser.y
+    BISON_ARGS="--counterexample"
+elif $FIX; then
+    echo "Generating parser with fix support..."
+    BISON_ARGS="--fix"
 fi
 
-if $FIX; then
-    echo "Generating parser with fix support..."
-    bison -d -o build/parser.tab.c src/frontend/parser/parser.y --fix
-else
-    bison -d -o build/parser.tab.c src/frontend/parser/parser.y
-fi
+bison -d -o build/parser.tab.c src/frontend/parser/parser.y $BISON_ARGS
 
 echo "Generating label detection lexer..."
 flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
@@ -98,4 +96,9 @@ echo "========================================"
 echo "Executing the generated code..."
 echo "========================================"
 
-./xsm -l library.lib -e output.xsm
+if [ -n "$SIM_INPUT" ]; then
+    echo "Simulator input: $SIM_INPUT"
+    ./xsm -l library.lib -e output.xsm < "$SIM_INPUT"
+else
+    ./xsm -l library.lib -e output.xsm
+fi

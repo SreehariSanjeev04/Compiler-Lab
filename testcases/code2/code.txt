@@ -10,7 +10,7 @@ int factorial(int m) {
     if(m <= 1) then
       f = 1;
     else
-      f = m * factorial(m-1);
+      f = m * factorial(m - 1);
     endif;
     return f;
   end

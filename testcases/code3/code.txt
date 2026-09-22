@@ -10,7 +10,7 @@ int fib(int k) {
     if(k < 2) then
       r = k;
     else
-      r = fib(k-1) + fib(k-2);
+      r = fib(k - 1) + fib(k - 2);
     endif;
     return r;
   end

@@ -46,14 +46,11 @@ tnode *makeLeafNodeId(const char *c) {
         exit(1);
     }
     temp->nodetype = NODE_TYPE_ID;
-    // Scope check at AST-build time: local declarations override globals. The
-    // binding itself is resolved again at code-generation time (LLookup then
-    // GLookup), which is valid because each function's code is generated while
-    // its local symbol table is still installed.
+
     struct Lsymbol *lentry = LLookup(temp->varname);
     if (lentry != NULL) {
         temp->type = lentry->type;
-        temp->pointerLevel = 0; // stage-5 locals are scalars
+        temp->pointerLevel = lentry->pointerLevel;
         return temp;
     }
     struct Gsymbol *entry = GLookup(c);
@@ -339,6 +336,7 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     for (struct ParamList *p = entry->paramList; p != NULL; p = p->next) {
         paramCount++;
     }
+    // check the argument count first
     if (argc != paramCount) {
         fprintf(stderr, "Error: Function '%s' expects %d argument(s), got %d\n",
                 entry->name, paramCount, argc);
@@ -354,8 +352,10 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     flattenCallArgs(args, argArray, &index);
     struct ParamList *param = entry->paramList;
     for (int i = 0; i < argc; i++, param = param->next) {
+        
+        // check the type and the pointer level of arguments
         if (argArray[i]->type != param->type ||
-            argArray[i]->pointerLevel != 0) {
+            argArray[i]->pointerLevel != param->pointerLevel) {
             fprintf(stderr, "Error: Argument %d of function '%s' has an incompatible type\n",
                     i + 1, entry->name);
             exit(1);
