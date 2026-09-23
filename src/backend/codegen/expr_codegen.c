@@ -6,18 +6,8 @@
 #include <gsymboltable_utils.h>
 #include <register_alloc.h>
 #include <binding.h>
+#include <tupletable.h>
 
-/*
- * Computes the memory address of an array element into a register.
- * The array node is a left-leaning tree: the leftmost leaf is the variable
- * name and the right child of each node is the subscript for that dimension.
- * Subscripts are collected outermost-first and paired with the matching
- * stride (row-major): dimension k carries the product of all sizes to its
- * right.
- * @param root: The NODE_TYPE_ARRAY node whose address is to be computed
- * @param targetFile: The file pointer to the target file where the code is being generated
- * @return: The register number holding the element address
- */
 int codeGenArrayAddress(tnode *root, FILE *targetFile)
 {
     tnode *spine[MAX_ARRAY_DIMENSION + 1];
@@ -75,12 +65,6 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
     return totalOffsetReg;
 }
 
-/*
- * Emits code that loads the address of a simple variable's storage into the
- * given register. Local variables and parameters are addressed relative to
- * BP (their Lsymbol binding); globals use their static binding address.
- * Arrays are global-only, so array bases keep using static addresses.
- */
 void emitVarAddressInto(int reg, const char *varname, FILE *targetFile)
 {
     struct Lsymbol *lentry = LLookup((char *)varname);
@@ -99,15 +83,6 @@ void emitVarAddressInto(int reg, const char *varname, FILE *targetFile)
     fprintf(targetFile, "MOV R%d, %d\n", reg, gentry->binding);
 }
 
-/*
- * Produces the value of an expression that is being used as a pointer/address,
- * applying array decay: an array element expression yields its element address
- * and an array name yields its base address, without any memory load. Other
- * expressions are evaluated normally (an ID pointer loads its stored address).
- * @param root: The node whose pointer value is to be produced
- * @param targetFile: The file pointer to the target file where the code is being generated
- * @return: The register number holding the pointer value (caller must free it)
- */
 int codeGenAddressOperand(tnode *root, FILE *targetFile)
 {
     if (root->nodetype == NODE_TYPE_ARRAY)
@@ -121,6 +96,85 @@ int codeGenAddressOperand(tnode *root, FILE *targetFile)
         return reg;
     }
     return codeGen(root, targetFile);
+}
+
+int codeGenTupleAddress(tnode *root, FILE *targetFile)
+{
+    if (root == NULL || root->nodetype != NODE_TYPE_TUPLE)
+    {
+        fprintf(stderr, "Error: Tuple field access node expected\n");
+        exit(1);
+    }
+
+    tnode *base = root->left;
+    struct TupleTable *entry = NULL;
+
+    if (base->nodetype == NODE_TYPE_ID)
+    {
+        if (base->Gentry == NULL || base->Gentry->tupleEntry == NULL)
+        {
+            fprintf(stderr, "Error: '%s' is not a tuple variable\n", base->varname);
+            exit(1);
+        }
+        entry = base->Gentry->tupleEntry;
+    }
+    else if (base->nodetype == NODE_TYPE_DEREF)
+    {
+        tnode *inner = base->left;
+        if (inner == NULL || inner->nodetype != NODE_TYPE_ID ||
+            inner->Gentry == NULL || inner->Gentry->tupleEntry == NULL)
+        {
+            fprintf(stderr, "Error: Invalid pointer-to-tuple field access\n");
+            exit(1);
+        }
+        entry = inner->Gentry->tupleEntry;
+    }
+    else
+    {
+        fprintf(stderr, "Error: Only tuple variables or dereferenced tuple pointers support field access\n");
+        exit(1);
+    }
+
+    struct TupleFieldList *field = TupleFieldListLookup(entry->name, root->varname);
+    if (field == NULL)
+    {
+        fprintf(stderr, "Error: Tuple type '%s' has no field named '%s'\n", entry->name, root->varname);
+        exit(1);
+    }
+
+    int baseReg = getReg();
+    if (base->nodetype == NODE_TYPE_DEREF)
+    {
+        // Address of (*sptr) is the pointer value stored in sptr.
+        emitVarAddressInto(baseReg, base->left->varname, targetFile);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", baseReg, baseReg);
+    }
+    else if (base->Gentry->pointerLevel == 0)
+    {
+        emitVarAddressInto(baseReg, base->varname, targetFile);
+    }
+    else
+    {
+        // sptr.field on a pointer-to-tuple: dereference the pointer first.
+        emitVarAddressInto(baseReg, base->varname, targetFile);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", baseReg, baseReg);
+    }
+
+    if (field->offset > 0)
+    {
+        fprintf(targetFile, "ADD R%d, %d\n", baseReg, field->offset);
+    }
+
+    return baseReg;
+}
+
+int codeGenTupleValue(tnode *root, FILE *targetFile)
+{
+    int valueReg = getReg();
+    int addrReg = codeGenTupleAddress(root, targetFile);
+    fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, addrReg);
+    freeReg(); // frees addrReg (most recently allocated)
+    return valueReg;
 }
 
 static int countCallArgs(tnode *argsNode)
@@ -142,16 +196,6 @@ static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index)
     argArray[(*index)++] = argsNode->right;
 }
 
-/*
- * Generates the caller-side sequence for a function invocation:
- *   1. push all registers currently in use,
- *   2. evaluate arguments in reverse order, pushing each value,
- *   3. push one empty slot for the callee's return value,
- *   4. CALL the function's label,
- *   5. pop the return value into a fresh register,
- *   6. discard the argument slots,
- *   7. restore the saved registers (the result register is kept).
- */
 int codeGenFuncCall(tnode *root, FILE *targetFile)
 {
     struct Gsymbol *funcSymbol = root->Gentry;
@@ -261,13 +305,17 @@ int codeGenAddressExpr(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_ADDRESS:
     {
-        if (root->left->nodetype != NODE_TYPE_ID && root->left->nodetype != NODE_TYPE_ARRAY)
+        if (root->left->nodetype != NODE_TYPE_ID &&
+            root->left->nodetype != NODE_TYPE_ARRAY &&
+            root->left->nodetype != NODE_TYPE_TUPLE)
         {
-            fprintf(stderr, "Error: Address node must have an ID or an array node as its left child\n");
+            fprintf(stderr, "Error: Address node must have an ID, array or tuple-access node as its left child\n");
             exit(1);
         }
         if (root->left->nodetype == NODE_TYPE_ARRAY)
             return codeGenArrayAddress(root->left, targetFile); // computes the base address + offset
+        if (root->left->nodetype == NODE_TYPE_TUPLE)
+            return codeGenTupleAddress(root->left, targetFile);
 
         int reg = getReg();
         emitVarAddressInto(reg, root->left->varname, targetFile); // load the address into the register

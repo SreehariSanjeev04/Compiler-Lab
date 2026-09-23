@@ -3,9 +3,6 @@
 
 struct TypeTable* head = NULL;
 
-/**
- * Initializes the TypeTable with predefined types: int, bool, str, and void.
- */
 void TypeTableCreate() {
     char* types[] = {"int", "bool", "str", "void"};
     int sizes[] = {1,1,1,0};
@@ -17,9 +14,6 @@ void TypeTableCreate() {
     }
 }
 
-/**
- * Destroys the TypeTable and frees all allocated memory.
- */
 void TypeTableDestroy() {
     struct TypeTable* current = head;
     while(current != NULL) {
@@ -38,9 +32,6 @@ void TypeTableDestroy() {
     head = NULL;
 }
 
-/**
- * Installs a new type in the TypeTable. Returns a pointer to the newly created TypeTable entry, or NULL if the type already exists or memory allocation fails.
- */
 struct TypeTable* TInstall(char* name, int size, struct FieldList* fields) {
     struct TypeTable* newType = (struct TypeTable*)malloc(sizeof(struct TypeTable));
     if(!newType) {
@@ -68,9 +59,6 @@ struct TypeTable* TInstall(char* name, int size, struct FieldList* fields) {
     return newType;
 }
 
-/**
- * Looks up a type in the TypeTable by name. Returns a pointer to the TypeTable entry if found, or NULL if not found.
- */
 struct TypeTable* TLookup(char *name) {
     struct TypeTable* current = head;
     while(current != NULL) {
@@ -82,9 +70,6 @@ struct TypeTable* TLookup(char *name) {
     return NULL;
 }
 
-/**
- * Looks up a field in a given type by name. Returns a pointer to the FieldList entry if found, or NULL if not found.
- */
 struct FieldList* FLookup(TypeTable* type, char* name) {
     if(type == NULL) {
         return NULL;
@@ -99,9 +84,6 @@ struct FieldList* FLookup(TypeTable* type, char* name) {
     return NULL;
 }
 
-/**
- * Returns a pointer to the head of the TypeTable.
- */
 struct TypeTable* GetTypeTableHead() {
     return head;
 }

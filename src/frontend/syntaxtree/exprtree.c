@@ -5,6 +5,8 @@
 #include "constants.h"
 #include "gsymboltable.h"
 #include <lsymboltable.h>
+#include <tupletable.h>
+#include <tuplefieldlist.h>
 
 static tnode *tnodeInit(void);
 static int countCallArgs(tnode *argsNode);
@@ -176,11 +178,7 @@ void freeTree(tnode *root) {
 tnode *makeArrayNode(tnode *idNode, tnode *indexExpr) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_ARRAY;
-    temp->type = idNode->type; // inherit the base type of the variable
-    // Each subscript consumes one dimension, so the element is one pointer
-    // level shallower than the subscripted expression. With the array name at
-    // level = number of dimensions, `a` (2D) is level 2, `a[i]` is level 1
-    // (the row, which decays to an int*), and `a[i][j]` is level 0 (an int).
+    temp->type = idNode->type;
     temp->pointerLevel = idNode->pointerLevel - 1;
     temp->left = idNode;
     temp->right = indexExpr;
@@ -193,6 +191,49 @@ tnode *makeAddressNode(tnode *varNode) {
     temp->left = varNode;
     temp->type = varNode->type;
     temp->pointerLevel = varNode->pointerLevel + 1;
+    return temp;
+}
+
+tnode* makeTupleNode(tnode* tupleBase, char* fieldName) {
+    if (tupleBase == NULL || fieldName == NULL) {
+        fprintf(stderr, "Error: Invalid tuple field access\n");
+        exit(1);
+    }
+
+    struct TupleTable* entry = NULL;
+    if (tupleBase->nodetype == NODE_TYPE_ID) {
+        if (tupleBase->Gentry == NULL || tupleBase->Gentry->tupleEntry == NULL) {
+            fprintf(stderr, "Error: '%s' is not a tuple variable\n", tupleBase->varname);
+            exit(1);
+        }
+        entry = tupleBase->Gentry->tupleEntry;
+    } else if (tupleBase->nodetype == NODE_TYPE_DEREF) {
+        
+        // Assumes only one dereferencing
+        tnode* base = tupleBase->left;
+        if (base == NULL || base->nodetype != NODE_TYPE_ID ||
+            base->Gentry == NULL || base->Gentry->tupleEntry == NULL) {
+            fprintf(stderr, "Error: Cannot access a field of a non-tuple expression\n");
+            exit(1);
+        }
+        entry = base->Gentry->tupleEntry;
+    } else {
+        fprintf(stderr, "Error: Only tuple variables or dereferenced tuple pointers support field access\n");
+        exit(1);
+    }
+
+    struct TupleFieldList* field = TupleFieldListLookup(entry->name, fieldName);
+    if (field == NULL) {
+        fprintf(stderr, "Error: Tuple type '%s' has no field named '%s'\n", entry->name, fieldName);
+        exit(1);
+    }
+
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_TUPLE;
+    temp->left = tupleBase;
+    temp->varname = strdup(fieldName);
+    temp->type = field->type;
+    temp->pointerLevel = 0;
     return temp;
 }
 

@@ -2,6 +2,8 @@
 	#include "parser.tab.h"
 	#include "exprtree.h"
 	void yyerror(char const *s);
+
+	// Todo - lexer should not create nodes, rather just return the token
 %}
 
 %option yylineno
@@ -38,6 +40,7 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "OR"|"or" {return OR;}
 "NOT"|"not" {return NOT;}
 "main" {return MAIN;}
+"tuple" {return TUPLE;}
 
 {text} {
 	yylval.node = makeLeafNodeString(yytext); 
@@ -72,6 +75,8 @@ return ID;
 ";" { return *yytext; }
 "," { return *yytext; }
 "&" { return *yytext; }
+"." { return *yytext; }
+
 [ \t]	{}
 [\n]	{}
 .	{yyerror("unknown character\n");

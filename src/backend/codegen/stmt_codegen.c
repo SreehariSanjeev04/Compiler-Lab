@@ -169,7 +169,8 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         if (variableNode == NULL ||
             (variableNode->nodetype != NODE_TYPE_ID &&
              variableNode->nodetype != NODE_TYPE_ARRAY &&
-             variableNode->nodetype != NODE_TYPE_DEREF))
+             variableNode->nodetype != NODE_TYPE_DEREF) && 
+             variableNode->nodetype != NODE_TYPE_TUPLE)
         {
             fprintf(stderr, "Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
@@ -177,10 +178,14 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         int addressReg;
         if (variableNode->nodetype == NODE_TYPE_ID)
         {
+            if (variableNode->Gentry != NULL && variableNode->Gentry->tupleEntry != NULL)
+            {
+                fprintf(stderr, "Error: Cannot read a whole tuple; read individual fields instead\n");
+                exit(1);
+            }
             addressReg = getReg();
             emitVarAddressInto(addressReg, variableNode->varname, targetFile);
         }
-        // allowing reading into dereferenced pointers as well, but only if the pointer level is 0
         else if (variableNode->nodetype == NODE_TYPE_DEREF)
         {
             if (variableNode->pointerLevel != 0)
@@ -190,9 +195,11 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             }
             addressReg = codeGenAddressOperand(variableNode->left, targetFile);
         }
-        else
+        else if (variableNode->nodetype == NODE_TYPE_ARRAY)
         {
             addressReg = codeGenArrayAddress(variableNode, targetFile);
+        } else {
+            addressReg = codeGenTupleAddress(variableNode, targetFile);
         }
         readValue(addressReg, targetFile);
         freeReg();
@@ -248,6 +255,39 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             exit(1);
         }
 
+        // Whole-tuple copy: b = a.
+        if (root->left->nodetype == NODE_TYPE_ID &&
+            root->left->Gentry != NULL && root->left->Gentry->tupleEntry != NULL &&
+            root->right->nodetype == NODE_TYPE_ID &&
+            root->right->Gentry != NULL && root->right->Gentry->tupleEntry != NULL)
+        {
+            struct TupleTable *tupleType = root->left->Gentry->tupleEntry;
+            if (tupleType != root->right->Gentry->tupleEntry)
+            {
+                fprintf(stderr, "Error: Cannot assign between different tuple types\n");
+                exit(1);
+            }
+            int dstReg = getReg();
+            emitVarAddressInto(dstReg, root->left->varname, targetFile);
+            int srcReg = getReg();
+            emitVarAddressInto(srcReg, root->right->varname, targetFile);
+            int tmpReg = getReg();
+            for (int offset = 0; offset < tupleType->size; offset++)
+            {
+                fprintf(targetFile, "MOV R%d, [R%d]\n", tmpReg, srcReg);
+                fprintf(targetFile, "MOV [R%d], R%d\n", dstReg, tmpReg);
+                if (offset < tupleType->size - 1)
+                {
+                    fprintf(targetFile, "ADD R%d, 1\n", srcReg);
+                    fprintf(targetFile, "ADD R%d, 1\n", dstReg);
+                }
+            }
+            freeReg(); // tmpReg
+            freeReg(); // srcReg
+            freeReg(); // dstReg
+            return -1;
+        }
+
         int rightReg;
         // Array decay on the RHS: when storing into a pointer, an array name
         // or array element yields its address instead of its value.
@@ -273,6 +313,12 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         {
             // The address of *p is the value of p.
             int addressReg = codeGenAddressOperand(root->left->left, targetFile);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            freeReg(); // free addressReg
+        }
+        else if (root->left->nodetype == NODE_TYPE_TUPLE)
+        {
+            int addressReg = codeGenTupleAddress(root->left, targetFile);
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
             freeReg(); // free addressReg
         }

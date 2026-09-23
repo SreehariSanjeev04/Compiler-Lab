@@ -140,6 +140,8 @@ int codeGen(tnode *root, FILE *targetFile)
         return codeGenFuncCall(root, targetFile);
     case NODE_TYPE_NOT:
         return codeGenNot(root, targetFile);
+    case NODE_TYPE_TUPLE: 
+        return codeGenTupleValue(root, targetFile);
     default:
         break;
     }

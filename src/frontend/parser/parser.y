@@ -11,6 +11,8 @@
     #include <paramlist.h>
     #include <flabel.h>
     #include <lsymboltable.h>
+    #include <tupletable.h>
+    #include <tuplefieldlist.h>
 
     int yylex(void);
     void yyerror(char const *s);
@@ -20,8 +22,9 @@
     extern FILE* targetFile;
     extern int yydebug;
     
-    int currentType = -1; // Keeping track of the current type
+    int currentType = -1; // Keeping track of the current Type
     struct Gsymbol* currentFunction = NULL; // Function whose body is being parsed
+    struct TupleTable* currentTupleEntry = NULL; // Tuple type registered by the most recent tuple declaration
 %}
 
 %define parse.error verbose
@@ -35,11 +38,11 @@
 
 %token <node> NUM STRLIT BREAKPOINT CONTINUE BREAK
 %token <vartype> INT STRING
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE
 %token <str> ID
 
-%type <node> expr program SList Stmt inputstmt outputstmt assgstmt ifstmt whilestmt var assg_lhs Body MainBlock Fdef FdefBlock ArgList
-%type <vartype> type PtrDecl
+%type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList TupleDecl TupleFieldList FieldPtrAccess
+%type <vartype> Type PtrDecl
 
 %left OR
 %left AND
@@ -51,7 +54,7 @@
 
 %%
 
-program
+Program
     : GDeclBlock FdefBlock MainBlock    { }
     | GDeclBlock MainBlock           { }
     | MainBlock                      { }
@@ -76,7 +79,7 @@ GDecList
     ;
 
 GDecl
-    : type GidList ';' { currentType = -1; }
+    : Type GidList ';' { currentType = -1; }
     ;
 
 GidList
@@ -86,12 +89,31 @@ GidList
 
 Gid
     : ID {
-        GInstall($1, currentType, 0);
+        struct Gsymbol* symbol = GInstall($1, currentType, 0);
+        if (currentType == TYPE_TUPLE) {
+            if (currentTupleEntry == NULL) {
+                fprintf(stderr, "Error: No tuple type is associated with the declaration of '%s'\n", $1);
+                exit(1);
+            }
+            symbol->tupleEntry = currentTupleEntry;
+            symbol->size = currentTupleEntry->size;
+        }
     }
     | PtrDecl ID {
-        GInstall($2, currentType, $1);
+        struct Gsymbol* symbol = GInstall($2, currentType, $1);
+        if (currentType == TYPE_TUPLE) {
+            if (currentTupleEntry == NULL) {
+                fprintf(stderr, "Error: No tuple type is associated with the declaration of '%s'\n", $2);
+                exit(1);
+            }
+            symbol->tupleEntry = currentTupleEntry;
+        }
     }
     | ID DeclDimList {
+        if (currentType == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Arrays of tuple type are not supported\n");
+            exit(1);
+        }
         GInstall($1, currentType, 0);
         struct DimNode* headDimNode = DimNodeGetHead();
         handleDimensionSizes(GLookup($1), headDimNode);
@@ -126,9 +148,43 @@ PtrDecl
     | '*'          { $$ = 1; }     
     ;
 
-type
+Type
     : INT    { currentType = TYPE_INT; $$ = TYPE_INT; }
     | STRING { currentType = TYPE_STRING; $$ = TYPE_STRING; }
+    | TupleDecl { currentType = TYPE_TUPLE; $$ = TYPE_TUPLE; }
+    ;
+
+TupleDecl
+    : TUPLE ID '(' TupleFieldList ')' {
+        struct TupleFieldList* head = TupleFieldListGetHead();
+        TupleTableAppend($2, head);
+        TupleFieldListReset();
+        currentTupleEntry = TupleTableLookup($2);
+        if (currentTupleEntry == NULL) {
+            fprintf(stderr, "Error: Tuple type '%s' could not be registered\n", $2);
+            exit(1);
+        }
+        $$ = NULL;
+    }
+    ;
+
+TupleFieldList
+    : TupleFieldList ',' Type ID {
+        if ($3 == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Only scalar fields are supported in tuple declarations\n");
+            exit(1);
+        }
+        TupleFieldListAppend($4, $3);
+        $$ = NULL;
+    }
+    | Type ID {
+        if ($1 == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Only scalar fields are supported in tuple declarations\n");
+            exit(1);
+        }
+        TupleFieldListAppend($2, $1);
+        $$ = NULL;
+    }
     ;
 
 FdefBlock
@@ -148,7 +204,7 @@ Fdef
     ;
 
 FdefSig
-    : type ID '(' ParamList ')' {
+    : Type ID '(' ParamList ')' {
         if(strcmp($2, "main") == 0) {
             fprintf(stderr, "Error: Function name 'main' is reserved\n");
             exit(1);
@@ -175,7 +231,7 @@ FdefSig
         ParamListDestroy();
         currentFunction = funcSymbol;
     }
-    | type ID '(' ')' {
+    | Type ID '(' ')' {
         if(strcmp($2, "main") == 0) {
             fprintf(stderr, "Error: Function name 'main' is reserved\n");
             exit(1);
@@ -200,21 +256,29 @@ ParamList
     ;
 
 Param
-    : type ID { 
+    : Type ID { 
+        if ($1 == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Tuple parameters are not supported\n");
+            exit(1);
+        }
         ParamListAppendNode($2, $1, 0);
     }
-    | type PtrDecl ID {
-       ParamListAppendNode($3, $1, $2);
+    | Type PtrDecl ID {
+        if ($1 == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Tuple parameters are not supported\n");
+            exit(1);
+        }
+        ParamListAppendNode($3, $1, $2);
     }
     ;
 
 MainBlock
-    : type MAIN '(' ')' '{' {
+    : Type MAIN '(' ')' '{' {
         LSymbolReset();
-        generateProgramStart(targetFile); // covers programs without a decl block
+        generateProgramStart(targetFile);
     } LdeclBlock Body '}' {
         if($1 != TYPE_INT) {
-            fprintf(stderr, "Error: Main function must have return type int.\n");
+            fprintf(stderr, "Error: Main function must have return Type int.\n");
             exit(1);
         }
 
@@ -224,12 +288,12 @@ MainBlock
         generateFunctionCode(funcSymbol, $8, targetFile);
         $$ = NULL;
     }
-    | type MAIN '(' ')' '{' {
+    | Type MAIN '(' ')' '{' {
         LSymbolReset();
-        generateProgramStart(targetFile); // covers programs without a decl block
+        generateProgramStart(targetFile); 
     } Body '}'  {
         if(currentType != TYPE_INT) {
-            fprintf(stderr, "Error: Main function must have return type int.\n");
+            fprintf(stderr, "Error: Main function must have return Type int.\n");
             exit(1);
         }
 
@@ -252,7 +316,7 @@ LdeclList
     ;
 
 Ldecl
-    : type LidList ';'
+    : Type LidList ';'
     ;
 
 LidList
@@ -261,14 +325,20 @@ LidList
     ;
 
 Lid
-    : ID             { LInstall($1, currentType, 0, 0); } // as of now, no pointers within the local function
+    : ID {
+        if (currentType == TYPE_TUPLE) {
+            fprintf(stderr, "Error: Local tuple variables are not supported yet\n");
+            exit(1);
+        }
+        LInstall($1, currentType, 0, 0);
+    } // as of now, no pointers within the local function
     ;
 
 Body
     : START SList END ';' { $$ = $2; }
     | START SList END     { $$ = $2; }
-    | START END ';'       { printf("Empty program\n"); $$ = NULL; }
-    | START END           { printf("Empty program\n"); $$ = NULL; }
+    | START END ';'       { printf("Empty Program\n"); $$ = NULL; }
+    | START END           { printf("Empty Program\n"); $$ = NULL; }
     ;
 
 SList
@@ -277,18 +347,20 @@ SList
     ;
 
 Stmt
-    : inputstmt      { $$ = $1; }
-    | outputstmt     { $$ = $1; }
-    | assgstmt       { $$ = $1; }
-    | ifstmt         { $$ = $1; }
-    | whilestmt      { $$ = $1; }
+    : InputStmt      { $$ = $1; }
+    | OutputStmt     { $$ = $1; }
+    | AssgStmt       { $$ = $1; }
+    | IfStmt         { $$ = $1; }
+    | WhileStmt      { $$ = $1; }
     | BREAKPOINT ';' { $$ = makeBreakPointNode(); }
     | BREAK ';'      { $$ = makeBreakNode(); }
     | CONTINUE ';'   { $$ = makeContinueNode(); }
-    | RETURN expr ';' {
+    | RETURN Expr ';' {
+        // as of now, functions do not return pointers
+
         if(currentFunction != NULL &&
            ($2->type != currentFunction->type || $2->pointerLevel != 0)) {
-            fprintf(stderr, "Error: Return type of function '%s' does not match its declaration\n",
+            fprintf(stderr, "Error: Return Type of function '%s' does not match its declaration\n",
                     currentFunction->name);
             exit(1);
         }
@@ -296,68 +368,76 @@ Stmt
     }
     ;
 
-ifstmt
-    : IF '(' expr ')' THEN SList ELSE SList ENDIF ';' { $$ = makeIfElseNode($3, $6, $8); }
-    | IF '(' expr ')' THEN SList ENDIF ';'            { $$ = makeIfNode($3, $6); }
+IfStmt
+    : IF '(' Expr ')' THEN SList ELSE SList ENDIF ';' { $$ = makeIfElseNode($3, $6, $8); }
+    | IF '(' Expr ')' THEN SList ENDIF ';'            { $$ = makeIfNode($3, $6); }
     ;
 
-whilestmt
-    : WHILE '(' expr ')' DO SList ENDWHILE ';' { $$ = makeWhileNode($3, $6); }
-    | DO SList WHILE '(' expr ')' ENDWHILE ';' { $$ = makeDoWhileNode($2, $5); }
-    | REPEAT SList UNTIL '(' expr ')' ';'      { $$ = makeRepeatUntilNode($2, $5); }
+WhileStmt
+    : WHILE '(' Expr ')' DO SList ENDWHILE ';' { $$ = makeWhileNode($3, $6); }
+    | DO SList WHILE '(' Expr ')' ENDWHILE ';' { $$ = makeDoWhileNode($2, $5); }
+    | REPEAT SList UNTIL '(' Expr ')' ';'      { $$ = makeRepeatUntilNode($2, $5); }
     ;
 
-inputstmt
-    : READ '(' var ')' ';'       { $$ = makeReadNode($3); }
-    | READ '(' '*' expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
+InputStmt
+    : READ '(' Var ')' ';'       { $$ = makeReadNode($3); }
+    | READ '(' '*' Expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
+    | READ '(' FieldPtrAccess ')' ';' { $$ = makeReadNode($3); }
     ;
 
-outputstmt
-    : WRITE '(' expr ')' ';' { $$ = makeWriteNode($3); }
+FieldPtrAccess
+    : '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); }
     ;
 
-assgstmt
-    : assg_lhs ASSIGN expr ';' { $$ = makeOperatorNode("=", $1, $3); }
+OutputStmt
+    : WRITE '(' Expr ')' ';' { $$ = makeWriteNode($3); }
     ;
 
-assg_lhs
-    : var       { $$ = $1; }
-    | '*' expr { $$ = makeDeRefNode($2); }
+AssgStmt
+    : AssgLhs ASSIGN Expr ';' { $$ = makeOperatorNode("=", $1, $3); }
     ;
 
-var
+AssgLhs
+    : Var       { $$ = $1; }
+    | '*' Expr { $$ = makeDeRefNode($2); }
+    | FieldPtrAccess { $$ = $1; }
+    ;
+
+Var
     : ID               { $$ = makeLeafNodeId($1); }
-    | var '[' expr ']' { $$ = makeArrayNode($1, $3); }
+    | Var '[' Expr ']' { $$ = makeArrayNode($1, $3); }
+    | Var '.' ID { $$ = makeTupleNode($1, $3); }
     ;
 
-expr
-    : expr PLUS expr          { $$ = makeOperatorNode("+", $1, $3); }
-    | expr MINUS expr         { $$ = makeOperatorNode("-", $1, $3); }
-    | expr '*' expr          { $$ = makeOperatorNode("*", $1, $3); }
-    | expr DIV expr           { $$ = makeOperatorNode("/", $1, $3); }
-    | expr LE expr            { $$ = makeOperatorNode("<=", $1, $3); }
-    | expr GE expr            { $$ = makeOperatorNode(">=", $1, $3); }
-    | expr LT expr            { $$ = makeOperatorNode("<", $1, $3); }
-    | expr GT expr            { $$ = makeOperatorNode(">", $1, $3); }
-    | expr EQ expr            { $$ = makeOperatorNode("==", $1, $3); }
-    | expr NE expr            { $$ = makeOperatorNode("!=", $1, $3); }
-    | expr AND expr           { $$ = makeOperatorNode("AND", $1, $3); }
-    | expr OR expr            { $$ = makeOperatorNode("OR", $1, $3); }
-    | expr MOD expr           { $$ = makeOperatorNode("%", $1, $3); }
-    | '(' expr ')'            { $$ = $2; }
+Expr
+    : Expr PLUS Expr          { $$ = makeOperatorNode("+", $1, $3); }
+    | Expr MINUS Expr         { $$ = makeOperatorNode("-", $1, $3); }
+    | Expr '*' Expr          { $$ = makeOperatorNode("*", $1, $3); }
+    | Expr DIV Expr           { $$ = makeOperatorNode("/", $1, $3); }
+    | Expr LE Expr            { $$ = makeOperatorNode("<=", $1, $3); }
+    | Expr GE Expr            { $$ = makeOperatorNode(">=", $1, $3); }
+    | Expr LT Expr            { $$ = makeOperatorNode("<", $1, $3); }
+    | Expr GT Expr            { $$ = makeOperatorNode(">", $1, $3); }
+    | Expr EQ Expr            { $$ = makeOperatorNode("==", $1, $3); }
+    | Expr NE Expr            { $$ = makeOperatorNode("!=", $1, $3); }
+    | Expr AND Expr           { $$ = makeOperatorNode("AND", $1, $3); }
+    | Expr OR Expr            { $$ = makeOperatorNode("OR", $1, $3); }
+    | Expr MOD Expr           { $$ = makeOperatorNode("%", $1, $3); }
+    | '(' Expr ')'            { $$ = $2; }
     | NUM                     { $$ = $1; }
     | STRLIT                  { $$ = $1; }
-    | var                     { $$ = $1; }
+    | Var                     { $$ = $1; }
     | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
-    | '&' var %prec ADDR      { $$ = makeAddressNode($2); }
-    | '*' expr %prec DEREF   { $$ = makeDeRefNode($2); }
-    | NOT expr %prec NOT     { $$ = makeNotNode($2); }
+    | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
+    | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
+    | NOT Expr %prec NOT     { $$ = makeNotNode($2); }
+    | '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); } // (*ptr).value
     ;
 
 ArgList
-    : ArgList ',' expr        { $$ = makeArgNode($1, $3); }
-    | expr                    { $$ = $1; }
+    : ArgList ',' Expr        { $$ = makeArgNode($1, $3); }
+    | Expr                    { $$ = $1; }
     ;
 
 %%

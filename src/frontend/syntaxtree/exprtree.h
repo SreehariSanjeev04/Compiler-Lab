@@ -41,6 +41,7 @@ tnode* makeFuncCallNode(char* name, tnode* args);
 tnode* makeArgNode(tnode* argList, tnode* arg);
 tnode* makeNotNode(tnode* operand);
 tnode* makeReturnNode(tnode* expr);
+tnode* makeTupleNode(tnode* tupleBase, char* fieldName);
 void freeTree(tnode* root);
 
 #endif // SYNTAXTREE_H

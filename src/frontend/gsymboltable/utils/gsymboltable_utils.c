@@ -2,16 +2,11 @@
 #include <gsymboltable.h>
 #include <constants.h>
 #include <dimnode.h>
+#include <tupletable.h>
 
 // Compiler flag to display the global symbol table
 int showGlobalSymbolTable = 0;
 
-/**
- * This function frees the memory allocated for the symbol table and its associated structures.
- * It traverses the linked list of symbols and deallocates memory for each symbol's name
- * and dimension sizes, as well as the symbol itself. After freeing all symbols, it sets the head of the symbol table to NULL.
- * @return: void
- */
 void freeSymbolTable(void) {
     struct Gsymbol* current = head;
     while (current != NULL) {
@@ -31,12 +26,6 @@ void freeSymbolTable(void) {
     head = NULL;
 }
 
-/**
- * This function creates a stride array for a given symbol representing an array variable.
- * The stride array is used to calculate the memory address of elements in multi-dimensional arrays.
- * @param symbol: The symbol table entry for the array variable.
- * @return: A pointer to the dynamically allocated stride array.
- */
 int* createStrideArray(struct Gsymbol* symbol) {
     if (symbol == NULL || symbol->dimensions <= 0) {
         fprintf(stderr, "Error: Invalid symbol or dimensions\n");
@@ -78,14 +67,6 @@ int* createStrideArray(struct Gsymbol* symbol) {
     return strideArray;
 }
 
-/**
- * This function handles the dimension sizes for a given symbol representing an array variable.
- * It traverses the linked list of dimension sizes and adds each size to the symbol's dimension
- * sizes linked list. It also updates the number of dimensions and the total size of the array.
- * @param symbol: The symbol table entry for the array variable.
- * @param DimNode: The head of the linked list containing the sizes of each dimension.
- * @return: void
- */
 void handleDimensionSizes(struct Gsymbol* symbol, struct DimNode* DimNode) {
     if (symbol == NULL || DimNode == NULL || GLookup(symbol->name) == NULL) {
         fprintf(stderr, "Error: Invalid symbol or DimNode\n");
@@ -99,13 +80,6 @@ void handleDimensionSizes(struct Gsymbol* symbol, struct DimNode* DimNode) {
     }
 }
 
-/**
- * This function adds a new dimension size to the specified symbol representing an array variable.
- * It updates the linked list of dimension sizes, increments the number of dimensions, and adjusts the total size of the array.
- * @param symbol: The symbol table entry for the array variable.
- * @param size: The size of the new dimension to be added.
- * @return: void
- */
 void addDimensionSizes(struct Gsymbol* symbol, int size) {
     if(symbol == NULL) {
         fprintf(stderr, "Error: Symbol is NULL\n");
@@ -137,12 +111,6 @@ void addDimensionSizes(struct Gsymbol* symbol, int size) {
     }
 }
 
-/**
- * This function assigns sequential static binding addresses to all symbols in
- * the symbol table. Scalars occupy one word; arrays occupy one word per element.
- * It must be called once, after all declarations have been parsed.
- * @return: void
- */
 void assignBindingAddresses(void) {
     currentBindingAddress = DEFAULT_BINDING_ADDRESS;
     struct Gsymbol* current = head;

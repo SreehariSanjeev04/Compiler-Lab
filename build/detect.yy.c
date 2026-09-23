@@ -620,10 +620,10 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-static const flex_int16_t yy_accept[15] =
+static const flex_int16_t yy_accept[19] =
     {   0,
-        3,    3,    5,    3,    2,    3,    3,    2,    3,    3,
-        3,    1,    3,    0
+        3,    3,    5,    3,    2,    3,    3,    3,    2,    3,
+        3,    3,    3,    3,    1,    3,    3,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -634,8 +634,8 @@ static const YY_CHAR yy_ec[256] =
         1,    2,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    5,    5,    5,
         5,    5,    5,    5,    5,    5,    5,    6,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    7,    1,    1,    1,    1,
+        1,    1,    1,    1,    7,    1,    1,    1,    1,    8,
+        1,    1,    9,    1,    1,    8,   10,   11,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
 
@@ -658,35 +658,44 @@ static const YY_CHAR yy_ec[256] =
         1,    1,    1,    1,    1
     } ;
 
-static const YY_CHAR yy_meta[8] =
+static const YY_CHAR yy_meta[12] =
     {   0,
-        1,    1,    1,    1,    1,    1,    1
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1
     } ;
 
-static const flex_int16_t yy_base[17] =
+static const flex_int16_t yy_base[21] =
     {   0,
-        0,    5,   11,    7,   19,   10,    6,   19,    0,   14,
-        0,   19,    1,   19,    1,    0
+        0,    8,   12,    6,   50,   16,   19,    4,   50,   24,
+       28,   36,   38,    0,   50,    3,    0,   50,    1,    0
     } ;
 
-static const flex_int16_t yy_def[17] =
+static const flex_int16_t yy_def[21] =
     {   0,
-       15,   15,   14,   16,   14,   16,   16,   14,    6,   16,
-       10,   14,   16,    0,   14,   14
+       19,   19,   18,   20,   18,   20,   20,   20,   18,   20,
+       20,   20,   20,   12,   18,   20,   10,    0,   18,   18
     } ;
 
-static const flex_int16_t yy_nxt[27] =
+static const flex_int16_t yy_nxt[62] =
     {   0,
-        7,    4,    5,   12,   14,   10,    6,    5,    8,    8,
-       14,    6,    8,   14,    9,   11,   12,   13,    3,   14,
-       14,   14,   14,   14,   14,   14
+        8,    4,    5,   18,    8,   15,    9,    6,    9,    7,
+        5,   18,   18,   18,   18,    6,   18,    7,    9,   18,
+       10,    9,   18,   18,   18,   11,    9,   18,   10,   12,
+        9,   18,   18,   18,   18,   18,   13,   14,   15,   16,
+        9,   18,   18,   18,   18,   18,   18,   18,   17,    3,
+       18,   18,   18,   18,   18,   18,   18,   18,   18,   18,
+       18
     } ;
 
-static const flex_int16_t yy_chk[27] =
+static const flex_int16_t yy_chk[62] =
     {   0,
-       16,   15,    1,   13,    0,    9,    1,    2,    7,    4,
-        3,    2,    6,    0,    6,   10,   10,   10,   14,   14,
-       14,   14,   14,   14,   14,   14
+       20,   19,    1,    0,   17,   16,    8,    1,    4,    1,
+        2,    3,    0,    0,    0,    2,    0,    2,    6,    0,
+        6,    7,    0,    0,    0,    7,   10,    0,   10,   10,
+       11,    0,    0,    0,    0,    0,   11,   12,   12,   12,
+       13,    0,    0,    0,    0,    0,    0,    0,   13,   18,
+       18,   18,   18,   18,   18,   18,   18,   18,   18,   18,
+       18
     } ;
 
 static yy_state_type yy_last_accepting_state;
@@ -710,8 +719,8 @@ char *yytext;
     #include "labelAddressTable.h"
 
     int line_number = 0;
-#line 714 "build/detect.yy.c"
-#line 715 "build/detect.yy.c"
+#line 723 "build/detect.yy.c"
+#line 724 "build/detect.yy.c"
 
 #define INITIAL 0
 
@@ -931,7 +940,7 @@ YY_DECL
 #line 11 "src/backend/translate/label_detect.l"
 
 
-#line 935 "build/detect.yy.c"
+#line 944 "build/detect.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -958,13 +967,13 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 15 )
+				if ( yy_current_state >= 19 )
 					yy_c = yy_meta[yy_c];
 				}
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 			++yy_cp;
 			}
-		while ( yy_base[yy_current_state] != 19 );
+		while ( yy_base[yy_current_state] != 50 );
 
 yy_find_action:
 		yy_act = yy_accept[yy_current_state];
@@ -994,7 +1003,7 @@ YY_RULE_SETUP
 #line 13 "src/backend/translate/label_detect.l"
 {
     char labelName[32];
-    sscanf(yytext, "%[^:]", labelName);
+    sscanf(yytext, "%31[^:]", labelName);
 
     // The program header occupies 8 words starting at address 2048 and each
     // instruction is 2 words. A label occupies a file line but no instruction
@@ -1024,7 +1033,7 @@ YY_RULE_SETUP
 #line 33 "src/backend/translate/label_detect.l"
 ECHO;
 	YY_BREAK
-#line 1028 "build/detect.yy.c"
+#line 1037 "build/detect.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1321,7 +1330,7 @@ static int yy_get_next_buffer (void)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 15 )
+			if ( yy_current_state >= 19 )
 				yy_c = yy_meta[yy_c];
 			}
 		yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
@@ -1349,11 +1358,11 @@ static int yy_get_next_buffer (void)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 15 )
+		if ( yy_current_state >= 19 )
 			yy_c = yy_meta[yy_c];
 		}
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
-	yy_is_jam = (yy_current_state == 14);
+	yy_is_jam = (yy_current_state == 18);
 
 		return yy_is_jam ? 0 : yy_current_state;
 }
@@ -2033,3 +2042,4 @@ void yyfree (void * ptr )
 
 
 int detectwrap() { return 1; }
+

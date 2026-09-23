@@ -44,12 +44,14 @@
 #define NODE_TYPE_OR 32
 #define NODE_TYPE_NOT 33
 #define NODE_TYPE_MOD 34
+#define NODE_TYPE_TUPLE 35
 
 // Type values
 #define TYPE_INT 0
 #define TYPE_BOOL 1
 #define TYPE_VOID 2
 #define TYPE_STRING 3
+#define TYPE_TUPLE 4
 
 // To do - look into void type pointer
 
