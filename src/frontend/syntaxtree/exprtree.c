@@ -28,6 +28,7 @@ static tnode *tnodeInit(void) {
     temp->middle = NULL;
     temp->right = NULL;
     temp->Gentry = NULL;
+    temp->Lentry = NULL;
     return temp;
 }
 

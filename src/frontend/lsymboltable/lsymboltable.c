@@ -15,10 +15,12 @@ struct Lsymbol* LInstall(char* name, int type, int pointerLevel, int binding) {
         free(newSymbol);
         return NULL;
     }
+    printf("[INFO]: Local install %s\n", name);
     newSymbol->name = strdup(name);
     newSymbol->type = type;
     newSymbol->binding = binding;
     newSymbol->pointerLevel = pointerLevel; 
+    newSymbol->tupleEntry = NULL;
     newSymbol->next = NULL;
 
     if(Lhead == NULL) {
@@ -64,7 +66,7 @@ void LSymbolTableDestroy(struct Lsymbol* head) {
     LSymbolReset();
 }
 
-void assignLocalBindingAddresses(void) {
+void LSymbolAssignBindingAddresses(void) {
     int binding = 0;
     struct Lsymbol* current = Lhead;
     while (current != NULL) {

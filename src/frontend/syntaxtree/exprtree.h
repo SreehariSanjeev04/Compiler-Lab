@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <lsymboltable.h>
 #include "constants.h"
 #include "gsymboltable.h"
+
 
 typedef struct tnode {
     int val;
@@ -17,6 +19,7 @@ typedef struct tnode {
     struct tnode* middle;
     struct tnode* right;
     struct Gsymbol* Gentry;
+    struct Lsymbol* Lentry;
 }tnode;
 
 tnode* makeLeafNodeNum(int n);

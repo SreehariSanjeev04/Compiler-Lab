@@ -2,12 +2,14 @@
 #define LSYMBOLTABLE_H
 #include <stdio.h>
 #include <stdlib.h>
+#include <tupletable.h>
 
 typedef struct Lsymbol {
     char* name; // name of the variable
-    int type;         // type of the variable (e.g., TYPE_INT, TYPE_BOOL, etc.)
-    int binding;      // BP-relative offset: params are negative (-3, -4, ...), locals positive (+1, +2, ...)
+    int type;         // type of the variable
+    int binding;      // BP-relative offset: params are negative, locals positive
     int pointerLevel; // Pointer level of the variable
+    struct TupleTable* tupleEntry; // Pointer to tuple table entry in case the symbol is for tuple
     struct Lsymbol *next; // pointer to the next symbol in the list
 } Lsymbol;
 
@@ -35,7 +37,7 @@ void LSymbolReset();
  * Assigns BP-relative positive offsets to declared locals (params already have
  * negative bindings). Must be called once, after the function's LdeclBlock.
  */
-void assignLocalBindingAddresses(void);
+void LSymbolAssignBindingAddresses(void);
 /**
  * Destroys the symbol table and frees all allocated memory.
  */

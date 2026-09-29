@@ -13,7 +13,7 @@ void TupleTableAppend(char *name, struct TupleFieldList *fields)
 {
     if (TupleTableLookup(name) != NULL)
     {
-        fprintf(stderr, "Error: Tuple type '%s' already defined\n", name);
+        fprintf(stderr, "[Error]: Tuple type '%s' already defined\n", name);
         exit(1);
     }
 

@@ -22,9 +22,9 @@
     extern FILE* targetFile;
     extern int yydebug;
     
-    int currentType = -1; // Keeping track of the current Type
-    struct Gsymbol* currentFunction = NULL; // Function whose body is being parsed
-    struct TupleTable* currentTupleEntry = NULL; // Tuple type registered by the most recent tuple declaration
+    int currentType = -1; 
+    struct Gsymbol* currentFunction = NULL;
+    struct TupleTable* currentTupleEntry = NULL;
 %}
 
 %define parse.error verbose
@@ -32,17 +32,16 @@
 
 %union {
     struct tnode *node;
-    int vartype;
+    int val;
     char* str;
 }
 
-%token <node> NUM STRLIT BREAKPOINT CONTINUE BREAK
-%token <vartype> INT STRING
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE
-%token <str> ID
+%token <val> INT STRING NUM
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE BREAKPOINT CONTINUE BREAK
+%token <str> ID STRLIT
 
 %type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList TupleDecl TupleFieldList FieldPtrAccess
-%type <vartype> Type PtrDecl
+%type <val> Type PtrDecl
 
 %left OR
 %left AND
@@ -62,8 +61,8 @@ Program
 
 GDeclBlock
     : DECL GDecList ENDDECL {
-        assignBindingAddresses(); // assigns binding addresses to global variables
-        generateProgramStart(targetFile); // generate the header values
+        assignBindingAddresses();
+        generateProgramStart(targetFile);
         if(showGlobalSymbolTable) printGlobalSymbolTable(); // optional btw
     }
     | DECL ENDDECL         {
@@ -136,10 +135,10 @@ Gid
 DeclDimList
 // Todo - change the lexer to only return the token, not the node
     : DeclDimList '[' NUM ']' {
-        DimNodeAppendNode($3->val);
+        DimNodeAppendNode($3);
     }
     | '[' NUM ']' {
-        DimNodeAppendNode($2->val);
+        DimNodeAppendNode($2);
     }
     ;
 
@@ -275,7 +274,6 @@ Param
 MainBlock
     : Type MAIN '(' ')' '{' {
         LSymbolReset();
-        generateProgramStart(targetFile);
     } LdeclBlock Body '}' {
         if($1 != TYPE_INT) {
             fprintf(stderr, "Error: Main function must have return Type int.\n");
@@ -285,12 +283,12 @@ MainBlock
         struct Gsymbol* funcSymbol = GInstall("MAIN", TYPE_INT, 0);
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
+        generateProgramStart(targetFile);
         generateFunctionCode(funcSymbol, $8, targetFile);
         $$ = NULL;
     }
     | Type MAIN '(' ')' '{' {
         LSymbolReset();
-        generateProgramStart(targetFile); 
     } Body '}'  {
         if(currentType != TYPE_INT) {
             fprintf(stderr, "Error: Main function must have return Type int.\n");
@@ -300,14 +298,15 @@ MainBlock
         struct Gsymbol* funcSymbol = GInstall("MAIN", TYPE_INT, 0);
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
+        generateProgramStart(targetFile); 
         generateFunctionCode(funcSymbol, $7, targetFile);
         $$ = NULL;
     }
     ;
 
 LdeclBlock
-    : DECL LdeclList ENDDECL { assignLocalBindingAddresses(); }
-    | DECL ENDDECL           { assignLocalBindingAddresses(); }
+    : DECL LdeclList ENDDECL { LSymbolAssignBindingAddresses(); }
+    | DECL ENDDECL           { LSymbolAssignBindingAddresses(); }
     ;
 
 LdeclList
@@ -331,7 +330,7 @@ Lid
             exit(1);
         }
         LInstall($1, currentType, 0, 0);
-    } // as of now, no pointers within the local function
+    }
     ;
 
 Body
@@ -356,8 +355,7 @@ Stmt
     | BREAK ';'      { $$ = makeBreakNode(); }
     | CONTINUE ';'   { $$ = makeContinueNode(); }
     | RETURN Expr ';' {
-        // as of now, functions do not return pointers
-
+        // check the return type of the function as well as the pointer level
         if(currentFunction != NULL &&
            ($2->type != currentFunction->type || $2->pointerLevel != 0)) {
             fprintf(stderr, "Error: Return Type of function '%s' does not match its declaration\n",
@@ -424,15 +422,15 @@ Expr
     | Expr OR Expr            { $$ = makeOperatorNode("OR", $1, $3); }
     | Expr MOD Expr           { $$ = makeOperatorNode("%", $1, $3); }
     | '(' Expr ')'            { $$ = $2; }
-    | NUM                     { $$ = $1; }
-    | STRLIT                  { $$ = $1; }
+    | NUM                     { $$ = makeLeafNodeNum($1); }
+    | STRLIT                  { $$ = makeLeafNodeString($1); }
     | Var                     { $$ = $1; }
     | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
     | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
     | NOT Expr %prec NOT     { $$ = makeNotNode($2); }
-    | '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); } // (*ptr).value
+    | '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); } 
     ;
 
 ArgList
