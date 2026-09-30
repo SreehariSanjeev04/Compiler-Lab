@@ -2,6 +2,7 @@
 #define TUPLETABLE_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "tuplefieldlist.h"
 // Very similar to the TypeTable, but created a dedicated table for the sake of simplicity
@@ -57,4 +58,8 @@ struct TupleFieldList *TupleFieldListLookup(
     char *tuplename,
     char *fieldname);
 
+bool TupleTableCheckIfFieldsMatch(
+    TupleFieldList* a,
+    TupleFieldList* b
+);
 #endif

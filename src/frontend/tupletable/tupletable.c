@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "tupletable.h"
 #include "tuplefieldlist.h"
 
@@ -13,14 +14,17 @@ void TupleTableAppend(char *name, struct TupleFieldList *fields)
 {
     if (TupleTableLookup(name) != NULL)
     {
-        fprintf(stderr, "[Error]: Tuple type '%s' already defined\n", name);
-        exit(1);
+        struct TupleTable* temp = TupleTableLookup(name);
+        if (!TupleTableCheckIfFieldsMatch(temp->fields, fields)) {
+            LOG_ERROR("The tuple is already declared but fields do not match.");
+            exit(1);
+        }
     }
 
     TupleTable *node = (TupleTable *)malloc(sizeof(TupleTable));
     if (node == NULL)
     {
-        fprintf(stderr, "[ERROR] TupleTable node allocation failed\n");
+        LOG_ERROR("TupleTable node allocation failed\n");
         exit(1);
     }
 
@@ -35,7 +39,7 @@ void TupleTableAppend(char *name, struct TupleFieldList *fields)
         TupleFieldList *copy = (TupleFieldList *)malloc(sizeof(TupleFieldList));
         if (copy == NULL)
         {
-            fprintf(stderr, "[ERROR] TupleFieldList copy allocation failed\n");
+            LOG_ERROR("TupleFieldList copy allocation failed\n");
             exit(1);
         }
         copy->name = strdup(src->name);
@@ -132,4 +136,25 @@ struct TupleFieldList *TupleFieldListLookup(
         current = current->next;
     }
     return NULL;
+}
+
+bool TupleTableCheckIfFieldsMatch(
+    TupleFieldList* a,
+    TupleFieldList* b
+) {
+    TupleFieldList* current1 = a;
+    TupleFieldList* current2 = b;
+
+    while(current1 != NULL && current2 != NULL) {
+        if (strcmp(current1->name,current2->name) != 0 ||
+            current1->type != current2->type) return false;
+            
+            current1 = current1->next;
+            current2 = current2->next;
+    }
+
+    if (current1 != NULL) return false;
+    if (current2 != NULL) return false;
+
+    return true;
 }

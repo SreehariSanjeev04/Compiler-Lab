@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "codegen.h"
 #include <runtime.h>
 #include <gsymboltable.h>
@@ -18,7 +19,8 @@ static int countLocals(void) {
     struct Lsymbol* current = LSymbolGetHead();
     while (current != NULL) {
         if (current->binding > 0) {
-            count++;
+            count += (current->tupleEntry != NULL && current->pointerLevel == 0)
+                     ? current->tupleEntry->size : 1;
         }
         current = current->next;
     }
@@ -72,7 +74,7 @@ void generateProgramStart(FILE* targetFile) {
 
 void generateFunctionCode(struct Gsymbol* funcSymbol, tnode* body, FILE* targetFile) {
     if (funcSymbol == NULL || body == NULL) {
-        fprintf(stderr, "Error: Cannot generate code for an invalid function definition\n");
+        LOG_ERROR("Error: Cannot generate code for an invalid function definition\n");
         exit(1);
     }
     int localCount = countLocals();
@@ -118,7 +120,7 @@ int codeGen(tnode *root, FILE *targetFile)
         case NODE_TYPE_CONTINUE:
             return codeGenControlLeaf(root, targetFile);
         default:
-            fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
+            LOG_ERROR("Error: Unknown leaf node type %d\n", root->nodetype);
             exit(1);
         }
     }

@@ -8,6 +8,7 @@ int codeGenArrayAddress(tnode* root, FILE* targetFile);
 void emitVarAddressInto(int reg, const char* varname, FILE* targetFile);
 int codeGenAddressOperand(tnode* root, FILE* targetFile); /* value of an expression used as a pointer/address (array decay applied) */
 int codeGenFuncCall(tnode* root, FILE* targetFile); /* caller-side sequence for a function invocation */
+void codeGenTupleCallInto(tnode* call, tnode* destination, FILE* targetFile);
 int codeGenNot(tnode* root, FILE* targetFile);
 int codeGenLeafValue(tnode* root, FILE* targetFile);
 int codeGenAddressExpr(tnode* root, FILE* targetFile);

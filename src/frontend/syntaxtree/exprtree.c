@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +17,7 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args);
 static tnode *tnodeInit(void) {
     tnode *temp = (tnode *)malloc(sizeof(tnode));
     if (temp == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for AST node\n");
+        LOG_ERROR("Error: Memory allocation failed for AST node\n");
         exit(1);
     }
     temp->val = 0;
@@ -45,7 +46,7 @@ tnode *makeLeafNodeId(const char *c) {
     tnode *temp = tnodeInit();
     temp->varname = strdup(c);
     if (temp->varname == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for variable name\n");
+        LOG_ERROR("Error: Memory allocation failed for variable name\n");
         exit(1);
     }
     temp->nodetype = NODE_TYPE_ID;
@@ -54,11 +55,12 @@ tnode *makeLeafNodeId(const char *c) {
     if (lentry != NULL) {
         temp->type = lentry->type;
         temp->pointerLevel = lentry->pointerLevel;
+        temp->Lentry = lentry;
         return temp;
     }
     struct Gsymbol *entry = GLookup(c);
     if (entry == NULL) {
-        fprintf(stderr, "Error: Variable '%s' not declared\n", c);
+        LOG_ERROR("Error: Variable '%s' not declared\n", c);
         exit(1);
     }
     temp->Gentry = entry;
@@ -71,7 +73,7 @@ tnode *makeLeafNodeString(const char *str) {
     tnode *temp = tnodeInit();
     temp->varname = strdup(str);
     if (temp->varname == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for string value\n");
+        LOG_ERROR("Error: Memory allocation failed for string value\n");
         exit(1);
     }
     temp->type = TYPE_STRING;
@@ -126,7 +128,7 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
         temp->nodetype = NODE_TYPE_AND;
         temp->type = TYPE_BOOL;
         if (!((l->type == TYPE_BOOL || l->type == TYPE_INT) && (r->type == TYPE_BOOL || r->type == TYPE_INT))) {
-            fprintf(stderr, "Error: AND requires boolean or integer operands\n");
+            LOG_ERROR("Error: AND requires boolean or integer operands\n");
             exit(1);
         }
     }
@@ -134,12 +136,12 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
         temp->nodetype = NODE_TYPE_OR;
         temp->type = TYPE_BOOL;
         if (!((l->type == TYPE_BOOL || l->type == TYPE_INT) && (r->type == TYPE_BOOL || r->type == TYPE_INT))) {
-            fprintf(stderr, "Error: OR requires boolean or integer operands\n");
+            LOG_ERROR("Error: OR requires boolean or integer operands\n");
             exit(1);
         }
     }
     else {
-        fprintf(stderr, "Error: Unknown operator %s\n", op);
+        LOG_ERROR("Error: Unknown operator %s\n", op);
         exit(1);
     }
 
@@ -152,7 +154,7 @@ tnode *makeNotNode(tnode *operand) {
     temp->type = TYPE_BOOL;
     temp->left = operand;
     if (operand == NULL || (operand->type != TYPE_BOOL && operand->type != TYPE_INT)) {
-        fprintf(stderr, "Error: NOT requires a boolean or integer operand\n");
+        LOG_ERROR("Error: NOT requires a boolean or integer operand\n");
         exit(1);
     }
     return temp;
@@ -197,35 +199,37 @@ tnode *makeAddressNode(tnode *varNode) {
 
 tnode* makeTupleNode(tnode* tupleBase, char* fieldName) {
     if (tupleBase == NULL || fieldName == NULL) {
-        fprintf(stderr, "Error: Invalid tuple field access\n");
+        LOG_ERROR("Error: Invalid tuple field access\n");
         exit(1);
     }
 
     struct TupleTable* entry = NULL;
     if (tupleBase->nodetype == NODE_TYPE_ID) {
-        if (tupleBase->Gentry == NULL || tupleBase->Gentry->tupleEntry == NULL) {
-            fprintf(stderr, "Error: '%s' is not a tuple variable\n", tupleBase->varname);
+        
+        entry = tupleBase->Gentry ? tupleBase->Gentry->tupleEntry :
+                tupleBase->Lentry ? tupleBase->Lentry->tupleEntry : NULL;
+        if (entry == NULL) {
+            LOG_ERROR("The variable %s is not a tuple.", tupleBase->varname);
             exit(1);
         }
-        entry = tupleBase->Gentry->tupleEntry;
     } else if (tupleBase->nodetype == NODE_TYPE_DEREF) {
         
         // Assumes only one dereferencing
         tnode* base = tupleBase->left;
         if (base == NULL || base->nodetype != NODE_TYPE_ID ||
             base->Gentry == NULL || base->Gentry->tupleEntry == NULL) {
-            fprintf(stderr, "Error: Cannot access a field of a non-tuple expression\n");
+            LOG_ERROR("Error: Cannot access a field of a non-tuple expression\n");
             exit(1);
         }
         entry = base->Gentry->tupleEntry;
     } else {
-        fprintf(stderr, "Error: Only tuple variables or dereferenced tuple pointers support field access\n");
+        LOG_ERROR("Error: Only tuple variables or dereferenced tuple pointers support field access\n");
         exit(1);
     }
 
     struct TupleFieldList* field = TupleFieldListLookup(entry->name, fieldName);
     if (field == NULL) {
-        fprintf(stderr, "Error: Tuple type '%s' has no field named '%s'\n", entry->name, fieldName);
+        LOG_ERROR("Error: Tuple type '%s' has no field named '%s'\n", entry->name, fieldName);
         exit(1);
     }
 
@@ -346,7 +350,7 @@ tnode *makeFuncCallNode(char *name, tnode *args) {
     temp->left = args;
     struct Gsymbol *entry = GLookup(name);
     if (entry == NULL) {
-        fprintf(stderr, "Error: Function '%s' not declared\n", name);
+        LOG_ERROR("Error: Function '%s' not declared\n", name);
         exit(1);
     }
     checkCallArguments(entry, args);
@@ -380,14 +384,14 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     }
     // check the argument count first
     if (argc != paramCount) {
-        fprintf(stderr, "Error: Function '%s' expects %d argument(s), got %d\n",
+        LOG_ERROR("Error: Function '%s' expects %d argument(s), got %d\n",
                 entry->name, paramCount, argc);
         exit(1);
     }
     if (argc == 0) return;
     tnode **argArray = (tnode **)malloc(argc * sizeof(tnode *));
     if (argArray == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for argument array\n");
+        LOG_ERROR("Error: Memory allocation failed for argument array\n");
         exit(1);
     }
     int index = 0;
@@ -398,7 +402,7 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
         // check the type and the pointer level of arguments
         if (argArray[i]->type != param->type ||
             argArray[i]->pointerLevel != param->pointerLevel) {
-            fprintf(stderr, "Error: Argument %d of function '%s' has an incompatible type\n",
+            LOG_ERROR("Error: Argument %d of function '%s' has an incompatible type\n",
                     i + 1, entry->name);
             exit(1);
         }

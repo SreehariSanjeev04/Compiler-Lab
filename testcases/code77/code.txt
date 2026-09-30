@@ -1,0 +1,23 @@
+decl
+  int bump(tuple pair (int left, int right) *value);
+enddecl
+
+int bump(tuple pair (int left, int right) *value) {
+  begin
+    value.right = value.right + 5;
+    return value.right;
+  end
+}
+
+int main() {
+  decl
+    tuple pair (int left, int right) item;
+  enddecl
+  begin
+    item.left = 7;
+    item.right = 10;
+    write(bump(&item));
+    write(item.right);
+    return 0;
+  end
+}

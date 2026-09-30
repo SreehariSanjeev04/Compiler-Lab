@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "codegen.h"
 #include "expr_codegen.h"
 #include <codegen_utils.h>
@@ -18,7 +19,7 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
     {
         if (depth > MAX_ARRAY_DIMENSION)
         {
-            fprintf(stderr, "Error: Array nesting exceeds the maximum supported depth\n");
+            LOG_ERROR("Error: Array nesting exceeds the maximum supported depth\n");
             exit(1);
         }
         spine[depth++] = current;
@@ -26,18 +27,18 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
     }
     if (current->nodetype != NODE_TYPE_ID)
     {
-        fprintf(stderr, "Error: Array node must have an ID as its leftmost child\n");
+        LOG_ERROR("Error: Array node must have an ID as its leftmost child\n");
         exit(1);
     }
     struct Gsymbol *symbol = GLookup(current->varname);
     if (symbol == NULL)
     {
-        fprintf(stderr, "Error: Variable '%s' not defined\n", current->varname);
+        LOG_ERROR("Error: Variable '%s' not defined\n", current->varname);
         exit(1);
     }
     if (depth > symbol->dimensions)
     {
-        fprintf(stderr, "Error: Variable '%s' expects at most %d subscript(s), got %d\n",
+        LOG_ERROR("Error: Variable '%s' expects at most %d subscript(s), got %d\n",
                 current->varname, symbol->dimensions, depth);
         exit(1);
     }
@@ -77,7 +78,7 @@ void emitVarAddressInto(int reg, const char *varname, FILE *targetFile)
     struct Gsymbol *gentry = GLookup(varname);
     if (gentry == NULL)
     {
-        fprintf(stderr, "Error: Variable '%s' not defined\n", varname);
+        LOG_ERROR("Error: Variable '%s' not defined\n", varname);
         exit(1);
     }
     fprintf(targetFile, "MOV R%d, %d\n", reg, gentry->binding);
@@ -102,7 +103,7 @@ int codeGenTupleAddress(tnode *root, FILE *targetFile)
 {
     if (root == NULL || root->nodetype != NODE_TYPE_TUPLE)
     {
-        fprintf(stderr, "Error: Tuple field access node expected\n");
+        LOG_ERROR("Error: Tuple field access node expected\n");
         exit(1);
     }
 
@@ -111,12 +112,12 @@ int codeGenTupleAddress(tnode *root, FILE *targetFile)
 
     if (base->nodetype == NODE_TYPE_ID)
     {
-        if (base->Gentry == NULL || base->Gentry->tupleEntry == NULL)
-        {
-            fprintf(stderr, "Error: '%s' is not a tuple variable\n", base->varname);
+        if (base->Gentry != NULL) entry = base->Gentry->tupleEntry;
+        else if (base->Lentry != NULL) entry = base->Lentry->tupleEntry;
+        else {
+            LOG_ERROR("Error: '%s' is not a tuple variable\n", base->varname);
             exit(1);
         }
-        entry = base->Gentry->tupleEntry;
     }
     else if (base->nodetype == NODE_TYPE_DEREF)
     {
@@ -124,21 +125,27 @@ int codeGenTupleAddress(tnode *root, FILE *targetFile)
         if (inner == NULL || inner->nodetype != NODE_TYPE_ID ||
             inner->Gentry == NULL || inner->Gentry->tupleEntry == NULL)
         {
-            fprintf(stderr, "Error: Invalid pointer-to-tuple field access\n");
+            LOG_ERROR("Error: Invalid pointer-to-tuple field access\n");
             exit(1);
         }
         entry = inner->Gentry->tupleEntry;
     }
     else
     {
-        fprintf(stderr, "Error: Only tuple variables or dereferenced tuple pointers support field access\n");
+        LOG_ERROR("Error: Only tuple variables or dereferenced tuple pointers support field access\n");
+        exit(1);
+    }
+
+    if (entry == NULL)
+    {
+        LOG_ERROR("Error: '%s' is not a tuple variable\n", base->varname);
         exit(1);
     }
 
     struct TupleFieldList *field = TupleFieldListLookup(entry->name, root->varname);
     if (field == NULL)
     {
-        fprintf(stderr, "Error: Tuple type '%s' has no field named '%s'\n", entry->name, root->varname);
+        LOG_ERROR("Error: Tuple type '%s' has no field named '%s'\n", entry->name, root->varname);
         exit(1);
     }
 
@@ -149,7 +156,7 @@ int codeGenTupleAddress(tnode *root, FILE *targetFile)
         emitVarAddressInto(baseReg, base->left->varname, targetFile);
         fprintf(targetFile, "MOV R%d, [R%d]\n", baseReg, baseReg);
     }
-    else if (base->Gentry->pointerLevel == 0)
+    else if (base->pointerLevel == 0)
     {
         emitVarAddressInto(baseReg, base->varname, targetFile);
     }
@@ -196,9 +203,53 @@ static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index)
     argArray[(*index)++] = argsNode->right;
 }
 
+static int pushCallArguments(tnode **args, int argc, FILE *targetFile)
+{
+    int words = 0;
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        if (args[i]->type == TYPE_TUPLE && args[i]->pointerLevel == 0)
+        {
+            struct TupleTable *tupleType = args[i]->Gentry ? args[i]->Gentry->tupleEntry :
+                                           args[i]->Lentry ? args[i]->Lentry->tupleEntry : NULL;
+            if (args[i]->nodetype != NODE_TYPE_ID || tupleType == NULL)
+            {
+                LOG_ERROR("Error: Tuple argument must be a tuple variable\n");
+                exit(1);
+            }
+            int addressReg = getReg();
+            emitVarAddressInto(addressReg, args[i]->varname, targetFile);
+            int valueReg = getReg();
+            for (int offset = 0; offset < tupleType->size; offset++)
+            {
+                fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, addressReg);
+                fprintf(targetFile, "PUSH R%d\n", valueReg);
+                if (offset + 1 < tupleType->size)
+                    fprintf(targetFile, "ADD R%d, 1\n", addressReg);
+            }
+            freeReg(); // valueReg
+            freeReg(); // addressReg
+            words += tupleType->size;
+        }
+        else
+        {
+            int argReg = codeGen(args[i], targetFile);
+            fprintf(targetFile, "PUSH R%d\n", argReg);
+            freeReg();
+            words++;
+        }
+    }
+    return words;
+}
+
 int codeGenFuncCall(tnode *root, FILE *targetFile)
 {
     struct Gsymbol *funcSymbol = root->Gentry;
+    if (funcSymbol->type == TYPE_TUPLE && funcSymbol->pointerLevel == 0)
+    {
+        LOG_ERROR("Error: Tuple-valued call requires a tuple assignment destination\n");
+        exit(1);
+    }
     int savedCount = getRegCount();
     saveRegisters(targetFile);
 
@@ -209,19 +260,14 @@ int codeGenFuncCall(tnode *root, FILE *targetFile)
         args = (tnode **)malloc(argc * sizeof(tnode *));
         if (args == NULL)
         {
-            fprintf(stderr, "Error: Memory allocation failed for call arguments\n");
+            LOG_ERROR("Error: Memory allocation failed for call arguments\n");
             exit(1);
         }
         int index = 0;
         flattenCallArgs(root->left, args, &index);
     }
 
-    for (int i = argc - 1; i >= 0; i--)
-    {
-        int argReg = codeGen(args[i], targetFile);
-        fprintf(targetFile, "PUSH R%d\n", argReg);
-        freeReg();
-    }
+    int argWords = pushCallArguments(args, argc, targetFile);
 
     int slotReg = getReg();
     fprintf(targetFile, "MOV R%d, 0\n", slotReg);
@@ -233,7 +279,7 @@ int codeGenFuncCall(tnode *root, FILE *targetFile)
     int resultReg = getReg(); 
     fprintf(targetFile, "POP R%d\n", resultReg);
 
-    for (int i = 0; i < argc; i++)
+    for (int i = 0; i < argWords; i++)
     {
         int discardReg = getReg();
         fprintf(targetFile, "POP R%d\n", discardReg);
@@ -247,6 +293,59 @@ int codeGenFuncCall(tnode *root, FILE *targetFile)
 
     free(args);
     return resultReg;
+}
+
+void codeGenTupleCallInto(tnode *call, tnode *destination, FILE *targetFile)
+{
+    struct Gsymbol *function = call->Gentry;
+    struct TupleTable *tupleType = function ? function->tupleEntry : NULL;
+    if (tupleType == NULL || tupleType->size <= 0)
+    {
+        LOG_ERROR("Error: Tuple-valued function has no tuple type\n");
+        exit(1);
+    }
+
+    int savedCount = getRegCount();
+    saveRegisters(targetFile);
+
+    int argc = countCallArgs(call->left);
+    tnode **args = NULL;
+    if (argc > 0)
+    {
+        args = malloc((size_t)argc * sizeof(*args));
+        if (args == NULL)
+        {
+            LOG_ERROR("Error: Memory allocation failed for call arguments\n");
+            exit(1);
+        }
+        int index = 0;
+        flattenCallArgs(call->left, args, &index);
+    }
+    int argWords = pushCallArguments(args, argc, targetFile);
+
+    int slotReg = getReg();
+    fprintf(targetFile, "MOV R%d, 0\n", slotReg);
+    for (int i = 0; i < tupleType->size; i++)
+        fprintf(targetFile, "PUSH R%d\n", slotReg);
+    freeReg();
+    fprintf(targetFile, "CALL F%d\n", function->flabel);
+
+    int dstReg = getReg();
+    emitVarAddressInto(dstReg, destination->varname, targetFile);
+    int valueReg = getReg();
+    for (int offset = 0; offset < tupleType->size; offset++)
+    {
+        fprintf(targetFile, "POP R%d\n", valueReg);
+        fprintf(targetFile, "MOV [R%d], R%d\n", dstReg, valueReg);
+        if (offset + 1 < tupleType->size)
+            fprintf(targetFile, "ADD R%d, 1\n", dstReg);
+    }
+    for (int i = 0; i < argWords; i++)
+        fprintf(targetFile, "POP R%d\n", valueReg);
+    freeReg(); // valueReg
+    freeReg(); // dstReg
+    restoreRegisters(targetFile);
+    free(args);
 }
 
 int codeGenNot(tnode *root, FILE *targetFile)
@@ -287,7 +386,7 @@ int codeGenLeafValue(tnode *root, FILE *targetFile)
         return valueReg;
     }
     default:
-        fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown leaf node type %d\n", root->nodetype);
         exit(1);
     }
 }
@@ -309,7 +408,7 @@ int codeGenAddressExpr(tnode *root, FILE *targetFile)
             root->left->nodetype != NODE_TYPE_ARRAY &&
             root->left->nodetype != NODE_TYPE_TUPLE)
         {
-            fprintf(stderr, "Error: Address node must have an ID, array or tuple-access node as its left child\n");
+            LOG_ERROR("Error: Address node must have an ID, array or tuple-access node as its left child\n");
             exit(1);
         }
         if (root->left->nodetype == NODE_TYPE_ARRAY)
@@ -325,7 +424,7 @@ int codeGenAddressExpr(tnode *root, FILE *targetFile)
     {
         if (effectivePointerLevel(root->left) <= 0)
         {
-            fprintf(stderr, "Error: Cannot dereference a non-pointer expression\n");
+            LOG_ERROR("Error: Cannot dereference a non-pointer expression\n");
             exit(1);
         }
         if (root->left->nodetype == NODE_TYPE_ARRAY ||
@@ -345,7 +444,7 @@ int codeGenAddressExpr(tnode *root, FILE *targetFile)
         return reg;
     }
     default:
-        fprintf(stderr, "Error: Unknown node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown node type %d\n", root->nodetype);
         exit(1);
     }
 }
@@ -355,7 +454,7 @@ int codeGenBinaryOp(tnode *root, FILE *targetFile)
     // below this is arithmetic and relational operations, which are binary operations
     if (!isArithmeticCompatible(root->left, root->right, root->nodetype))
     {
-        fprintf(stderr, "Error: Type Mismatch in arithmetic or relational operation\n");
+        LOG_ERROR("Error: Type Mismatch in arithmetic or relational operation\n");
         exit(1);
     }
     // Pointer operands are fetched in address form (arrays decay to addresses),
@@ -441,7 +540,7 @@ int codeGenBinaryOp(tnode *root, FILE *targetFile)
         break;
     }
     default:
-        fprintf(stderr, "Error: Unknown node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown node type %d\n", root->nodetype);
         exit(1);
     }
 

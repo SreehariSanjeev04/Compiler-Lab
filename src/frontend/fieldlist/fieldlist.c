@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "fieldlist.h"
 
 struct FieldList* head = NULL;
@@ -6,7 +7,7 @@ int fieldIndexCounter = 0;
 struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     struct FieldList* newField = (struct FieldList*)malloc(sizeof(struct FieldList));
     if(!newField) {
-        fprintf(stderr, "Memory allocation failed for FieldList\n");
+        LOG_ERROR("Memory allocation failed for FieldList\n");
         return NULL;
     }
     newField->name = name;

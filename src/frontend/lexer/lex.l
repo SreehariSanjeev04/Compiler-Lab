@@ -1,4 +1,5 @@
 %{
+	#include "logger.h"
 	#include "parser.tab.h"
 	#include "exprtree.h"
 	void yyerror(char const *s);
@@ -78,7 +79,7 @@ return ID;
 [ \t]	{}
 [\n]	{}
 .	{yyerror("unknown character\n");
-	fprintf(stderr, "Error: Unknown character '%c' at line %d\n", *yytext, yylineno);
+	LOG_ERROR("Error: Unknown character '%c' at line %d\n", *yytext, yylineno);
 	exit(1);}
 
 %%

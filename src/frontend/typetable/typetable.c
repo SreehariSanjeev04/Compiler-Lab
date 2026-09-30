@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <typetable.h>
 #include <fieldlist.h>
 
@@ -9,7 +10,7 @@ void TypeTableCreate() {
     
     for(int i = 0; i < 4; i++) {
         if(TInstall(types[i], sizes[i], NULL) == NULL) {
-            fprintf(stderr, "Failed to install type '%s'\n", types[i]);
+            LOG_ERROR("Failed to install type '%s'\n", types[i]);
         }
     }
 }
@@ -35,11 +36,11 @@ void TypeTableDestroy() {
 struct TypeTable* TInstall(char* name, int size, struct FieldList* fields) {
     struct TypeTable* newType = (struct TypeTable*)malloc(sizeof(struct TypeTable));
     if(!newType) {
-        fprintf(stderr, "Memory allocation failed for TypeTable\n");
+        LOG_ERROR("Memory allocation failed for TypeTable\n");
         return NULL;
     }
     if(TLookup(name) != NULL) {
-        fprintf(stderr, "Type '%s' already exists in the TypeTable\n", name);
+        LOG_ERROR("Type '%s' already exists in the TypeTable\n", name);
         free(newType);
         return NULL;
     }

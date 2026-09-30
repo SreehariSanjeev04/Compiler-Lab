@@ -1,0 +1,23 @@
+decl
+  int sumPair(tuple pair (int left, int right) value);
+enddecl
+
+int sumPair(tuple pair (int left, int right) value) {
+  begin
+    value.left = value.left + 1;
+    return value.left + value.right;
+  end
+}
+
+int main() {
+  decl
+    tuple pair (int left, int right) item;
+  enddecl
+  begin
+    item.left = 7;
+    item.right = 9;
+    write(sumPair(item));
+    write(item.left);
+    return 0;
+  end
+}

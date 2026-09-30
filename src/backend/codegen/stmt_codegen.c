@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "codegen.h"
 #include "stmt_codegen.h"
 #include <codegen_utils.h>
@@ -33,7 +34,7 @@ int codeGenControlLeaf(tnode *root, FILE *targetFile)
     }
     else
     {
-        fprintf(stderr, "Error: Unknown leaf node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown leaf node type %d\n", root->nodetype);
         exit(1);
     }
     return -1;
@@ -47,7 +48,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
     {
         if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: If condition must be of boolean or integer type\n");
+            LOG_ERROR("Error: If condition must be of boolean or integer type\n");
             exit(1);
         }
         int conditionReg = codeGen(root->left, targetFile);
@@ -62,7 +63,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
     {
         if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: If condition must be of boolean or integer type\n");
+            LOG_ERROR("Error: If condition must be of boolean or integer type\n");
             exit(1);
         }
         int conditionReg = codeGen(root->left, targetFile);
@@ -81,7 +82,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
     {
         if (root->left->type != TYPE_BOOL && root->left->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: While condition must be of boolean or integer type\n");
+            LOG_ERROR("Error: While condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -107,7 +108,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
     {
         if (root->right->type != TYPE_BOOL && root->right->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: Do-While condition must be of boolean or integer type\n");
+            LOG_ERROR("Error: Do-While condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -132,7 +133,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
     {
         if (root->right->type != TYPE_BOOL && root->right->type != TYPE_INT)
         {
-            fprintf(stderr, "Error: Repeat-Until condition must be of boolean or integer type\n");
+            LOG_ERROR("Error: Repeat-Until condition must be of boolean or integer type\n");
             exit(1);
         }
         insideWhileLoop = true;
@@ -154,7 +155,7 @@ int codeGenFlowControl(tnode *root, FILE *targetFile)
         return -1;
     }
     default:
-        fprintf(stderr, "Error: Unknown node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown node type %d\n", root->nodetype);
         exit(1);
     }
 }
@@ -172,7 +173,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
              variableNode->nodetype != NODE_TYPE_DEREF) && 
              variableNode->nodetype != NODE_TYPE_TUPLE)
         {
-            fprintf(stderr, "Error: READ node must have an ID, array node, or dereference as its left child\n");
+            LOG_ERROR("Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
         }
         int addressReg;
@@ -180,7 +181,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         {
             if (variableNode->Gentry != NULL && variableNode->Gentry->tupleEntry != NULL)
             {
-                fprintf(stderr, "Error: Cannot read a whole tuple; read individual fields instead\n");
+                LOG_ERROR("Error: Cannot read a whole tuple; read individual fields instead\n");
                 exit(1);
             }
             addressReg = getReg();
@@ -190,7 +191,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         {
             if (variableNode->pointerLevel != 0)
             {
-                fprintf(stderr, "Error: Can only read into a dereferenced integer location\n");
+                LOG_ERROR("Error: Can only read into a dereferenced integer location\n");
                 exit(1);
             }
             addressReg = codeGenAddressOperand(variableNode->left, targetFile);
@@ -209,24 +210,55 @@ int codeGenStatement(tnode *root, FILE *targetFile)
     {
         if (root->left == NULL)
         {
-            fprintf(stderr, "Error: RETURN statement requires an expression\n");
+            LOG_ERROR("Error: RETURN statement requires an expression\n");
             exit(1);
         }
-        int valueReg = codeGen(root->left, targetFile);
-        // Store the return value at [BP-2], the slot reserved by the caller.
-        int addressReg = getReg();
-        fprintf(targetFile, "MOV R%d, BP\n", addressReg);
-        fprintf(targetFile, "SUB R%d, 2\n", addressReg);
-        fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
-        freeReg(); // free addressReg
-        freeReg(); // free valueReg
+        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0)
+        {
+            tnode *value = root->left;
+            struct TupleTable *tupleType = value->Gentry ? value->Gentry->tupleEntry :
+                                           value->Lentry ? value->Lentry->tupleEntry : NULL;
+            if (value->nodetype != NODE_TYPE_ID || tupleType == NULL)
+            {
+                LOG_ERROR("Error: Tuple return requires a tuple variable\n");
+                exit(1);
+            }
+            int sourceReg = getReg();
+            emitVarAddressInto(sourceReg, value->varname, targetFile);
+            int addressReg = getReg();
+            int valueReg = getReg();
+            for (int offset = 0; offset < tupleType->size; offset++)
+            {
+                fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, sourceReg);
+                fprintf(targetFile, "MOV R%d, BP\n", addressReg);
+                fprintf(targetFile, "SUB R%d, %d\n", addressReg, offset + 2);
+                fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
+                if (offset + 1 < tupleType->size)
+                    fprintf(targetFile, "ADD R%d, 1\n", sourceReg);
+            }
+            freeReg(); // valueReg
+            freeReg(); // addressReg
+            freeReg(); // sourceReg
+        }
+        else
+        {
+            int valueReg = codeGen(root->left, targetFile);
+            // Store the return value at [BP-2], the slot reserved by the caller.
+            int addressReg = getReg();
+            fprintf(targetFile, "MOV R%d, BP\n", addressReg);
+            fprintf(targetFile, "SUB R%d, 2\n", addressReg);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
+            freeReg(); // addressReg
+            freeReg(); // valueReg
+        }
         // Deallocate the local variables, restore the caller's BP and return.
         int localCount = 0;
         for (struct Lsymbol* current = LSymbolGetHead(); current != NULL; current = current->next)
         {
             if (current->binding > 0)
             {
-                localCount++;
+                localCount += (current->tupleEntry != NULL && current->pointerLevel == 0)
+                              ? current->tupleEntry->size : 1;
             }
         }
         if (localCount > 0)
@@ -251,22 +283,28 @@ int codeGenStatement(tnode *root, FILE *targetFile)
     {
         if (!isAssignmentCompatible(root->left, root->right))
         {
-            fprintf(stderr, "ERROR: The types of the left and right operands in the assignment are not compatible\n");
+            LOG_ERROR("ERROR: The types of the left and right operands in the assignment are not compatible\n");
             exit(1);
         }
 
-        // Whole-tuple copy: b = a.
-        if (root->left->nodetype == NODE_TYPE_ID &&
-            root->left->Gentry != NULL && root->left->Gentry->tupleEntry != NULL &&
-            root->right->nodetype == NODE_TYPE_ID &&
-            root->right->Gentry != NULL && root->right->Gentry->tupleEntry != NULL)
+        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0 &&
+            root->right->nodetype == NODE_TYPE_FUNC_CALL)
         {
-            struct TupleTable *tupleType = root->left->Gentry->tupleEntry;
-            if (tupleType != root->right->Gentry->tupleEntry)
+            if (root->left->nodetype != NODE_TYPE_ID)
             {
-                fprintf(stderr, "Error: Cannot assign between different tuple types\n");
+                LOG_ERROR("Error: Tuple call result requires a tuple variable destination\n");
                 exit(1);
             }
+            codeGenTupleCallInto(root->right, root->left, targetFile);
+            return -1;
+        }
+
+        // Whole-tuple copy: b = a.
+        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0 &&
+            root->left->nodetype == NODE_TYPE_ID && root->right->nodetype == NODE_TYPE_ID)
+        {
+            struct TupleTable *tupleType = root->left->Gentry ? root->left->Gentry->tupleEntry :
+                                           root->left->Lentry->tupleEntry;
             int dstReg = getReg();
             emitVarAddressInto(dstReg, root->left->varname, targetFile);
             int srcReg = getReg();
@@ -332,7 +370,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         return -1;
     }
     default:
-        fprintf(stderr, "Error: Unknown node type %d\n", root->nodetype);
+        LOG_ERROR("Error: Unknown node type %d\n", root->nodetype);
         exit(1);
     }
 }

@@ -1,4 +1,6 @@
+#include "logger.h"
 #include <paramlist.h> 
+#include <constants.h>
 #include <string.h> 
 
 struct ParamList* headParamList = NULL;
@@ -29,13 +31,14 @@ struct ParamList* ParamListCreateNode(char *name, int type, int pointerLevel) {
     newNode->name = strdup(name);
     newNode->type = type;
     newNode->pointerLevel = pointerLevel;
+    newNode->tupleEntry = NULL;
     newNode->next = NULL;
     return newNode;
 }
 
 void ParamListAppendNode(char *name, int type, int pointerLevel) {
     if(ParamListGetParam(name) != NULL) {
-        fprintf(stderr, "Error: Parameter '%s' is already defined in the parameter list.\n", name);
+        LOG_ERROR("Error: Parameter '%s' is already defined in the parameter list.\n", name);
         exit(1);
     }
     struct ParamList* newNode = ParamListCreateNode(name, type, pointerLevel);
@@ -68,7 +71,9 @@ bool ParamListCheckIfParamsMatch(struct ParamList* list1, struct ParamList* list
     struct ParamList* current2 = list2;
 
     while (current1 != NULL && current2 != NULL) {
-        if (strcmp(current1->name, current2->name) != 0 || current1->type != current2->type || current1->pointerLevel != current2->pointerLevel) {
+        if (strcmp(current1->name, current2->name) != 0 || current1->type != current2->type ||
+            current1->pointerLevel != current2->pointerLevel ||
+            (current1->type == TYPE_TUPLE && current1->tupleEntry != current2->tupleEntry)) {
             return false;
         }
         current1 = current1->next;

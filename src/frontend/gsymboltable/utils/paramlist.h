@@ -5,10 +5,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "tupletable.h"
+
 typedef struct ParamList {
     char *name;
     int type;
     int pointerLevel;
+    struct TupleTable* tupleEntry; // only when the parameter has a tuple entry
     struct ParamList *next;
 } ParamList;
 

@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <codegen_utils.h>
 #include <exprtree.h>
 #include <gsymboltable.h>
@@ -5,11 +6,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static struct TupleTable *tupleTypeOf(tnode *node)
+{
+    if (node == NULL) return NULL;
+    if (node->nodetype == NODE_TYPE_ID || node->nodetype == NODE_TYPE_FUNC_CALL)
+        return node->Gentry ? node->Gentry->tupleEntry :
+               node->Lentry ? node->Lentry->tupleEntry : NULL;
+    if (node->nodetype == NODE_TYPE_DEREF || node->nodetype == NODE_TYPE_ADDRESS)
+        return tupleTypeOf(node->left);
+    return NULL;
+}
+
 int effectivePointerLevel(tnode *node)
 {
     if (node == NULL)
     {
-        fprintf(stderr, "[ERROR] NULL node passed to effectivePointerLevel\n");
+        LOG_ERROR("NULL node passed to effectivePointerLevel\n");
         exit(1);
     }
     return node->pointerLevel;
@@ -19,7 +31,7 @@ bool isAssignmentCompatible(tnode *left, tnode *right)
 {
     if (left == NULL || right == NULL)
     {
-        fprintf(stderr, "[ERROR] NULL node passed to isAssignmentCompatible\n");
+        LOG_ERROR("NULL node passed to isAssignmentCompatible\n");
         exit(1);
     }
 
@@ -43,22 +55,8 @@ bool isAssignmentCompatible(tnode *left, tnode *right)
     // Tuples: both operands must resolve to the same tuple type.
     if (lType == TYPE_TUPLE)
     {
-        struct TupleTable *lTuple = NULL;
-        if (left->nodetype == NODE_TYPE_ID)
-            lTuple = left->Gentry ? left->Gentry->tupleEntry : NULL;
-        else if (left->nodetype == NODE_TYPE_DEREF &&
-                 left->left != NULL && left->left->nodetype == NODE_TYPE_ID)
-            lTuple = left->left->Gentry ? left->left->Gentry->tupleEntry : NULL;
-
-        struct TupleTable *rTuple = NULL;
-        if (right->nodetype == NODE_TYPE_ID)
-            rTuple = right->Gentry ? right->Gentry->tupleEntry : NULL;
-        else if (right->nodetype == NODE_TYPE_DEREF &&
-                 right->left != NULL && right->left->nodetype == NODE_TYPE_ID)
-            rTuple = right->left->Gentry ? right->left->Gentry->tupleEntry : NULL;
-        else if (right->nodetype == NODE_TYPE_ADDRESS &&
-                 right->left != NULL && right->left->nodetype == NODE_TYPE_ID)
-            rTuple = right->left->Gentry ? right->left->Gentry->tupleEntry : NULL;
+        struct TupleTable *lTuple = tupleTypeOf(left);
+        struct TupleTable *rTuple = tupleTypeOf(right);
 
         if (lTuple == NULL || rTuple == NULL || lTuple != rTuple)
         {
@@ -78,7 +76,7 @@ bool isArithmeticCompatible(tnode *left, tnode *right, int op)
 {
     if (left == NULL || right == NULL)
     {
-        fprintf(stderr, "[ERROR] NULL node passed to isArithmeticCompatible\n");
+        LOG_ERROR("NULL node passed to isArithmeticCompatible\n");
         exit(1);
     }
     int lLevel = effectivePointerLevel(left);

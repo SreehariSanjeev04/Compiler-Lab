@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "tuplefieldlist.h"
 
 struct TupleFieldList* TupleFieldListHead = NULL;
@@ -12,7 +13,7 @@ struct TupleFieldList* TupleFieldListGetHead() {
 void TupleFieldListAppend(char* name, int type) {
     TupleFieldList* node = (TupleFieldList*)malloc(sizeof(TupleFieldList));
     if(!node) {
-        fprintf(stderr, "[ERROR]: TupleFieldList node allocation failed\n");
+        LOG_ERROR("TupleFieldList node allocation failed\n");
         exit(1);
     }
 

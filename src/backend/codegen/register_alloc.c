@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <register_alloc.h>
 #include <stdlib.h>
 #include <constants.h>
@@ -13,7 +14,7 @@ int getReg(void)
     }
     else
     {
-        fprintf(stderr, "Error: Out of registers\n");
+        LOG_ERROR("Error: Out of registers\n");
         exit(1);
     }
 }
@@ -36,7 +37,7 @@ void freeReg(void)
     }
     else
     {
-        fprintf(stderr, "Error: No registers to free\n");
+        LOG_ERROR("Error: No registers to free\n");
         exit(1);
     }
 }

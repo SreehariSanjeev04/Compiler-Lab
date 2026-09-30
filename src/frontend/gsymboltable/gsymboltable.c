@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <gsymboltable.h>
 #include <constants.h>
 
@@ -17,13 +18,14 @@ struct Gsymbol* GLookup(const char *name) {
 
 struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
     if (name == NULL || strlen(name) == 0) {
-        fprintf(stderr, "Error: Variable name is invalid. Only non-empty names are allowed.\n");
+        LOG_ERROR("Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
     }
     if (GLookup(name) != NULL) {
-        fprintf(stderr, "Error: Variable %s already declared\n", name);
+        LOG_ERROR("Error: Variable %s already declared\n", name);
         exit(1);
     }
+    // LOG_INFO("Global Install %s -> %d -> %d", name, type, pointerLevel);
     struct Gsymbol* newSymbol = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
     newSymbol->name = (char*)malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
