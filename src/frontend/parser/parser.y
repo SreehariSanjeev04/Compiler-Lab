@@ -14,6 +14,8 @@
     #include <lsymboltable.h>
     #include <tupletable.h>
     #include <tuplefieldlist.h>
+    #include <typetable.h>
+    #include <fieldlist.h>
 
     int yylex(void);
     void yyerror(char const *s);
@@ -28,8 +30,10 @@
     struct TupleTable* globalDeclarationTuple = NULL;
     struct Gsymbol* currentFunction = NULL;
     struct TupleTable* currentTupleEntry = NULL;
+    char* currentTypeName = NULL;
 %}
 
+// Todo: change the messy global and local tuple declaration
 %define parse.error verbose
 %define parse.trace
 
@@ -40,7 +44,7 @@
 }
 
 %token <val> INT STRING NUM
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE BREAKPOINT CONTINUE BREAK
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE BREAKPOINT CONTINUE BREAK CTYPE
 %token <str> ID STRLIT
 
 %type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList TupleDecl TupleFieldList FieldPtrAccess
@@ -57,16 +61,51 @@
 %%
 
 Program
-    : GDeclBlock FdefBlock MainBlock    { }
+    : TypeDeclBlock GDeclBlock FdefBlock MainBlock    { }
+    | GDeclBlock FdefBlock MainBlock {}
+    | TypeDeclBlock GDeclBlock MainBlock           { }
     | GDeclBlock MainBlock           { }
+    | TypeDeclBlock MainBlock                      { }
     | MainBlock                      { }
+    ;
+
+TypeDeclBlock 
+    : CTYPE TypeDeclList ENDTYPE
+    ;
+
+TypeDeclList
+    : TypeDeclList TypeDecl
+    | TypeDecl
+    ;
+
+TypeDecl
+    : ID { FieldListReset() } '{' TypeFieldList '}' {
+
+    }
+    ;
+
+TypeFieldList
+    : TypeFieldList TypeField
+    | TypeField
+    ;
+
+TypeField
+    : Type ID {
+        TypeTable* typeEntry = TLookup(currentTypeName);
+        if (typeEntry == NULL) {
+            LOG_ERROR("Type does not exist.");
+            exit(1);
+        }
+
+        FieldListAppend($2, typeEntry);
+    }
     ;
 
 GDeclBlock
     : DECL GDecList ENDDECL {
         assignBindingAddresses();
         generateProgramStart(targetFile);
-        if(showGlobalSymbolTable) printGlobalSymbolTable(); // optional btw
+        if(showGlobalSymbolTable) printGlobalSymbolTable(); 
     }
     | DECL ENDDECL         {
         assignBindingAddresses();
@@ -168,9 +207,14 @@ PtrDecl
     ;
 
 Type
-    : INT    { currentType = TYPE_INT; $$ = TYPE_INT; }
-    | STRING { currentType = TYPE_STRING; $$ = TYPE_STRING; }
-    | TupleDecl { currentType = TYPE_TUPLE; $$ = TYPE_TUPLE; }
+    : INT    { currentType = TYPE_INT; $$ = TYPE_INT; currentTypeName = "int"; }
+    | STRING { currentType = TYPE_STRING; $$ = TYPE_STRING; currentTypeName = "str" }
+    | TupleDecl { currentType = TYPE_TUPLE; $$ = TYPE_TUPLE; /* should do something about tuples */ }
+    | ID {
+        currentType = TYPE_CUSTOM;
+        currentTypeName = strdup(yylval.str);
+        $$ = TYPE_CUSTOM;
+    }
     ;
 
 TupleDecl
@@ -428,8 +472,6 @@ Stmt
     | BREAK ';'      { $$ = makeBreakNode(); }
     | CONTINUE ';'   { $$ = makeContinueNode(); }
     | RETURN Expr ';' {
-        // check the return type of the function as well as the pointer level
-        // just allow scalar level tuple
         if(currentFunction != NULL &&
            ($2->type != currentFunction->type || $2->pointerLevel != 0)) {
             LOG_INFO("Type: %d -> %d", $2->type, currentFunction->type);

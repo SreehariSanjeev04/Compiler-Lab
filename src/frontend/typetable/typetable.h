@@ -16,6 +16,8 @@ typedef struct TypeTable {
  * Initializes the TypeTable with the predefined types: int, bool, str, void.
  */
 void TypeTableCreate();
+
+void TypeTableReset();
 /**
  * Destroys the TypeTable and frees all allocated memory.
  */
@@ -29,16 +31,17 @@ struct TypeTable* TLookup(char *name);
  * Installs a new type.
  * @return the new entry, or NULL if the type already exists or allocation fails
  */
-struct TypeTable* TInstall(char *name, int size, struct FieldList *fields);
+struct TypeTable* TInstall(char *name, struct FieldList *fields);
 /**
  * @return the head of the TypeTable
  */
-struct TypeTable* GetTypeTableHead();
+struct TypeTable* TypeTableGetHead();
 /**
  * Looks up a field of a type by name.
  * @return the FieldList entry, or NULL if not found
  */
 struct FieldList* FLookup(TypeTable* type, char* name);
-int GetSize(TypeTable* type);
+
+static int TypeTableCalculateSize(FieldList* fieldList);
 
 #endif

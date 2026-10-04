@@ -13,3 +13,4 @@ clean:
 	@cd xfs-interface && make clean
 	@cd xsm_dev && make clean
 	rm -r build
+	rm compiler

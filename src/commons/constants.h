@@ -52,6 +52,7 @@
 #define TYPE_VOID 2
 #define TYPE_STRING 3
 #define TYPE_TUPLE 4
+#define TYPE_CUSTOM 5
 
 // To do - look into void type pointer
 

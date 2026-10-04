@@ -1,8 +1,10 @@
 #include "logger.h"
 #include "fieldlist.h"
 
-struct FieldList* head = NULL;
+struct FieldList* FieldListHead = NULL;
+struct FieldList* FieldListTail = NULL;
 int fieldIndexCounter = 0;
+
 
 struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     struct FieldList* newField = (struct FieldList*)malloc(sizeof(struct FieldList));
@@ -13,26 +15,35 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     newField->name = name;
     newField->fieldIndex = fieldIndexCounter++;
     newField->type = type;
+    newField->size = type->size;
     newField->next = NULL;
 
-    if(head == NULL) {
-        head = newField;
+    if (FieldListHead == NULL) {
+        FieldListHead = newField;
+        FieldListTail = newField;
     } else {
-        struct FieldList* current = head;
-        while(current->next != NULL) {
-            current = current->next;
-        }
-        current->next = newField;
+        FieldListTail->next = newField;
+        FieldListTail = newField;
     }
     return newField;
 }
 
 struct FieldList* FieldListReturnHead() {
-    return head;
+    return FieldListHead;
 }
 
-struct FieldList* FieldListSetHead(struct FieldList* newHead) {
-    head = newHead;
-    return head;
+void FieldListReset() {
+    FieldListHead = FieldListTail = NULL;
 }
+
+void FieldListDestroy() {
+    FieldList* current = FieldListHead;
+    while (current) {
+        FieldList* next = current->next;
+        free(current);
+        current = next;
+    }
+    FieldListReset();
+}
+
 

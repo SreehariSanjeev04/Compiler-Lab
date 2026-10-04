@@ -2,21 +2,28 @@
 #include <typetable.h>
 #include <fieldlist.h>
 
-struct TypeTable* head = NULL;
+struct TypeTable* TypeTableHead = NULL;
+struct TypeTable* TypeTableTail = NULL;
 
 void TypeTableCreate() {
     char* types[] = {"int", "bool", "str", "void"};
     int sizes[] = {1,1,1,0};
     
     for(int i = 0; i < 4; i++) {
-        if(TInstall(types[i], sizes[i], NULL) == NULL) {
+        TypeTable* typeEntry = TInstall(types[i], NULL);
+        if(typeEntry == NULL) {
             LOG_ERROR("Failed to install type '%s'\n", types[i]);
         }
+        typeEntry->size = sizes[i];
     }
 }
 
+void TypeTableReset() {
+    TypeTableHead =  TypeTableTail = NULL;
+}
+
 void TypeTableDestroy() {
-    struct TypeTable* current = head;
+    struct TypeTable* current = TypeTableHead;
     while(current != NULL) {
         struct TypeTable* temp = current;
         current = current->next;
@@ -30,10 +37,10 @@ void TypeTableDestroy() {
         }
         free(temp);
     }
-    head = NULL;
+    TypeTableReset();
 }
 
-struct TypeTable* TInstall(char* name, int size, struct FieldList* fields) {
+struct TypeTable* TInstall(char* name, struct FieldList* fields) {
     struct TypeTable* newType = (struct TypeTable*)malloc(sizeof(struct TypeTable));
     if(!newType) {
         LOG_ERROR("Memory allocation failed for TypeTable\n");
@@ -45,23 +52,21 @@ struct TypeTable* TInstall(char* name, int size, struct FieldList* fields) {
         return NULL;
     }
     newType->name = name;
-    newType->size = size;
+    newType->size = 0;
     newType->fields = fields;
     newType->next = NULL;
-    if(head == NULL) {
-        head = newType;
+    if(TypeTableHead == NULL) {
+        TypeTableHead = newType;
+        TypeTableTail = newType;
     } else {
-        struct TypeTable* current = head;
-        while(current->next != NULL) {
-            current = current->next;
-        }
-        current->next = newType;
+        TypeTableTail->next = newType;
+        TypeTableTail = newType;
     }
     return newType;
 }
 
 struct TypeTable* TLookup(char *name) {
-    struct TypeTable* current = head;
+    struct TypeTable* current = TypeTableHead;
     while(current != NULL) {
         if(strcmp(current->name, name) == 0) {
             return current;
@@ -85,6 +90,16 @@ struct FieldList* FLookup(TypeTable* type, char* name) {
     return NULL;
 }
 
-struct TypeTable* GetTypeTableHead() {
-    return head;
+struct TypeTable* TypeTableGetHead() {
+    return TypeTableHead;
+}
+
+static int TypeTableCalculateSize(FieldList* fieldList) {
+    int size = 0;
+    FieldList* current = fieldList;
+    while(current) {
+        size += current->size;
+        current = current->next;
+    }
+    return size;
 }

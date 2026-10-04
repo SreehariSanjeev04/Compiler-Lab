@@ -7,11 +7,13 @@
 typedef struct FieldList {
     char *name;
     int fieldIndex;
+    int size;
     struct TypeTable *type;
     struct FieldList *next;
 } FieldList;
 
-extern struct FieldList* head;
+extern struct FieldList* FieldListHead;
+extern struct FieldList* FieldListTail;
 extern int fieldIndexCounter;
 
 /**
@@ -23,10 +25,8 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type);
  * @return the head of the FieldList
  */
 struct FieldList* FieldListReturnHead();
-/**
- * Sets the head of the FieldList.
- * @return the new head
- */
-struct FieldList* FieldListSetHead(struct FieldList* newHead);
 
+void FieldListReset();
+
+void FieldListDestroy();
 #endif

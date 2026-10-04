@@ -40,6 +40,8 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "NOT"|"not"|"!" {return NOT;}
 "main" {return MAIN;}
 "tuple" {return TUPLE;}
+"type" { return CTYPE;}
+"endtype" { return ENDTYPE; }
 
 {text} {
 	yylval.str = strdup(yytext); 
