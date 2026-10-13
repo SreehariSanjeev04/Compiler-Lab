@@ -1,0 +1,29 @@
+type
+  node {
+    int value;
+    node next;
+  }
+endtype
+decl
+  node first, second, old, reused;
+enddecl
+int main() {
+  begin
+    initialize();
+    first = alloc();
+    second = alloc();
+    first.value = 41;
+    second.value = 99;
+    second.next = first;
+    old = second;
+    write(free(second));
+    reused = alloc();
+    write(reused == old);
+    write(reused.value);
+    write(reused.next == NULL);
+    write(first.value);
+    write(free(reused));
+    write(free(first));
+    return 0;
+  end
+}

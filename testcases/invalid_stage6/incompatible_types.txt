@@ -1,0 +1,21 @@
+type
+  left {
+    int value;
+  }
+  right {
+    int value;
+  }
+endtype
+decl
+  left a;
+  right b;
+enddecl
+int main() {
+  begin
+    initialize();
+    a = alloc();
+    b = alloc();
+    a = b;
+    return 0;
+  end
+}

@@ -1,0 +1,22 @@
+type
+  node {
+    int value;
+  }
+endtype
+decl
+  node p;
+enddecl
+int main() {
+  begin
+    initialize();
+    p = NULL;
+    write(p == NULL);
+    write(free(p));
+    p = alloc();
+    write(p != NULL);
+    write(free(p));
+    p = NULL;
+    write(free(p));
+    return 0;
+  end
+}

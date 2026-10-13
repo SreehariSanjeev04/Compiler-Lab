@@ -1,0 +1,11 @@
+type
+  node {
+    int value;
+    int value;
+  }
+endtype
+int main() {
+  begin
+    return 0;
+  end
+}

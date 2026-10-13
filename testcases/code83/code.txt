@@ -1,0 +1,34 @@
+type
+  record {
+    int first;
+    int second;
+    int third;
+    int fourth;
+    int fifth;
+    int sixth;
+    int seventh;
+    int eighth;
+  }
+endtype
+decl
+  record item;
+enddecl
+int main() {
+  begin
+    initialize();
+    item = alloc();
+    item.first = 11;
+    item.second = 12;
+    item.third = 13;
+    item.fourth = 14;
+    item.fifth = 15;
+    item.sixth = 16;
+    item.seventh = 17;
+    item.eighth = 18;
+    write(item.first);
+    write(item.fourth);
+    write(item.eighth);
+    free(item);
+    return 0;
+  end
+}
