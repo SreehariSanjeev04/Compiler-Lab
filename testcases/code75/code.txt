@@ -1,0 +1,26 @@
+type
+  node {
+    int value;
+    node next;
+  }
+endtype
+decl
+  node list[2], p;
+enddecl
+int main() {
+  begin
+    initialize();
+    list[0] = alloc();
+    list[0].value = 7;
+    p = list[0];
+    write(p.value);
+    list[1] = NULL;
+    p.next = list[1];
+    p.next = alloc();
+    read(p.next.value);
+    write(p.next.value);
+    free(p.next);
+    free(p);
+    return 0;
+  end
+}

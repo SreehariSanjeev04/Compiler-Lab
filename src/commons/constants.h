@@ -4,7 +4,7 @@
 // Maximum limit for registers and variables
 #define MAX_REGISTERS 20
 #define MAX_VARIABLES 26
-#define MAX_ARRAY_ADDRESS 4121
+#define MAX_ARRAY_ADDRESS 5119
 
 // Node type values
 
@@ -44,6 +44,10 @@
 #define NODE_TYPE_NOT 33
 #define NODE_TYPE_MOD 34
 #define NODE_TYPE_USER_DEREF 35
+#define NODE_TYPE_NULL 36
+#define NODE_TYPE_ALLOC 37
+#define NODE_TYPE_FREE 38
+#define NODE_TYPE_INITIALIZE 39
 
 // Type values
 #define TYPE_INT 0

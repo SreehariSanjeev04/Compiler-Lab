@@ -4,11 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <typetable.h>
 
 
 typedef struct ParamList {
     char *name;
-    int type;
+    struct TypeTable* type;
     int pointerLevel;
     struct ParamList *next;
 } ParamList;
@@ -20,7 +21,7 @@ extern struct ParamList* tailParamList;
  * Creates a new parameter node.
  * @return the newly created ParamList node
  */
-struct ParamList* ParamListCreateNode(char *name, int type, int pointerLevel);
+struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel);
 /**
  * @return the head of the parameter list
  */
@@ -46,6 +47,6 @@ void ParamListReset();
 /**
  * Appends a new parameter to the end of the list.
  */
-void ParamListAppendNode(char *name, int type, int pointerLevel);
+void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel);
 
 #endif

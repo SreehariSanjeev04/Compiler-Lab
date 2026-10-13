@@ -26,7 +26,7 @@ struct ParamList* ParamListGetParam(char *name) {
     return NULL;
 }
 
-struct ParamList* ParamListCreateNode(char *name, int type, int pointerLevel) {
+struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel) {
     struct ParamList* newNode = (struct ParamList*)malloc(sizeof(ParamList));
     newNode->name = strdup(name);
     newNode->type = type;
@@ -35,7 +35,7 @@ struct ParamList* ParamListCreateNode(char *name, int type, int pointerLevel) {
     return newNode;
 }
 
-void ParamListAppendNode(char *name, int type, int pointerLevel) {
+void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel) {
     if(ParamListGetParam(name) != NULL) {
         LOG_ERROR("Error: Parameter '%s' is already defined in the parameter list.\n", name);
         exit(1);

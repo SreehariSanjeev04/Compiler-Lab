@@ -15,7 +15,7 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     newField->name = name;
     newField->fieldIndex = fieldIndexCounter++;
     newField->type = type;
-    newField->size = type->size;
+    newField->size = 1;
     newField->next = NULL;
 
     if (FieldListHead == NULL) {
@@ -34,6 +34,7 @@ struct FieldList* FieldListReturnHead() {
 
 void FieldListReset() {
     FieldListHead = FieldListTail = NULL;
+    fieldIndexCounter = 0;
 }
 
 void FieldListDestroy() {
@@ -45,5 +46,4 @@ void FieldListDestroy() {
     }
     FieldListReset();
 }
-
 

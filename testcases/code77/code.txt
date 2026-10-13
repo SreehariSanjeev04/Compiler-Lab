@@ -1,0 +1,31 @@
+type
+  node {
+    int value;
+    node next;
+  }
+endtype
+decl
+  node p, current, head;
+  int i, status;
+enddecl
+int main() {
+  begin
+    initialize();
+    i = 0;
+    while (i < 127) do
+      current = alloc();
+      current.next = head;
+      head = current;
+      i = i + 1;
+    endwhile;
+    p = alloc();
+    status = free(p);
+    write(status);
+    status = free(head);
+    write(status);
+    p = alloc();
+    p.value = 99;
+    write(p.value);
+    return 0;
+  end
+}

@@ -12,6 +12,7 @@
 typedef struct tnode {
     int val;
     int type;
+    struct TypeTable* typeEntry;
     int pointerLevel;
     char* varname;
     int nodetype; 
@@ -44,6 +45,12 @@ tnode* makeFuncCallNode(char* name, tnode* args);
 tnode* makeArgNode(tnode* argList, tnode* arg);
 tnode* makeNotNode(tnode* operand);
 tnode* makeReturnNode(tnode* expr);
+tnode* makeUserTypeNode(tnode* base, char* fieldName);
+tnode* makeNullNode(void);
+tnode* makeAllocNode(void);
+tnode* makeFreeNode(tnode* value);
+tnode* makeInitializeNode(void);
+int typesCompatible(tnode* expected, tnode* actual);
 void freeTree(tnode* root);
 
 #endif // SYNTAXTREE_H

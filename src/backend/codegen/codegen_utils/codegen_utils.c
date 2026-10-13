@@ -14,8 +14,6 @@ int effectivePointerLevel(tnode *node)
         exit(1);
     }
 
-    if (node == NODE_TYPE_USER_DEREF) 
-        return 0;
     return node->pointerLevel;
 }
 
@@ -39,29 +37,10 @@ bool isAssignmentCompatible(tnode *left, tnode *right)
         return false;
     }
 
-    int lType = -1;
-    int rType = -1;
-    
-    if (left->nodetype == NODE_TYPE_USER_DEREF) {
-        if (left->right != NULL) 
-            lType = left->right->type;
-         else 
-            LOG_ERROR("Invalid AST for user defined type.\n");
-    } else 
-        lType = left->type;
+    if (left->nodetype == NODE_TYPE_ID && left->Gentry != NULL &&
+        left->Gentry->arrayLength > 0) return false;
 
-    if (right->nodetype == NODE_TYPE_USER_DEREF) {
-        if (right->right != NULL) 
-            rType = right->right->type;
-         else 
-            LOG_ERROR("Invalid AST for user defined type.\n");
-    } else 
-        rType = left->type;
-
-    if (lType != rType)
-    {
-        return false;
-    }
+    if (!typesCompatible(left, right)) return false;
 
     // pointers for user defined type not supported as of now
     if (effectivePointerLevel(left) != effectivePointerLevel(right))
@@ -84,6 +63,12 @@ bool isArithmeticCompatible(tnode *left, tnode *right, int op)
 
     int lType = left->type;
     int rType = right->type;
+
+    if ((op == NODE_TYPE_EQ || op == NODE_TYPE_NE) &&
+        lLevel == 0 && rLevel == 0 &&
+        ((left->typeEntry == right->typeEntry && lType == TYPE_CUSTOM) ||
+         (lType == TYPE_CUSTOM && right->nodetype == NODE_TYPE_NULL) ||
+         (rType == TYPE_CUSTOM && left->nodetype == NODE_TYPE_NULL))) return true;
 
     if (op == NODE_TYPE_AND || op == NODE_TYPE_OR)
     {

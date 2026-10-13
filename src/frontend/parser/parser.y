@@ -43,7 +43,7 @@
 }
 
 %token <val> INT STRING NUM
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT BREAKPOINT CONTINUE BREAK CTYPE ENDTYPE
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT BREAKPOINT CONTINUE BREAK CTYPE ENDTYPE ALLOC FREE INITIALIZE NULLLIT
 %token <str> ID STRLIT
 
 %type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList
@@ -71,7 +71,7 @@ Program
     ;
 
 TypeDeclBlock 
-    : CTYPE '{' TypeDeclList '}' ENDTYPE
+    : CTYPE TypeDeclList ENDTYPE
     ;
 
 TypeDeclList
@@ -80,14 +80,15 @@ TypeDeclList
     ;
 
 TypeDecl
-    : ID { FieldListReset(); } '{' TypeFieldList '}' {
+    : ID {
+        if (TLookup($1) != NULL) { LOG_ERROR("Type already exists: %s\n", $1); exit(1); }
+        TInstall($1, NULL);
+        FieldListReset();
+    } '{' TypeFieldList '}' {
         TypeTable* typeEntry = TLookup($1);
-        if (typeEntry != NULL) {
-            LOG_ERROR("Type already exists.");
-            exit(1);
-        }
-        FieldList* fields = FieldListReturnHead();
-        TInstall($1, fields);
+        typeEntry->fields = FieldListReturnHead();
+        typeEntry->size = fieldIndexCounter;
+        if (typeEntry->size > 8) { LOG_ERROR("too many member fields\n"); exit(1); }
     }
     ;
 
@@ -97,13 +98,15 @@ TypeFieldList
     ;
 
 TypeField
-    : Type ID {
+    : Type ID ';' {
         TypeTable* typeEntry = $1->table;
         if (typeEntry == NULL) {
             LOG_ERROR("Type specified in the field does not exist.");
             exit(1);
         }
 
+        for (FieldList* field = FieldListReturnHead(); field; field = field->next)
+            if (strcmp(field->name, $2) == 0) { LOG_ERROR("Duplicate field: %s\n", $2); exit(1); }
         FieldListAppend($2, typeEntry);
         free($1);
     }
@@ -255,11 +258,11 @@ ParamList
 
 Param
     : Type ID {
-        ParamListAppendNode($2, $1->kind, 0);
+        ParamListAppendNode($2, $1->table, 0);
         free($1);
     }
     | Type PtrDecl ID {
-        ParamListAppendNode($3, $1->kind, $2);
+        ParamListAppendNode($3, $1->table, $2);
         free($1);
     }
 
@@ -339,9 +342,12 @@ Stmt
     | BREAKPOINT ';' { $$ = makeBreakPointNode(); }
     | BREAK ';'      { $$ = makeBreakNode(); }
     | CONTINUE ';'   { $$ = makeContinueNode(); }
+    | INITIALIZE '(' ')' ';' { $$ = makeInitializeNode(); $$->val = 1; }
+    | FREE '(' Var ')' ';' { $$ = makeFreeNode($3); $$->val = 1; }
     | RETURN Expr ';' {
         if(currentFunction != NULL &&
-           ($2->type != GTypeKind(currentFunction) || $2->pointerLevel != 0)) {
+           !(($2->typeEntry == currentFunction->type && $2->pointerLevel == 0) ||
+             ($2->nodetype == NODE_TYPE_NULL && GTypeKind(currentFunction) == TYPE_CUSTOM))) {
             LOG_INFO("Type: %d -> %d", $2->type, GTypeKind(currentFunction));
             LOG_ERROR("Error: Return Type of function '%s' does not match its declaration\n",
                     currentFunction->name);
@@ -406,6 +412,10 @@ Expr
     | Var                     { $$ = $1; }
     | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
+    | ALLOC '(' ')'           { $$ = makeAllocNode(); }
+    | INITIALIZE '(' ')'      { $$ = makeInitializeNode(); }
+    | FREE '(' Var ')'        { $$ = makeFreeNode($3); }
+    | NULLLIT                { $$ = makeNullNode(); }
     | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
     | NOT Expr %prec NOT     { $$ = makeNotNode($2); }

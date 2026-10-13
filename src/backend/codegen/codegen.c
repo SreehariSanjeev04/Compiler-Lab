@@ -5,6 +5,7 @@
 #include <lsymboltable.h>
 #include "expr_codegen.h"
 #include "stmt_codegen.h"
+#include <register_alloc.h>
 
 static int countLocals(void) {
     int count = 0;
@@ -94,6 +95,7 @@ int codeGen(tnode *root, FILE *targetFile)
         switch (root->nodetype)
         {
         case NODE_TYPE_NUM:
+        case NODE_TYPE_NULL:
         case NODE_TYPE_STRING:
         case NODE_TYPE_ID:
             return codeGenLeafValue(root, targetFile);
@@ -101,6 +103,10 @@ int codeGen(tnode *root, FILE *targetFile)
         case NODE_TYPE_BREAK:
         case NODE_TYPE_CONTINUE:
             return codeGenControlLeaf(root, targetFile);
+        case NODE_TYPE_INITIALIZE:
+            { int result = codeGenLibraryCall("Heapset", -1, 0, targetFile);
+              if (root->val) { freeReg(); return -1; }
+              return result; }
         default:
             LOG_ERROR("Error: Unknown leaf node type %d\n", root->nodetype);
             exit(1);
@@ -122,6 +128,14 @@ int codeGen(tnode *root, FILE *targetFile)
         return codeGenAddressExpr(root, targetFile);
     case NODE_TYPE_FUNC_CALL:
         return codeGenFuncCall(root, targetFile);
+    case NODE_TYPE_FREE:
+        { int arg = codeGen(root->left, targetFile);
+          int result = codeGenLibraryCall("Free", arg, 0, targetFile);
+          if (root->val) { freeReg(); return -1; }
+          return result; }
+    case NODE_TYPE_INITIALIZE:
+        { codeGenLibraryCall("Heapset", -1, 0, targetFile);
+          freeReg(); return -1; }
     case NODE_TYPE_NOT:
         return codeGenNot(root, targetFile);
     case NODE_TYPE_USER_DEREF:

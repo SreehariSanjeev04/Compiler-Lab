@@ -14,5 +14,7 @@ int codeGenLeafValue(tnode* root, FILE* targetFile);
 int codeGenAddressExpr(tnode* root, FILE* targetFile);
 int codeGenBinaryOp(tnode* root, FILE* targetFile);
 int codeGenUserType(tnode* root, FILE* targetFile);
+int codeGenUserTypeAddress(tnode* root, FILE* targetFile);
+int codeGenLibraryCall(const char* service, int argumentReg, int size, FILE* targetFile);
 
 #endif // EXPR_CODEGEN_H

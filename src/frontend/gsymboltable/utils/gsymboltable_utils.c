@@ -30,7 +30,7 @@ void setArrayLength(struct Gsymbol* symbol, int length) {
     symbol->arrayLength = length;
     symbol->pointerLevel = 1;
     symbol->size = length;
-    if(symbol->size > MAX_ARRAY_ADDRESS) {
+    if(DEFAULT_BINDING_ADDRESS + symbol->size > MAX_ARRAY_ADDRESS) {
         LOG_ERROR("Error: Array size exceeds maximum allowed address space\n");
         exit(1);
     }
@@ -46,7 +46,7 @@ void assignBindingAddresses(void) {
             continue;
         }
         current->binding = currentBindingAddress;
-        if(current->size > MAX_ARRAY_ADDRESS) {
+        if(currentBindingAddress + current->size > MAX_ARRAY_ADDRESS) {
             LOG_ERROR("Error: Variable '%s' requires more memory than available (%d)\n", current->name, current->size);
             exit(1);
         }

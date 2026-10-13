@@ -45,7 +45,7 @@ void installDeclarators(DeclType* type, Declarator* list, bool global) {
                 symbol->flabel = generateFunctionLabel();
             }
         } else {
-            LInstall(list->name, type->kind, 0, 0);
+            LInstall(list->name, type->table, 0, 0);
         }
         free(list->name);
         free(list);

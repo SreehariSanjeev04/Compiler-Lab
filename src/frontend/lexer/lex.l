@@ -42,6 +42,10 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "tuple" {yyerror("Tuple types are no longer supported"); exit(1);}
 "type" { return CTYPE;}
 "endtype" { return ENDTYPE; }
+"alloc"|"Alloc" { return ALLOC; }
+"free"|"Free" { return FREE; }
+"initialize"|"Initialize" { return INITIALIZE; }
+"NULL"|"null" { return NULLLIT; }
 
 {text} {
 	yylval.str = strdup(yytext); 

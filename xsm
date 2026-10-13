@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 4 || $1 != -l || $3 != -e ]]; then
+    echo "Usage: $0 -l library.lib -e program.xsm [--debug]" >&2
+    exit 2
+fi
+
+repo_dir=$(cd "$(dirname "$0")" && pwd)
+if [[ ! -f "$repo_dir/xfs-interface/disk.xfs" ]]; then
+    echo "A prepared xfs-interface/disk.xfs with eXpOS is required" >&2
+    exit 1
+fi
+library=$(realpath "$2")
+program=$(realpath "$4")
+debug=${5:-}
+
+(
+    cd "$repo_dir/xfs-interface"
+    ./xfs-interface load --library "$library"
+    ./xfs-interface load --init "$program"
+)
+(
+    cd "$repo_dir/xsm_dev"
+    if [[ $debug == --debug ]]; then ./xsm --debug; else ./xsm; fi
+)

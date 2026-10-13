@@ -32,45 +32,41 @@ int codeGenArrayAddress(tnode *root, FILE *targetFile)
 }
 
  
+int codeGenUserTypeAddress(tnode* root, FILE *targetFile) {
+    int reg = codeGen(root->left, targetFile);
+    fprintf(targetFile, "ADD R%d, %d\n", reg, root->val);
+    return reg;
+}
+
 void emitUserTypeAddressInto(int reg, tnode* root, FILE *targetFile) {
-    if (root == NULL || root->left == NULL || root->right == NULL) {
-        LOG_ERROR("Error: Invalid AST node in user type address calculation.\n");
-        return;
+    int address = codeGenUserTypeAddress(root, targetFile);
+    fprintf(targetFile, "MOV R%d, R%d\n", reg, address);
+    freeReg();
+}
+
+int codeGenUserType(tnode* root, FILE *targetFile) {
+    int reg = codeGenUserTypeAddress(root, targetFile);
+    fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
+    return reg;
+}
+
+int codeGenLibraryCall(const char* service, int argumentReg, int size, FILE* targetFile) {
+    int live = getRegCount();
+    saveRegisters(targetFile);
+    int temp = getReg();
+    fprintf(targetFile, "MOV R%d, \"%s\"\nPUSH R%d\n", temp, service, temp);
+    if (argumentReg >= 0) fprintf(targetFile, "PUSH R%d\n", argumentReg);
+    else fprintf(targetFile, "MOV R%d, %d\nPUSH R%d\n", temp, size, temp);
+    fprintf(targetFile, "MOV R%d, 0\nPUSH R%d\nPUSH R%d\nPUSH R%d\nCALL 0\n", temp, temp, temp, temp);
+    fprintf(targetFile, "POP R%d\n", temp);
+    for (int i = 0; i < 4; i++) fprintf(targetFile, "POP R%d\n", temp == 19 ? 18 : 19);
+    for (int i = live - 1; i >= 0; i--) fprintf(targetFile, "POP R%d\n", i);
+    if (argumentReg >= 0) {
+        fprintf(targetFile, "MOV R%d, R%d\n", argumentReg, temp);
+        freeReg();
+        return argumentReg;
     }
-
-    if (root->left->nodetype == NODE_TYPE_ID) {
-        Gsymbol *gentry = GLookup(root->left->varname);
-        if (gentry == NULL) {
-            LOG_ERROR("Undeclared variable: %s\n", root->left->varname);
-            return;
-        }
-
-        fprintf(targetFile, "MOV R%d, %d\n", reg, gentry->binding);
-
-        if (root->right->nodetype != NODE_TYPE_ID) {
-            LOG_ERROR("Invalid field access syntax.\n");
-            return;
-        }
-
-        struct FieldList* fentry = FLookup(root->left->type, root->right->varname);
-        if (fentry == NULL) {
-            LOG_ERROR("Field '%s' not found in type '%s'\n", root->right->varname, gentry->type->name);
-            return;
-        }
-
-        fprintf(targetFile, "ADD R%d, %d\n", reg, fentry->fieldIndex);
-        return;
-    }
-
-    emitUserTypeAddressInto(reg, root->left, targetFile);
-
-    struct FieldList* fentry = FLookup(root->left->type, root->right->varname);
-    if (fentry == NULL) {
-        LOG_ERROR("Field '%s' not found in type '%s'\n", root->right->varname, root->left->right->varname);
-        return;
-    }
-
-    fprintf(targetFile, "ADD R%d, %d\n", reg, fentry->fieldIndex);
+    return temp;
 }
 
 void emitVarAddressInto(int reg, const char *varname, FILE *targetFile)
@@ -201,9 +197,10 @@ int codeGenLeafValue(tnode *root, FILE *targetFile)
     switch (root->nodetype)
     {
     case NODE_TYPE_NUM:
+    case NODE_TYPE_NULL:
     {
         int reg = getReg();
-        fprintf(targetFile, "MOV R%d, %d\n", reg, root->val);
+        fprintf(targetFile, "MOV R%d, %d\n", reg, root->nodetype == NODE_TYPE_NULL ? 0 : root->val);
         return reg;
     }
     case NODE_TYPE_STRING:

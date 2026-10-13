@@ -75,11 +75,12 @@ Use `--debug` for the interactive debugger (step, continue, watchpoints, registe
 
 A simple C-like language supporting:
 
-- `int` and `str` types, and one-dimensional global arrays
+- `int` and `str` types, user-defined types, and one-dimensional global arrays of all three
 - `read` / `write` statements
 - Arithmetic and relational expressions
 - `if` / `if-else`, `while`, `do-while`, `repeat-until`
 - `break`, `continue`, `breakpoint`
+- `initialize()`, `alloc()`, `free()`, and chained user-defined type fields
 
 ### Example
 
@@ -114,4 +115,4 @@ end;
 ./scripts/run_tests.sh
 ```
 
-Runs all 35 test cases (`testcases/code1` through `code35`), comparing output against expected results.
+The runtime suite compares program output against the `testcases/code*` fixtures. It uses the root `xsm` wrapper to load `library.lib` and each executable into a prepared `xfs-interface/disk.xfs` containing eXpOS.

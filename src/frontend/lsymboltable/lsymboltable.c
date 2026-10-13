@@ -1,11 +1,12 @@
 #include "logger.h"
 #include "lsymboltable.h"
 #include <string.h>
+#include <constants.h>
 
 struct Lsymbol* Lhead = NULL;
 struct Lsymbol* Ltail = NULL;
 
-struct Lsymbol* LInstall(char* name, int type, int pointerLevel, int binding) {
+struct Lsymbol* LInstall(char* name, struct TypeTable* type, int pointerLevel, int binding) {
     struct Lsymbol* newSymbol = (struct Lsymbol*)malloc(sizeof(struct Lsymbol));
     if(!newSymbol) {
         LOG_ERROR("Memory allocation failed for Lsymbol\n");
@@ -14,11 +15,13 @@ struct Lsymbol* LInstall(char* name, int type, int pointerLevel, int binding) {
     if(LLookup(name) != NULL) {
         LOG_ERROR("Error: Variable '%s' is already defined in the local symbol table.\n", name);
         free(newSymbol);
-        return NULL;
+        exit(1);
     }
     // LOG_INFO("Local install %s -> %d\n", name, type);
     newSymbol->name = strdup(name);
-    newSymbol->type = type;
+    newSymbol->typeEntry = type;
+    newSymbol->type = strcmp(type->name, "int") == 0 ? TYPE_INT :
+                      strcmp(type->name, "str") == 0 ? TYPE_STRING : TYPE_CUSTOM;
     newSymbol->binding = binding;
     newSymbol->pointerLevel = pointerLevel; 
     newSymbol->next = NULL;

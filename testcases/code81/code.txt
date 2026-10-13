@@ -1,0 +1,57 @@
+type
+  step {
+    int a;
+    int b;
+    int x;
+    int y;
+    step next;
+  }
+endtype
+decl
+  step head, current;
+enddecl
+int main() {
+  decl
+    int a, b, quotient, remainder;
+    int x0, x1, y0, y1, temp;
+  enddecl
+  begin
+    initialize();
+    head = null;
+    read(a);
+    read(b);
+    x0 = 1;
+    x1 = 0;
+    y0 = 0;
+    y1 = 1;
+    while (b != 0) do
+      current = alloc();
+      current.a = a;
+      current.b = b;
+      current.x = x0;
+      current.y = y0;
+      current.next = head;
+      head = current;
+      quotient = a / b;
+      remainder = a % b;
+      a = b;
+      b = remainder;
+      temp = x0 - quotient * x1;
+      x0 = x1;
+      x1 = temp;
+      temp = y0 - quotient * y1;
+      y0 = y1;
+      y1 = temp;
+    endwhile;
+    write(a);
+    write(x0);
+    write(y0);
+    current = head;
+    while (current != null) do
+      head = current.next;
+      free(current);
+      current = head;
+    endwhile;
+    return 0;
+  end
+}

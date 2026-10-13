@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "gsymboltable.h"
 #include <lsymboltable.h>
+#include <fieldlist.h>
 
 static tnode *tnodeInit(void);
 static int countCallArgs(tnode *argsNode);
@@ -20,6 +21,7 @@ static tnode *tnodeInit(void) {
     }
     temp->val = 0;
     temp->type = TYPE_VOID;
+    temp->typeEntry = TLookup("void");
     temp->pointerLevel = 0;
     temp->varname = NULL;
     temp->nodetype = -1;
@@ -36,6 +38,7 @@ tnode *makeLeafNodeNum(int n) {
     tnode *temp = tnodeInit();
     temp->val = n;
     temp->type = TYPE_INT;
+    temp->typeEntry = TLookup("int");
     temp->nodetype = NODE_TYPE_NUM;
     return temp;
 }
@@ -52,6 +55,7 @@ tnode *makeLeafNodeId(const char *c) {
     struct Lsymbol *lentry = LLookup(temp->varname);
     if (lentry != NULL) {
         temp->type = lentry->type;
+        temp->typeEntry = lentry->typeEntry;
         temp->pointerLevel = lentry->pointerLevel;
         temp->Lentry = lentry;
         return temp;
@@ -63,6 +67,7 @@ tnode *makeLeafNodeId(const char *c) {
     }
     temp->Gentry = entry;
     temp->type = GTypeKind(entry);
+    temp->typeEntry = entry->type;
     temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
@@ -75,6 +80,7 @@ tnode *makeLeafNodeString(const char *str) {
         exit(1);
     }
     temp->type = TYPE_STRING;
+    temp->typeEntry = TLookup("str");
     temp->nodetype = NODE_TYPE_STRING;
     return temp;
 }
@@ -143,6 +149,11 @@ tnode *makeOperatorNode(const char *op, tnode *l, tnode *r) {
         exit(1);
     }
 
+    temp->typeEntry = temp->type == TYPE_INT ? TLookup("int") :
+                      temp->type == TYPE_BOOL ? TLookup("bool") :
+                      temp->type == TYPE_STRING ? TLookup("str") : TLookup("void");
+    if (temp->pointerLevel > 0 && l->pointerLevel > 0) temp->typeEntry = l->typeEntry;
+    else if (temp->pointerLevel > 0 && r->pointerLevel > 0) temp->typeEntry = r->typeEntry;
     return temp;
 }
 
@@ -150,6 +161,7 @@ tnode *makeNotNode(tnode *operand) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_NOT;
     temp->type = TYPE_BOOL;
+    temp->typeEntry = TLookup("bool");
     temp->left = operand;
     if (operand == NULL || (operand->type != TYPE_BOOL && operand->type != TYPE_INT)) {
         LOG_ERROR("Error: NOT requires a boolean or integer operand\n");
@@ -189,7 +201,8 @@ tnode *makeArrayNode(tnode *idNode, tnode *indexExpr) {
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_ARRAY;
     temp->type = idNode->type;
-    temp->pointerLevel = idNode->pointerLevel - 1;
+    temp->pointerLevel = idNode->type == TYPE_CUSTOM ? 0 : idNode->pointerLevel - 1;
+    temp->typeEntry = idNode->typeEntry;
     temp->left = idNode;
     temp->right = indexExpr;
     return temp;
@@ -200,6 +213,7 @@ tnode *makeAddressNode(tnode *varNode) {
     temp->nodetype = NODE_TYPE_ADDRESS;
     temp->left = varNode;
     temp->type = varNode->type;
+    temp->typeEntry = varNode->typeEntry;
     temp->pointerLevel = varNode->pointerLevel + 1;
     return temp;
 }
@@ -210,6 +224,7 @@ tnode *makeDeRefNode(tnode *varNode) {
     temp->nodetype = NODE_TYPE_DEREF;
     temp->left = varNode;
     temp->type = varNode->type;
+    temp->typeEntry = varNode->typeEntry;
     temp->pointerLevel = varNode->pointerLevel - 1;
     return temp;
 }
@@ -318,16 +333,65 @@ tnode *makeFuncCallNode(char *name, tnode *args) {
     checkCallArguments(entry, args);
     temp->Gentry = entry;
     temp->type = GTypeKind(entry);
+    temp->typeEntry = entry->type;
     temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
 
 tnode *makeUserTypeNode(tnode* base, char* fieldName) {
+    if (base->type != TYPE_CUSTOM || base->typeEntry == NULL || base->pointerLevel != 0) {
+        LOG_ERROR("Field access requires a user-defined type\n"); exit(1);
+    }
+    FieldList* field = FLookup(base->typeEntry, fieldName);
+    if (field == NULL) { LOG_ERROR("Unknown field '%s' in type '%s'\n", fieldName, base->typeEntry->name); exit(1); }
     tnode* temp = tnodeInit();
     temp->nodetype = NODE_TYPE_USER_DEREF;
     temp->left = base;
-    temp->right = makeLeafNodeId(fieldName);
+    temp->varname = strdup(fieldName);
+    temp->typeEntry = field->type;
+    temp->type = field->type == TLookup("int") ? TYPE_INT :
+                 field->type == TLookup("str") ? TYPE_STRING : TYPE_CUSTOM;
+    temp->val = field->fieldIndex;
     return temp;
+}
+
+tnode *makeNullNode(void) {
+    tnode *node = tnodeInit();
+    node->nodetype = NODE_TYPE_NULL;
+    return node;
+}
+
+tnode *makeAllocNode(void) {
+    tnode *node = tnodeInit();
+    node->nodetype = NODE_TYPE_ALLOC;
+    return node;
+}
+
+tnode *makeFreeNode(tnode *value) {
+    if (value->type != TYPE_CUSTOM || value->pointerLevel != 0) {
+        LOG_ERROR("free requires a user-defined type value\n"); exit(1);
+    }
+    tnode *node = tnodeInit();
+    node->nodetype = NODE_TYPE_FREE;
+    node->left = value;
+    node->type = TYPE_INT;
+    node->typeEntry = TLookup("int");
+    return node;
+}
+
+tnode *makeInitializeNode(void) {
+    tnode *node = tnodeInit();
+    node->nodetype = NODE_TYPE_INITIALIZE;
+    node->type = TYPE_INT;
+    node->typeEntry = TLookup("int");
+    return node;
+}
+
+int typesCompatible(tnode *expected, tnode *actual) {
+    if (actual->nodetype == NODE_TYPE_NULL || actual->nodetype == NODE_TYPE_ALLOC)
+        return expected->type == TYPE_CUSTOM && expected->pointerLevel == 0;
+    return expected->typeEntry == actual->typeEntry &&
+           expected->pointerLevel == actual->pointerLevel;
 }
 static int countCallArgs(tnode *argsNode) {
     if (argsNode == NULL) return 0;
@@ -367,7 +431,8 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     struct ParamList *param = entry->paramList;
     for (int i = 0; i < argc; i++, param = param->next) {
         
-        if (argArray[i]->type != param->type ||
+        if ((argArray[i]->typeEntry != param->type &&
+             !(argArray[i]->nodetype == NODE_TYPE_NULL && param->type != TLookup("int") && param->type != TLookup("str"))) ||
             argArray[i]->pointerLevel != param->pointerLevel) {
             LOG_ERROR("Error: Argument %d of function '%s' has an incompatible type\n",
                     i + 1, entry->name);

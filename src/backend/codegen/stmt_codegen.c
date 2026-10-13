@@ -196,6 +196,9 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             LOG_ERROR("Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
         }
+        if (variableNode->type != TYPE_INT && variableNode->type != TYPE_STRING) {
+            LOG_ERROR("read requires an int or str location\n"); exit(1);
+        }
         int addressReg;
         if (variableNode->nodetype == NODE_TYPE_ID)
         {
@@ -216,7 +219,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             addressReg = codeGenArrayAddress(variableNode, targetFile);
         } else if (variableNode->nodetype == NODE_TYPE_USER_DEREF) {
             addressReg = getReg();
-            emitUserTypeAddressInto(addressReg, root, targetFile);
+            emitUserTypeAddressInto(addressReg, variableNode, targetFile);
         }
         readValue(addressReg, targetFile);
         freeReg();
@@ -258,14 +261,12 @@ int codeGenStatement(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_WRITE:
     {
-        int valueReg = -1;
-        if (isUserType(root)) {
-            valueReg = getReg();
-            emitUserTypeAddressInto(valueReg, root, targetFile);
-            fprintf("MOV R%d, [R%d]\n", valueReg, valueReg);
-        } else {
-            valueReg = codeGen(root->left, targetFile);
+        if (root->left->type != TYPE_INT && root->left->type != TYPE_STRING &&
+            root->left->type != TYPE_BOOL) {
+            LOG_ERROR("write requires an int or str expression\n"); exit(1);
         }
+        int valueReg = -1;
+        valueReg = codeGen(root->left, targetFile);
         printValue(valueReg, targetFile);
         freeReg();
         return -1;
@@ -278,42 +279,15 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             exit(1);
         }
 
-        bool aggregateAssignment =
-            root->left->nodetype == NODE_TYPE_ID &&
-            root->right->nodetype == NODE_TYPE_ID &&
-            root->left->pointerLevel == 0 &&
-            root->right->pointerLevel == 0 &&
-            root->left->Gentry != NULL &&
-            root->right->Gentry != NULL &&
-            root->left->Gentry->type != NULL &&
-            root->left->Gentry->type->size > 1 &&
-            root->left->Gentry->type == root->right->Gentry->type;
-
-        if (aggregateAssignment)
-        {
-            int destinationReg = getReg();
-            int sourceReg = getReg();
-            emitVarAddressInto(destinationReg, root->left->varname, targetFile);
-            emitVarAddressInto(sourceReg, root->right->varname, targetFile);
-            copyAggregate(destinationReg, sourceReg,
-                          root->left->Gentry->type->size, targetFile);
-            freeReg();
-            freeReg();
-            return -1;
-        }
-
         int rightReg;
-        if (effectivePointerLevel(root->left) > 0 &&
+        if (root->right->nodetype == NODE_TYPE_ALLOC) {
+            rightReg = codeGenLibraryCall("Alloc", -1, root->left->typeEntry->size, targetFile);
+        }
+        else if (effectivePointerLevel(root->left) > 0 &&
             (root->right->nodetype == NODE_TYPE_ARRAY ||
              (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->arrayLength > 0)))
         {
             rightReg = codeGenAddressOperand(root->right, targetFile);
-        }
-        else if (root->right->nodetype == NODE_TYPE_USER_DEREF)
-        {
-            rightReg = getReg();
-            emitUserTypeAddressInto(rightReg, root->right, targetFile);
-            fprintf(targetFile, "MOV R%d, [R%d]\n", rightReg, rightReg);
         }
         else
         {
