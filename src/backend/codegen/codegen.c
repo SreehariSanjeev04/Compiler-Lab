@@ -6,21 +6,12 @@
 #include "expr_codegen.h"
 #include "stmt_codegen.h"
 
-/*
- * XSM calling convention (per the stage-5 roadmap):
- *   Caller: save regs in use, evaluate arguments in reverse order and push
- *   them, push one empty slot for the return value, CALL <label>.
- *   Callee: PUSH BP, MOV BP SP, allocate locals; return value goes to [BP-2];
- *   epilogue pops locals, restores BP, RETs.
- */
-
 static int countLocals(void) {
     int count = 0;
     struct Lsymbol* current = LSymbolGetHead();
     while (current != NULL) {
         if (current->binding > 0) {
-            count += (current->tupleEntry != NULL && current->pointerLevel == 0)
-                     ? current->tupleEntry->size : 1;
+            count++;
         }
         current = current->next;
     }
@@ -44,9 +35,6 @@ static void emitPrologue(int localCount, FILE* targetFile) {
     }
 }
 
-/* Fallback epilogue used when control reaches the end of the body without a
- * RETURN: stores 0 as the return value. Uses raw registers R0/R1 outside the
- * register allocator since the function body generation has finished. */
 static void emitEpilogue(int localCount, FILE* targetFile) {
     fprintf(targetFile, "MOV R0, 0\n");
     fprintf(targetFile, "MOV R1, BP\n");
@@ -86,12 +74,6 @@ void generateFunctionCode(struct Gsymbol* funcSymbol, tnode* body, FILE* targetF
     LSymbolTableDestroy(Lhead);
 }
 
-/*
- * Generates XSM assembly for a syntax tree node.
- * Value-producing nodes return the register number holding the result;
- * statement nodes return -1. The caller must free the returned register
- * (except -1) with freeReg() once it is no longer needed.
- */
 int codeGen(tnode *root, FILE *targetFile)
 {
     if (root == NULL)
@@ -142,8 +124,8 @@ int codeGen(tnode *root, FILE *targetFile)
         return codeGenFuncCall(root, targetFile);
     case NODE_TYPE_NOT:
         return codeGenNot(root, targetFile);
-    case NODE_TYPE_TUPLE: 
-        return codeGenTupleValue(root, targetFile);
+    case NODE_TYPE_USER_DEREF:
+        return codeGenUserType(root, targetFile);
     default:
         break;
     }

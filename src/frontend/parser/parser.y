@@ -8,14 +8,12 @@
     #include <constants.h>
     #include <gsymboltable_utils.h>
     #include <stdbool.h>
-    #include <dimnode.h>
     #include <paramlist.h>
     #include <flabel.h>
     #include <lsymboltable.h>
-    #include <tupletable.h>
-    #include <tuplefieldlist.h>
     #include <typetable.h>
     #include <fieldlist.h>
+    #include <declspec.h>
 
     int yylex(void);
     void yyerror(char const *s);
@@ -25,15 +23,14 @@
     extern FILE* targetFile;
     extern int yydebug;
 
-    int currentType = -1;
-    int globalDeclarationType = -1;
-    struct TupleTable* globalDeclarationTuple = NULL;
     struct Gsymbol* currentFunction = NULL;
-    struct TupleTable* currentTupleEntry = NULL;
-    char* currentTypeName = NULL;
 %}
 
-// Todo: change the messy global and local tuple declaration
+%code requires
+{
+  #include <declspec.h>
+}
+
 %define parse.error verbose
 %define parse.trace
 
@@ -41,14 +38,18 @@
     struct tnode *node;
     int val;
     char* str;
+    DeclType* declType;
+    Declarator* declarator;
 }
 
 %token <val> INT STRING NUM
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT TUPLE BREAKPOINT CONTINUE BREAK CTYPE
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT BREAKPOINT CONTINUE BREAK CTYPE ENDTYPE
 %token <str> ID STRLIT
 
-%type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList TupleDecl TupleFieldList FieldPtrAccess
-%type <val> Type PtrDecl
+%type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList
+%type <declType> Type
+%type <declarator> Gid GidList Lid LidList
+%type <val> PtrDecl
 
 %left OR
 %left AND
@@ -70,7 +71,7 @@ Program
     ;
 
 TypeDeclBlock 
-    : CTYPE TypeDeclList ENDTYPE
+    : CTYPE '{' TypeDeclList '}' ENDTYPE
     ;
 
 TypeDeclList
@@ -79,25 +80,32 @@ TypeDeclList
     ;
 
 TypeDecl
-    : ID { FieldListReset() } '{' TypeFieldList '}' {
-
+    : ID { FieldListReset(); } '{' TypeFieldList '}' {
+        TypeTable* typeEntry = TLookup($1);
+        if (typeEntry != NULL) {
+            LOG_ERROR("Type already exists.");
+            exit(1);
+        }
+        FieldList* fields = FieldListReturnHead();
+        TInstall($1, fields);
     }
     ;
 
 TypeFieldList
-    : TypeFieldList TypeField
-    | TypeField
+    : TypeFieldList TypeField {}
+    | TypeField {}
     ;
 
 TypeField
     : Type ID {
-        TypeTable* typeEntry = TLookup(currentTypeName);
+        TypeTable* typeEntry = $1->table;
         if (typeEntry == NULL) {
-            LOG_ERROR("Type does not exist.");
+            LOG_ERROR("Type specified in the field does not exist.");
             exit(1);
         }
 
         FieldListAppend($2, typeEntry);
+        free($1);
     }
     ;
 
@@ -120,84 +128,27 @@ GDecList
     ;
 
 GDecl
-    : Type {
-        globalDeclarationType = $1;
-        globalDeclarationTuple = ($1 == TYPE_TUPLE) ? currentTupleEntry : NULL;
-    } GidList ';' { currentType = -1; }
+    : Type GidList ';' { installDeclarators($1, $2, true); }
     ;
 
 GidList
-    : GidList ',' Gid {}
-    | Gid {}
+    : GidList ',' Gid { $$ = appendDeclarator($1, $3); }
+    | Gid { $$ = $1; }
     ;
 
 Gid
-    : ID {
-        struct Gsymbol* symbol = GInstall($1, globalDeclarationType, 0);
-        if (globalDeclarationType == TYPE_TUPLE) {
-            if (globalDeclarationTuple == NULL) {
-                LOG_ERROR("Error: No tuple type is associated with the declaration of '%s'\n", $1);
-                exit(1);
-            }
-            symbol->tupleEntry = globalDeclarationTuple;
-            symbol->size = globalDeclarationTuple->size;
-        }
-    }
-    | PtrDecl ID {
-        struct Gsymbol* symbol = GInstall($2, globalDeclarationType, $1);
-        if (globalDeclarationType == TYPE_TUPLE) {
-            if (globalDeclarationTuple == NULL) {
-                LOG_ERROR("Error: No tuple type is associated with the declaration of '%s'\n", $2);
-                exit(1);
-            }
-            symbol->tupleEntry = globalDeclarationTuple;
-        }
-    }
-    | ID DeclDimList {
-        if (globalDeclarationType == TYPE_TUPLE) {
-            LOG_ERROR("Error: Arrays of tuple type are not supported\n");
-            exit(1);
-        }
-        GInstall($1, globalDeclarationType, 0);
-        struct DimNode* headDimNode = DimNodeGetHead();
-        handleDimensionSizes(GLookup($1), headDimNode);
-        DimNodeReset();
+    : ID { $$ = makeDeclarator($1, DECL_VARIABLE, 0, 0, NULL); }
+    | PtrDecl ID { $$ = makeDeclarator($2, DECL_POINTER, $1, 0, NULL); }
+    | ID '[' NUM ']' {
+        $$ = makeDeclarator($1, DECL_ARRAY, 0, $3, NULL);
     }
     | ID '(' ParamList ')' {
-        struct Gsymbol* funcSymbol = GInstall($1, globalDeclarationType, 0);
-        
-        if (globalDeclarationType == TYPE_TUPLE) {
-            if (globalDeclarationTuple == NULL) {
-                LOG_ERROR("The tuple is not declared.");
-                exit(1);
-            }
-            funcSymbol->tupleEntry = globalDeclarationTuple;
-        }
-        struct ParamList* head = ParamListGetHead();
-        funcSymbol->paramList = head;
-        funcSymbol->flabel = generateFunctionLabel();
+        $$ = makeDeclarator($1, DECL_FUNCTION, 0, 0, ParamListGetHead());
         ParamListReset();
     }
     | ID '(' ')' {
-        struct Gsymbol* funcSymbol = GInstall($1, globalDeclarationType, 0);
-        if (globalDeclarationType == TYPE_TUPLE) {
-            if (globalDeclarationTuple == NULL) {
-                LOG_ERROR("The tuple is not declared.");
-                exit(1);
-            }
-            funcSymbol->tupleEntry = globalDeclarationTuple;
-        }
-        funcSymbol->flabel = generateFunctionLabel();
+        $$ = makeDeclarator($1, DECL_FUNCTION, 0, 0, NULL);
         ParamListReset();
-    }
-    ;
-
-DeclDimList
-    : DeclDimList '[' NUM ']' {
-        DimNodeAppendNode($3);
-    }
-    | '[' NUM ']' {
-        DimNodeAppendNode($2);
     }
     ;
 
@@ -207,46 +158,14 @@ PtrDecl
     ;
 
 Type
-    : INT    { currentType = TYPE_INT; $$ = TYPE_INT; currentTypeName = "int"; }
-    | STRING { currentType = TYPE_STRING; $$ = TYPE_STRING; currentTypeName = "str" }
-    | TupleDecl { currentType = TYPE_TUPLE; $$ = TYPE_TUPLE; /* should do something about tuples */ }
+    : INT    { $$ = makeDeclType(TYPE_INT, TLookup("int")); }
+    | STRING { $$ = makeDeclType(TYPE_STRING, TLookup("str")); }
     | ID {
-        currentType = TYPE_CUSTOM;
-        currentTypeName = strdup(yylval.str);
-        $$ = TYPE_CUSTOM;
-    }
-    ;
-
-TupleDecl
-    : TUPLE ID '(' TupleFieldList ')' {
-        struct TupleFieldList* head = TupleFieldListGetHead();
-        TupleTableAppend($2, head);
-        TupleFieldListReset();
-        currentTupleEntry = TupleTableLookup($2);
-        if (currentTupleEntry == NULL) {
-            LOG_ERROR("Error: Tuple type '%s' could not be registered\n", $2);
+        $$ = makeDeclType(TYPE_CUSTOM, TLookup($1));
+        if ($$->table == NULL) {
+            LOG_ERROR("Type '%s' does not exist.\n", $1);
             exit(1);
         }
-        $$ = NULL;
-    }
-    ;
-
-TupleFieldList
-    : TupleFieldList ',' Type ID {
-        if ($3 == TYPE_TUPLE) {
-            LOG_ERROR("Error: Only scalar fields are supported in tuple declarations\n");
-            exit(1);
-        }
-        TupleFieldListAppend($4, $3);
-        $$ = NULL;
-    }
-    | Type ID {
-        if ($1 == TYPE_TUPLE) {
-            LOG_ERROR("Error: Only scalar fields are supported in tuple declarations\n");
-            exit(1);
-        }
-        TupleFieldListAppend($2, $1);
-        $$ = NULL;
     }
     ;
 
@@ -280,16 +199,9 @@ FdefSig
             exit(1);
         }
 
-        if ($1 != funcSymbol->type) {
+        if ($1->table != funcSymbol->type) {
             LOG_ERROR("The function type does not match.");
             exit(1);
-        }
-
-        if ($1 == TYPE_TUPLE) {
-            if (currentTupleEntry != funcSymbol->tupleEntry) {
-                LOG_ERROR("The tuple function return value does not match.");
-                exit(1);
-            }
         }
         struct ParamList* head = ParamListGetHead();
         struct ParamList* funcParams = funcSymbol->paramList;
@@ -299,20 +211,16 @@ FdefSig
         }
         struct ParamList* current = head;
 
-        int returnWords = (funcSymbol->type == TYPE_TUPLE && funcSymbol->tupleEntry != NULL)
-                          ? funcSymbol->tupleEntry->size : 1;
-        int nextParamWord = -returnWords - 2;
+        int nextParamWord = -3;
         while(current != NULL) {
-            int width = (current->type == TYPE_TUPLE && current->pointerLevel == 0 &&
-                         current->tupleEntry != NULL) ? current->tupleEntry->size : 1;
             struct Lsymbol* local = LInstall(current->name, current->type,
-                                             current->pointerLevel, nextParamWord - width + 1);
-            local->tupleEntry = current->tupleEntry;
-            nextParamWord -= width;
+                                             current->pointerLevel, nextParamWord);
+            nextParamWord--;
             current = current->next;
         }
         ParamListDestroy();
         currentFunction = funcSymbol;
+        free($1);
     }
     | Type ID '(' ')' {
         if(strcmp($2, "main") == 0) {
@@ -326,16 +234,9 @@ FdefSig
             exit(1);
         }
 
-        if ($1 != funcSymbol->type) {
+        if ($1->table != funcSymbol->type) {
             LOG_ERROR("The function type does not match.");
             exit(1);
-        }
-
-        if ($1 == TYPE_TUPLE) {
-            if (currentTupleEntry != funcSymbol->tupleEntry) {
-                LOG_ERROR("The tuple function return value does not match.");
-                exit(1);
-            }
         }
 
         if(funcSymbol->paramList != NULL) {
@@ -343,6 +244,7 @@ FdefSig
             exit(1);
         }
         currentFunction = funcSymbol;
+        free($1);
     }
     ;
 
@@ -353,36 +255,12 @@ ParamList
 
 Param
     : Type ID {
-        if ($1 == TYPE_TUPLE) {
-            if (currentTupleEntry == NULL) {
-                LOG_ERROR("No tuple declaration associated with %s", ID);
-                exit(1);
-            }
-            ParamListAppendNode($2, $1, 0);
-            struct ParamList* paramEntry = ParamListGetParam($2);
-            if (paramEntry == NULL) {
-                LOG_ERROR("Could not find the parameter\n");
-                exit(1);
-            }
-            paramEntry->tupleEntry = currentTupleEntry;
-        } else
-            ParamListAppendNode($2, $1, 0);
+        ParamListAppendNode($2, $1->kind, 0);
+        free($1);
     }
     | Type PtrDecl ID {
-        if ($1 == TYPE_TUPLE) {
-            if (currentTupleEntry == NULL) {
-                LOG_ERROR("No tuple declaration associated with %s", ID);
-                exit(1);
-            }
-            ParamListAppendNode($3, $1, $2);
-            struct ParamList* paramEntry = ParamListGetParam($3);
-            if (paramEntry == NULL) {
-                LOG_ERROR("Could not find the parameter\n");
-                exit(1);
-            }
-            paramEntry->tupleEntry = currentTupleEntry;
-        } else
-            ParamListAppendNode($3, $1, $2);
+        ParamListAppendNode($3, $1->kind, $2);
+        free($1);
     }
 
     ;
@@ -405,15 +283,16 @@ MainBlock
 
 MainBlockSig :
     Type MAIN '(' ')' {
-        if($1 != TYPE_INT) {
+        if($1->kind != TYPE_INT) {
             LOG_ERROR("Error: Main function must have return Type int.\n");
             exit(1);
         }
 
-        struct Gsymbol* funcSymbol = GInstall("MAIN", TYPE_INT, 0);
+        struct Gsymbol* funcSymbol = GInstall("MAIN", TLookup("int"), 0);
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
         LSymbolReset();
+        free($1);
     }
     ;
 
@@ -428,27 +307,16 @@ LdeclList
     ;
 
 Ldecl
-    : Type LidList ';'
+    : Type LidList ';' { installDeclarators($1, $2, false); }
     ;
 
 LidList
-    : LidList ',' Lid
-    | Lid
+    : LidList ',' Lid { $$ = appendDeclarator($1, $3); }
+    | Lid { $$ = $1; }
     ;
 
 Lid
-    : ID {
-        if (currentType == TYPE_TUPLE) {
-            if (currentTupleEntry == NULL) {
-                LOG_ERROR("The tuple is not declared.");
-                exit(1);
-            }
-            struct Lsymbol* tupleSymbol = LInstall($1, currentType, 0, 0);
-            tupleSymbol->tupleEntry = currentTupleEntry;
-        } else {
-            LInstall($1, currentType, 0, 0);
-        }
-    }
+    : ID { $$ = makeDeclarator($1, DECL_VARIABLE, 0, 0, NULL); }
     ;
 Body
     : START SList END ';' { $$ = $2; }
@@ -473,8 +341,8 @@ Stmt
     | CONTINUE ';'   { $$ = makeContinueNode(); }
     | RETURN Expr ';' {
         if(currentFunction != NULL &&
-           ($2->type != currentFunction->type || $2->pointerLevel != 0)) {
-            LOG_INFO("Type: %d -> %d", $2->type, currentFunction->type);
+           ($2->type != GTypeKind(currentFunction) || $2->pointerLevel != 0)) {
+            LOG_INFO("Type: %d -> %d", $2->type, GTypeKind(currentFunction));
             LOG_ERROR("Error: Return Type of function '%s' does not match its declaration\n",
                     currentFunction->name);
             exit(1);
@@ -497,11 +365,6 @@ WhileStmt
 InputStmt
     : READ '(' Var ')' ';'       { $$ = makeReadNode($3); }
     | READ '(' '*' Expr ')' ';' { $$ = makeReadNode(makeDeRefNode($4)); }
-    | READ '(' FieldPtrAccess ')' ';' { $$ = makeReadNode($3); }
-    ;
-
-FieldPtrAccess
-    : '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); }
     ;
 
 OutputStmt
@@ -515,13 +378,12 @@ AssgStmt
 AssgLhs
     : Var       { $$ = $1; }
     | '*' Expr { $$ = makeDeRefNode($2); }
-    | FieldPtrAccess { $$ = $1; }
     ;
 
 Var
     : ID               { $$ = makeLeafNodeId($1); }
     | Var '[' Expr ']' { $$ = makeArrayNode($1, $3); }
-    | Var '.' ID { $$ = makeTupleNode($1, $3); }
+    | Var '.' ID { $$ = makeUserTypeNode($1, $3); }
     ;
 
 Expr
@@ -547,7 +409,6 @@ Expr
     | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
     | NOT Expr %prec NOT     { $$ = makeNotNode($2); }
-    | '(' '*' Expr ')' '.' ID { $$ = makeTupleNode(makeDeRefNode($3), $6); }
     ;
 
 ArgList

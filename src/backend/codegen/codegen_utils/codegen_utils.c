@@ -6,17 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static struct TupleTable *tupleTypeOf(tnode *node)
-{
-    if (node == NULL) return NULL;
-    if (node->nodetype == NODE_TYPE_ID || node->nodetype == NODE_TYPE_FUNC_CALL)
-        return node->Gentry ? node->Gentry->tupleEntry :
-               node->Lentry ? node->Lentry->tupleEntry : NULL;
-    if (node->nodetype == NODE_TYPE_DEREF || node->nodetype == NODE_TYPE_ADDRESS)
-        return tupleTypeOf(node->left);
-    return NULL;
-}
-
 int effectivePointerLevel(tnode *node)
 {
     if (node == NULL)
@@ -24,7 +13,14 @@ int effectivePointerLevel(tnode *node)
         LOG_ERROR("NULL node passed to effectivePointerLevel\n");
         exit(1);
     }
+
+    if (node == NODE_TYPE_USER_DEREF) 
+        return 0;
     return node->pointerLevel;
+}
+
+bool isUserType(tnode* root) {
+    return root->nodetype == NODE_TYPE_USER_DEREF;
 }
 
 bool isAssignmentCompatible(tnode *left, tnode *right)
@@ -35,35 +31,39 @@ bool isAssignmentCompatible(tnode *left, tnode *right)
         exit(1);
     }
 
-    // LHS should be a valid lvalue: ID, Array, or Pointer dereference
     if (left->nodetype != NODE_TYPE_ID &&
         left->nodetype != NODE_TYPE_ARRAY &&
         left->nodetype != NODE_TYPE_DEREF &&
-        left->nodetype != NODE_TYPE_TUPLE)
+        left->nodetype != NODE_TYPE_USER_DEREF)
     {
         return false;
     }
 
-    int lType = left->type;
-    int rType = right->type;
+    int lType = -1;
+    int rType = -1;
+    
+    if (left->nodetype == NODE_TYPE_USER_DEREF) {
+        if (left->right != NULL) 
+            lType = left->right->type;
+         else 
+            LOG_ERROR("Invalid AST for user defined type.\n");
+    } else 
+        lType = left->type;
+
+    if (right->nodetype == NODE_TYPE_USER_DEREF) {
+        if (right->right != NULL) 
+            rType = right->right->type;
+         else 
+            LOG_ERROR("Invalid AST for user defined type.\n");
+    } else 
+        rType = left->type;
 
     if (lType != rType)
     {
         return false;
     }
 
-    // Tuples: both operands must resolve to the same tuple type.
-    if (lType == TYPE_TUPLE)
-    {
-        struct TupleTable *lTuple = tupleTypeOf(left);
-        struct TupleTable *rTuple = tupleTypeOf(right);
-
-        if (lTuple == NULL || rTuple == NULL || lTuple != rTuple)
-        {
-            return false;
-        }
-    }
-
+    // pointers for user defined type not supported as of now
     if (effectivePointerLevel(left) != effectivePointerLevel(right))
     {
         return false;

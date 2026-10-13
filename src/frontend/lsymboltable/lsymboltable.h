@@ -2,14 +2,12 @@
 #define LSYMBOLTABLE_H
 #include <stdio.h>
 #include <stdlib.h>
-#include <tupletable.h>
 
 typedef struct Lsymbol {
     char* name; // name of the variable
     int type;         // type of the variable
     int binding;      // BP-relative offset: params are negative, locals positive
     int pointerLevel; // Pointer level of the variable
-    struct TupleTable* tupleEntry; // Pointer to tuple table entry in case the symbol is for tuple
     struct Lsymbol *next; // pointer to the next symbol in the list
 } Lsymbol;
 

@@ -31,7 +31,6 @@ struct ParamList* ParamListCreateNode(char *name, int type, int pointerLevel) {
     newNode->name = strdup(name);
     newNode->type = type;
     newNode->pointerLevel = pointerLevel;
-    newNode->tupleEntry = NULL;
     newNode->next = NULL;
     return newNode;
 }
@@ -72,8 +71,7 @@ bool ParamListCheckIfParamsMatch(struct ParamList* list1, struct ParamList* list
 
     while (current1 != NULL && current2 != NULL) {
         if (strcmp(current1->name, current2->name) != 0 || current1->type != current2->type ||
-            current1->pointerLevel != current2->pointerLevel ||
-            (current1->type == TYPE_TUPLE && current1->tupleEntry != current2->tupleEntry)) {
+            current1->pointerLevel != current2->pointerLevel) {
             return false;
         }
         current1 = current1->next;

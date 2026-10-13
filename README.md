@@ -75,7 +75,7 @@ Use `--debug` for the interactive debugger (step, continue, watchpoints, registe
 
 A simple C-like language supporting:
 
-- `int` and `str` types, arrays
+- `int` and `str` types, and one-dimensional global arrays
 - `read` / `write` statements
 - Arithmetic and relational expressions
 - `if` / `if-else`, `while`, `do-while`, `repeat-until`

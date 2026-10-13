@@ -21,7 +21,6 @@ struct Lsymbol* LInstall(char* name, int type, int pointerLevel, int binding) {
     newSymbol->type = type;
     newSymbol->binding = binding;
     newSymbol->pointerLevel = pointerLevel; 
-    newSymbol->tupleEntry = NULL;
     newSymbol->next = NULL;
 
     if(Lhead == NULL) {
@@ -73,8 +72,7 @@ void LSymbolAssignBindingAddresses(void) {
     while (current != NULL) {
         if (current->binding == 0) {
             current->binding = binding + 1;
-            binding += (current->tupleEntry != NULL && current->pointerLevel == 0)
-                       ? current->tupleEntry->size : 1;
+            binding++;
         }
         current = current->next;
     }

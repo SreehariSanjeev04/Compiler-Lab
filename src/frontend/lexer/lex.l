@@ -39,7 +39,7 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "OR"|"or"|"||" {return OR;}
 "NOT"|"not"|"!" {return NOT;}
 "main" {return MAIN;}
-"tuple" {return TUPLE;}
+"tuple" {yyerror("Tuple types are no longer supported"); exit(1);}
 "type" { return CTYPE;}
 "endtype" { return ENDTYPE; }
 

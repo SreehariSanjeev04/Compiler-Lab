@@ -3,6 +3,7 @@
 #include <translate.h>
 #include <codegen.h>
 #include <gsymboltable_utils.h>
+#include <typetable.h>
 
 FILE* targetFile;
 FILE* inputFile;
@@ -14,7 +15,7 @@ int main(int argc, char* argv[]) {
 	yydebug = 0; // toggle for debugging
 	int argStart = 1;
 
-	// To print global symbol table 
+	TypeTableCreate();
 	if(argc > argStart && argv[argStart][0] == '-' && argv[argStart][1] == 'g') {
 		showGlobalSymbolTable = 1;
 		argStart++;

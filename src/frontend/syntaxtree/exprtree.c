@@ -6,8 +6,6 @@
 #include "constants.h"
 #include "gsymboltable.h"
 #include <lsymboltable.h>
-#include <tupletable.h>
-#include <tuplefieldlist.h>
 
 static tnode *tnodeInit(void);
 static int countCallArgs(tnode *argsNode);
@@ -64,7 +62,7 @@ tnode *makeLeafNodeId(const char *c) {
         exit(1);
     }
     temp->Gentry = entry;
-    temp->type = entry->type;
+    temp->type = GTypeKind(entry);
     temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
@@ -179,6 +177,15 @@ void freeTree(tnode *root) {
 }
 
 tnode *makeArrayNode(tnode *idNode, tnode *indexExpr) {
+    if (idNode == NULL || idNode->nodetype != NODE_TYPE_ID ||
+        idNode->Gentry == NULL || idNode->Gentry->arrayLength == 0) {
+        LOG_ERROR("Error: Array access requires one index on a global array\n");
+        exit(1);
+    }
+    if (indexExpr == NULL || indexExpr->type != TYPE_INT || indexExpr->pointerLevel != 0) {
+        LOG_ERROR("Error: Array index must be an integer\n");
+        exit(1);
+    }
     tnode *temp = tnodeInit();
     temp->nodetype = NODE_TYPE_ARRAY;
     temp->type = idNode->type;
@@ -194,51 +201,6 @@ tnode *makeAddressNode(tnode *varNode) {
     temp->left = varNode;
     temp->type = varNode->type;
     temp->pointerLevel = varNode->pointerLevel + 1;
-    return temp;
-}
-
-tnode* makeTupleNode(tnode* tupleBase, char* fieldName) {
-    if (tupleBase == NULL || fieldName == NULL) {
-        LOG_ERROR("Error: Invalid tuple field access\n");
-        exit(1);
-    }
-
-    struct TupleTable* entry = NULL;
-    if (tupleBase->nodetype == NODE_TYPE_ID) {
-        
-        entry = tupleBase->Gentry ? tupleBase->Gentry->tupleEntry :
-                tupleBase->Lentry ? tupleBase->Lentry->tupleEntry : NULL;
-        if (entry == NULL) {
-            LOG_ERROR("The variable %s is not a tuple.", tupleBase->varname);
-            exit(1);
-        }
-    } else if (tupleBase->nodetype == NODE_TYPE_DEREF) {
-        
-        // Assumes only one dereferencing
-        tnode* base = tupleBase->left;
-        if (base == NULL || base->nodetype != NODE_TYPE_ID ||
-            base->Gentry == NULL || base->Gentry->tupleEntry == NULL) {
-            LOG_ERROR("Error: Cannot access a field of a non-tuple expression\n");
-            exit(1);
-        }
-        entry = base->Gentry->tupleEntry;
-    } else {
-        LOG_ERROR("Error: Only tuple variables or dereferenced tuple pointers support field access\n");
-        exit(1);
-    }
-
-    struct TupleFieldList* field = TupleFieldListLookup(entry->name, fieldName);
-    if (field == NULL) {
-        LOG_ERROR("Error: Tuple type '%s' has no field named '%s'\n", entry->name, fieldName);
-        exit(1);
-    }
-
-    tnode *temp = tnodeInit();
-    temp->nodetype = NODE_TYPE_TUPLE;
-    temp->left = tupleBase;
-    temp->varname = strdup(fieldName);
-    temp->type = field->type;
-    temp->pointerLevel = 0;
     return temp;
 }
 
@@ -355,11 +317,18 @@ tnode *makeFuncCallNode(char *name, tnode *args) {
     }
     checkCallArguments(entry, args);
     temp->Gentry = entry;
-    temp->type = entry->type;
+    temp->type = GTypeKind(entry);
     temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
 
+tnode *makeUserTypeNode(tnode* base, char* fieldName) {
+    tnode* temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_USER_DEREF;
+    temp->left = base;
+    temp->right = makeLeafNodeId(fieldName);
+    return temp;
+}
 static int countCallArgs(tnode *argsNode) {
     if (argsNode == NULL) return 0;
     if (argsNode->nodetype != NODE_TYPE_ARG) return 1;
@@ -382,7 +351,6 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     for (struct ParamList *p = entry->paramList; p != NULL; p = p->next) {
         paramCount++;
     }
-    // check the argument count first
     if (argc != paramCount) {
         LOG_ERROR("Error: Function '%s' expects %d argument(s), got %d\n",
                 entry->name, paramCount, argc);
@@ -399,7 +367,6 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     struct ParamList *param = entry->paramList;
     for (int i = 0; i < argc; i++, param = param->next) {
         
-        // check the type and the pointer level of arguments
         if (argArray[i]->type != param->type ||
             argArray[i]->pointerLevel != param->pointerLevel) {
             LOG_ERROR("Error: Argument %d of function '%s' has an incompatible type\n",

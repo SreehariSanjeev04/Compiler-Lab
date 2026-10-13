@@ -12,6 +12,26 @@ static bool insideWhileLoop = false;
 static int whileStartLabel = -1;
 static int whileEndLabel = -1;
 
+static void copyAggregate(int destinationReg, int sourceReg, int size,
+                          FILE *targetFile)
+{
+    int valueReg = getReg();
+
+    for (int offset = 0; offset < size; offset++)
+    {
+        fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, sourceReg);
+        fprintf(targetFile, "MOV [R%d], R%d\n", destinationReg, valueReg);
+
+        if (offset + 1 < size)
+        {
+            fprintf(targetFile, "ADD R%d, 1\n", sourceReg);
+            fprintf(targetFile, "ADD R%d, 1\n", destinationReg);
+        }
+    }
+
+    freeReg();
+}
+
 int codeGenControlLeaf(tnode *root, FILE *targetFile)
 {
     if (root->nodetype == NODE_TYPE_BREAKPOINT)
@@ -170,8 +190,8 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         if (variableNode == NULL ||
             (variableNode->nodetype != NODE_TYPE_ID &&
              variableNode->nodetype != NODE_TYPE_ARRAY &&
-             variableNode->nodetype != NODE_TYPE_DEREF) && 
-             variableNode->nodetype != NODE_TYPE_TUPLE)
+             variableNode->nodetype != NODE_TYPE_DEREF &&
+             variableNode->nodetype != NODE_TYPE_USER_DEREF))
         {
             LOG_ERROR("Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
@@ -179,11 +199,6 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         int addressReg;
         if (variableNode->nodetype == NODE_TYPE_ID)
         {
-            if (variableNode->Gentry != NULL && variableNode->Gentry->tupleEntry != NULL)
-            {
-                LOG_ERROR("Error: Cannot read a whole tuple; read individual fields instead\n");
-                exit(1);
-            }
             addressReg = getReg();
             emitVarAddressInto(addressReg, variableNode->varname, targetFile);
         }
@@ -199,8 +214,9 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         else if (variableNode->nodetype == NODE_TYPE_ARRAY)
         {
             addressReg = codeGenArrayAddress(variableNode, targetFile);
-        } else {
-            addressReg = codeGenTupleAddress(variableNode, targetFile);
+        } else if (variableNode->nodetype == NODE_TYPE_USER_DEREF) {
+            addressReg = getReg();
+            emitUserTypeAddressInto(addressReg, root, targetFile);
         }
         readValue(addressReg, targetFile);
         freeReg();
@@ -213,52 +229,20 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             LOG_ERROR("Error: RETURN statement requires an expression\n");
             exit(1);
         }
-        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0)
-        {
-            tnode *value = root->left;
-            struct TupleTable *tupleType = value->Gentry ? value->Gentry->tupleEntry :
-                                           value->Lentry ? value->Lentry->tupleEntry : NULL;
-            if (value->nodetype != NODE_TYPE_ID || tupleType == NULL)
-            {
-                LOG_ERROR("Error: Tuple return requires a tuple variable\n");
-                exit(1);
-            }
-            int sourceReg = getReg();
-            emitVarAddressInto(sourceReg, value->varname, targetFile);
-            int addressReg = getReg();
-            int valueReg = getReg();
-            for (int offset = 0; offset < tupleType->size; offset++)
-            {
-                fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, sourceReg);
-                fprintf(targetFile, "MOV R%d, BP\n", addressReg);
-                fprintf(targetFile, "SUB R%d, %d\n", addressReg, offset + 2);
-                fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
-                if (offset + 1 < tupleType->size)
-                    fprintf(targetFile, "ADD R%d, 1\n", sourceReg);
-            }
-            freeReg(); // valueReg
-            freeReg(); // addressReg
-            freeReg(); // sourceReg
-        }
-        else
-        {
-            int valueReg = codeGen(root->left, targetFile);
-            // Store the return value at [BP-2], the slot reserved by the caller.
-            int addressReg = getReg();
-            fprintf(targetFile, "MOV R%d, BP\n", addressReg);
-            fprintf(targetFile, "SUB R%d, 2\n", addressReg);
-            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
-            freeReg(); // addressReg
-            freeReg(); // valueReg
-        }
+        int valueReg = codeGen(root->left, targetFile);
+        int addressReg = getReg();
+        fprintf(targetFile, "MOV R%d, BP\n", addressReg);
+        fprintf(targetFile, "SUB R%d, 2\n", addressReg);
+        fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, valueReg);
+        freeReg();
+        freeReg();
         // Deallocate the local variables, restore the caller's BP and return.
         int localCount = 0;
         for (struct Lsymbol* current = LSymbolGetHead(); current != NULL; current = current->next)
         {
             if (current->binding > 0)
             {
-                localCount += (current->tupleEntry != NULL && current->pointerLevel == 0)
-                              ? current->tupleEntry->size : 1;
+                localCount++;
             }
         }
         if (localCount > 0)
@@ -274,7 +258,14 @@ int codeGenStatement(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_WRITE:
     {
-        int valueReg = codeGen(root->left, targetFile);
+        int valueReg = -1;
+        if (isUserType(root)) {
+            valueReg = getReg();
+            emitUserTypeAddressInto(valueReg, root, targetFile);
+            fprintf("MOV R%d, [R%d]\n", valueReg, valueReg);
+        } else {
+            valueReg = codeGen(root->left, targetFile);
+        }
         printValue(valueReg, targetFile);
         freeReg();
         return -1;
@@ -287,53 +278,42 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             exit(1);
         }
 
-        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0 &&
-            root->right->nodetype == NODE_TYPE_FUNC_CALL)
-        {
-            if (root->left->nodetype != NODE_TYPE_ID)
-            {
-                LOG_ERROR("Error: Tuple call result requires a tuple variable destination\n");
-                exit(1);
-            }
-            codeGenTupleCallInto(root->right, root->left, targetFile);
-            return -1;
-        }
+        bool aggregateAssignment =
+            root->left->nodetype == NODE_TYPE_ID &&
+            root->right->nodetype == NODE_TYPE_ID &&
+            root->left->pointerLevel == 0 &&
+            root->right->pointerLevel == 0 &&
+            root->left->Gentry != NULL &&
+            root->right->Gentry != NULL &&
+            root->left->Gentry->type != NULL &&
+            root->left->Gentry->type->size > 1 &&
+            root->left->Gentry->type == root->right->Gentry->type;
 
-        // Whole-tuple copy: b = a.
-        if (root->left->type == TYPE_TUPLE && root->left->pointerLevel == 0 &&
-            root->left->nodetype == NODE_TYPE_ID && root->right->nodetype == NODE_TYPE_ID)
+        if (aggregateAssignment)
         {
-            struct TupleTable *tupleType = root->left->Gentry ? root->left->Gentry->tupleEntry :
-                                           root->left->Lentry->tupleEntry;
-            int dstReg = getReg();
-            emitVarAddressInto(dstReg, root->left->varname, targetFile);
-            int srcReg = getReg();
-            emitVarAddressInto(srcReg, root->right->varname, targetFile);
-            int tmpReg = getReg();
-            for (int offset = 0; offset < tupleType->size; offset++)
-            {
-                fprintf(targetFile, "MOV R%d, [R%d]\n", tmpReg, srcReg);
-                fprintf(targetFile, "MOV [R%d], R%d\n", dstReg, tmpReg);
-                if (offset < tupleType->size - 1)
-                {
-                    fprintf(targetFile, "ADD R%d, 1\n", srcReg);
-                    fprintf(targetFile, "ADD R%d, 1\n", dstReg);
-                }
-            }
-            freeReg(); // tmpReg
-            freeReg(); // srcReg
-            freeReg(); // dstReg
+            int destinationReg = getReg();
+            int sourceReg = getReg();
+            emitVarAddressInto(destinationReg, root->left->varname, targetFile);
+            emitVarAddressInto(sourceReg, root->right->varname, targetFile);
+            copyAggregate(destinationReg, sourceReg,
+                          root->left->Gentry->type->size, targetFile);
+            freeReg();
+            freeReg();
             return -1;
         }
 
         int rightReg;
-        // Array decay on the RHS: when storing into a pointer, an array name
-        // or array element yields its address instead of its value.
         if (effectivePointerLevel(root->left) > 0 &&
             (root->right->nodetype == NODE_TYPE_ARRAY ||
-             (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->dimensions > 0)))
+             (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->arrayLength > 0)))
         {
             rightReg = codeGenAddressOperand(root->right, targetFile);
+        }
+        else if (root->right->nodetype == NODE_TYPE_USER_DEREF)
+        {
+            rightReg = getReg();
+            emitUserTypeAddressInto(rightReg, root->right, targetFile);
+            fprintf(targetFile, "MOV R%d, [R%d]\n", rightReg, rightReg);
         }
         else
         {
@@ -349,16 +329,16 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         }
         else if (root->left->nodetype == NODE_TYPE_DEREF)
         {
-            // The address of *p is the value of p.
             int addressReg = codeGenAddressOperand(root->left->left, targetFile);
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
             freeReg(); // free addressReg
         }
-        else if (root->left->nodetype == NODE_TYPE_TUPLE)
-        {
-            int addressReg = codeGenTupleAddress(root->left, targetFile);
+
+        else if (root->left->nodetype == NODE_TYPE_USER_DEREF) {
+            int addressReg = getReg();
+            emitUserTypeAddressInto(addressReg, root->left, targetFile);
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
-            freeReg(); // free addressReg
+            freeReg();
         }
         else
         {

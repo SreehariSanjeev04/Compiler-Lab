@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct FieldList;
+
 typedef struct TypeTable {
     char *name;
     int size;
@@ -42,6 +44,6 @@ struct TypeTable* TypeTableGetHead();
  */
 struct FieldList* FLookup(TypeTable* type, char* name);
 
-static int TypeTableCalculateSize(FieldList* fieldList);
+static int TypeTableCalculateSize(struct FieldList* fieldList);
 
 #endif

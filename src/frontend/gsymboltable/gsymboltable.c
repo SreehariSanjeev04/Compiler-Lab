@@ -16,7 +16,7 @@ struct Gsymbol* GLookup(const char *name) {
     return NULL;
 }
 
-struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
+struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLevel) {
     if (name == NULL || strlen(name) == 0) {
         LOG_ERROR("Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
@@ -25,20 +25,23 @@ struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
         LOG_ERROR("Error: Variable %s already declared\n", name);
         exit(1);
     }
+
+    if (type == NULL) {
+        LOG_ERROR("Type cannot be null.");
+        exit(1);
+    }
     // LOG_INFO("Global Install %s -> %d -> %d", name, type, pointerLevel);
     struct Gsymbol* newSymbol = (struct Gsymbol*)malloc(sizeof(struct Gsymbol));
     newSymbol->name = (char*)malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
     newSymbol->type = type;
     newSymbol->pointerLevel = pointerLevel;
-    newSymbol->size = DEFAULT_VAR_SIZE; // scalars occupy one word; arrays grow via addDimensionSizes()
+    newSymbol->size = DEFAULT_VAR_SIZE;
     newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
-    newSymbol->dimensions = 0;
-    newSymbol->dimension_sizes = NULL;
+    newSymbol->arrayLength = 0;
     newSymbol->flabel = 0;
     newSymbol->paramList = NULL;
-    newSymbol->tupleEntry = NULL;
     if (head == NULL) {
         head = newSymbol;
     } else {
@@ -50,4 +53,12 @@ struct Gsymbol* GInstall(const char *name, int type, int pointerLevel) {
     }
 
     return newSymbol;
+}
+
+int GTypeKind(const struct Gsymbol* symbol) {
+    if (strcmp(symbol->type->name, "int") == 0) return TYPE_INT;
+    if (strcmp(symbol->type->name, "bool") == 0) return TYPE_BOOL;
+    if (strcmp(symbol->type->name, "str") == 0) return TYPE_STRING;
+    if (strcmp(symbol->type->name, "void") == 0) return TYPE_VOID;
+    return TYPE_CUSTOM;
 }

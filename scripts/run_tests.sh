@@ -37,7 +37,7 @@ flex --prefix=detect -o build/detect.yy.c src/backend/translate/label_detect.l
 flex --prefix=translate -o build/translate.yy.c src/backend/translate/label_translate.l
 
 # Run GCC
-gcc -g src/commons/logger.c build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c src/frontend/gsymboltable/utils/paramlist.c src/frontend/gsymboltable/utils/dimnode.c src/frontend/gsymboltable/utils/flabel.c src/frontend/lsymboltable/lsymboltable.c src/frontend/tupletable/tupletable.c src/frontend/tuplefieldlist/tuplefieldlist.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils -Isrc/frontend/lsymboltable -Isrc/frontend/tupletable -Isrc/frontend/tuplefieldlist
+gcc -g src/commons/logger.c build/parser.tab.c build/lex.yy.c build/detect.yy.c build/translate.yy.c src/frontend/main.c src/frontend/syntaxtree/exprtree.c src/backend/codegen/codegen.c src/backend/codegen/expr_codegen.c src/backend/codegen/stmt_codegen.c src/backend/codegen/register_alloc.c src/backend/codegen/runtime.c src/backend/codegen/codegen_utils/codegen_utils.c src/backend/translate/translate.c src/backend/translate/labelAddressTable.c src/frontend/gsymboltable/gsymboltable.c src/frontend/gsymboltable/utils/gsymboltable_utils.c src/frontend/gsymboltable/utils/binding.c src/frontend/gsymboltable/utils/paramlist.c src/frontend/gsymboltable/utils/flabel.c src/frontend/lsymboltable/lsymboltable.c src/frontend/declspec/declspec.c src/frontend/typetable/typetable.c src/frontend/fieldlist/fieldlist.c -o compiler -Isrc/frontend/syntaxtree -Isrc/frontend/parser -Isrc/frontend/declspec -Isrc/frontend/typetable -Isrc/frontend/fieldlist -Isrc/backend/codegen -Isrc/backend/codegen/codegen_utils -Isrc/backend/translate -Isrc/commons -Isrc/frontend/gsymboltable -Isrc/frontend/gsymboltable/utils -Isrc/frontend/lsymboltable
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GCC compilation failed.${NC}"
@@ -92,7 +92,7 @@ for code_dir in $subdirs; do
     # Process each inputX.txt and match it with outputX.txt
     # Sort them naturally (input1.txt, input2.txt...)
     inputs=$(find "$inner_tests_dir" -name "input*.txt" | sort -V)
-    
+
     if [ -z "$inputs" ]; then
         echo -e "     ${RED}No input files found inside testcases/${NC}"
         continue
@@ -102,7 +102,7 @@ for code_dir in $subdirs; do
         # Extract the index/number from inputName.txt (e.g., input1.txt -> 1)
         base_input=$(basename "$input_file")
         test_num=$(echo "$base_input" | tr -dc '0-9')
-        
+
         expected_output="${inner_tests_dir}/output${test_num}.txt"
         temp_output="${inner_tests_dir}/temp_output${test_num}.txt"
 
