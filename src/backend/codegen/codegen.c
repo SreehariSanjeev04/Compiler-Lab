@@ -107,7 +107,6 @@ int codeGen(tnode *root, FILE *targetFile)
         }
     }
 
-    // Cases that require special handling: control flow, addresses, calls
     switch (root->nodetype)
     {
     case NODE_TYPE_IF:

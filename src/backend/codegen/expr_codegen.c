@@ -218,7 +218,7 @@ int codeGenLeafValue(tnode *root, FILE *targetFile)
         int addressReg = getReg();
         emitVarAddressInto(addressReg, root->varname, targetFile);
         fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, addressReg);
-        freeReg(); // free addressReg
+        freeReg();
         return valueReg;
     }
     default:
