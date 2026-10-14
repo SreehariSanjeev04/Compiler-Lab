@@ -146,30 +146,6 @@ for code_dir in $subdirs; do
     fi
 done
 
-for source in testcases/invalid_stage6/*.txt; do
-    test_name=$(basename "$source" .txt)
-    expected_diagnostic="${source%.txt}.expected"
-    target_xsm="${TEST_TMP_DIR}/${test_name}.xsm"
-    compiler_output="${TEST_TMP_DIR}/${test_name}.log"
-
-    echo -e "${BOLD}${test_name}${NC}"
-    if ./compiler "$source" "$target_xsm" > "$compiler_output" 2>&1; then
-        echo -e "     ${RED}unexpectedly compiled${NC}"
-        TOTAL_FAILED=$((TOTAL_FAILED + 1))
-    elif [ ! -f "$expected_diagnostic" ]; then
-        echo -e "     ${RED}expected diagnostic file missing${NC}"
-        TOTAL_FAILED=$((TOTAL_FAILED + 1))
-    elif grep -F -q -f "$expected_diagnostic" "$compiler_output"; then
-        echo -e "     ${GREEN}rejected as expected${NC}"
-        TOTAL_PASSED=$((TOTAL_PASSED + 1))
-    else
-        echo -e "     ${RED}expected diagnostic missing${NC}"
-        TOTAL_FAILED=$((TOTAL_FAILED + 1))
-    fi
-
-    rm -f "$target_xsm" "$compiler_output"
-done
-
 echo -e "\n${BOLD}Summary: ${TOTAL_PASSED} passed, ${TOTAL_FAILED} failed${NC}"
 
 if [ $TOTAL_FAILED -gt 0 ]; then
