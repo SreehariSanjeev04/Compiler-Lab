@@ -112,6 +112,48 @@ TypeField
     }
     ;
 
+ClassDefBlock
+    : CLASS ClassDefList ENDCLASS
+    ;
+
+ClassDefList
+    : ClassDefList ClassDef
+    | ClassDef
+    ;
+
+ClassDef
+    : Cname '{' DECL FieldLists MethodDecl ENDDECL MethodDefns '}'
+    ;
+
+Cname
+    : ID {}
+    | ID EXTENDS ID {}
+    ;
+
+FieldLists
+    : FieldLists Fld
+    ; // doubt
+
+Fld
+    : ID ID ';' {}
+    ;
+
+MethodDecl
+    : MethodDecl MDecl
+    | Mdecl
+    ;
+
+Mdecl
+    : ID ID '(' ParamList ')' ';' {}
+    ;
+
+MethodDefns
+    : MethodDefns FDef
+    | FDef
+    ;
+
+/* todo - complete the rest of production rules */
+
 GDeclBlock
     : DECL GDecList ENDDECL {
         assignBindingAddresses();

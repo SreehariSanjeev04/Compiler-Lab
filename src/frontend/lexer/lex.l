@@ -46,7 +46,11 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "free"|"Free" { return FREE; }
 "initialize"|"Initialize" { return INITIALIZE; }
 "NULL"|"null" { return NULLLIT; }
-
+"class" { return CLASS; }
+"endclass" { return ENDCLASS; }
+"extends" { return EXTENDS; }
+"new" { return NEW; }
+"self" { return SELF; }
 {text} {
 	yylval.str = strdup(yytext); 
 	return STRLIT;
