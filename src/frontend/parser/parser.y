@@ -24,6 +24,30 @@
     extern int yydebug;
 
     struct Gsymbol* currentFunction = NULL;
+    struct ClassTable* currentClass = NULL;
+    static bool seenMethodDeclaration = false;
+
+    bool insideClass(void) {
+        return currentClass != NULL;
+    }
+
+    static struct Gsymbol methodDefinitionSymbol;
+
+    static struct Gsymbol* lookupDefinitionSymbol(char* name) {
+        if (!insideClass()) return GLookup(name);
+
+        struct MemberFuncList* method = CMemLookup(currentClass, name);
+        if (method == NULL) return NULL;
+
+        methodDefinitionSymbol = (struct Gsymbol){
+            .name = method->name,
+            .type = method->type,
+            .paramList = method->paramList,
+            .flabel = method->Flabel
+        };
+        return &methodDefinitionSymbol;
+    }
+
 %}
 
 %code requires
@@ -40,15 +64,17 @@
     char* str;
     DeclType* declType;
     Declarator* declarator;
+    struct ClassTable* cptr;
 }
 
 %token <val> INT STRING NUM
-%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT BREAKPOINT CONTINUE BREAK CTYPE ENDTYPE ALLOC FREE INITIALIZE NULLLIT
+%token PLUS MINUS '*' DIV ASSIGN START END READ WRITE EQ NE LT GT GE LE IF ELSE WHILE DO ENDWHILE THEN ENDIF REPEAT UNTIL DECL ENDDECL MOD MAIN RETURN AND OR NOT BREAKPOINT CONTINUE BREAK CTYPE ENDTYPE ALLOC FREE INITIALIZE NULLLIT CLASS ENDCLASS EXTENDS SELF NEW DELETE
 %token <str> ID STRLIT
 
 %type <node> Expr Program SList Stmt InputStmt OutputStmt AssgStmt IfStmt WhileStmt Var AssgLhs Body MainBlock Fdef FdefBlock ArgList
 %type <declType> Type
 %type <declarator> Gid GidList Lid LidList
+%type <cptr> Cname
 %type <val> PtrDecl
 
 %left OR
@@ -62,16 +88,12 @@
 %%
 
 Program
-    : TypeDeclBlock GDeclBlock FdefBlock MainBlock    { }
-    | GDeclBlock FdefBlock MainBlock {}
-    | TypeDeclBlock GDeclBlock MainBlock           { }
-    | GDeclBlock MainBlock           { }
-    | TypeDeclBlock MainBlock                      { }
-    | MainBlock                      { }
+    : TypeDeclBlock ClassDefBlock GDeclBlock FdefBlock MainBlock { $$ = $5; }
     ;
 
 TypeDeclBlock 
     : CTYPE TypeDeclList ENDTYPE
+    | %empty
     ;
 
 TypeDeclList
@@ -99,6 +121,10 @@ TypeFieldList
 
 TypeField
     : Type ID ';' {
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Class types are not supported in type fields.\n");
+            exit(1);
+        }
         TypeTable* typeEntry = $1->table;
         if (typeEntry == NULL) {
             LOG_ERROR("Type specified in the field does not exist.");
@@ -114,45 +140,87 @@ TypeField
 
 ClassDefBlock
     : CLASS ClassDefList ENDCLASS
+    | %empty
     ;
 
 ClassDefList
-    : ClassDefList ClassDef
-    | ClassDef
+    : ClassDefList ClassDef {}
+    | ClassDef {}
     ;
 
 ClassDef
-    : Cname '{' DECL FieldLists MethodDecl ENDDECL MethodDefns '}'
+    : Cname {
+        /* for methods */
+        currentClass = $1;
+        FieldListReset();
+        MemberFuncReset();
+        seenMethodDeclaration = false;
+    } '{' DECL ClassMembers ENDDECL {
+        CFieldInstall($1, FieldListReturnHead());
+        CMemInstall($1, MemFuncGetHead());
+    } MethodDefns '}' {
+        currentClass = NULL;
+    }
     ;
 
 Cname
-    : ID {}
-    | ID EXTENDS ID {}
+    : ID { $$ = CInstall($1, NULL); }
+    | ID EXTENDS ID { $$ = CInstall($1, $3); }
     ;
 
-FieldLists
-    : FieldLists Fld
-    ; // doubt
-
-Fld
-    : ID ID ';' {}
+ClassMembers
+    : ClassMembers ClassMember
+    | %empty
     ;
 
-MethodDecl
-    : MethodDecl MDecl
+ClassMember
+    : Fld
     | Mdecl
     ;
 
+Fld
+    : Type ID ';' {
+        if (seenMethodDeclaration) {
+            LOG_ERROR("Fields must be declared before methods.\n");
+            exit(1);
+        }
+        if ($1->cptr != NULL)
+            FieldListAppendClass($2, $1->cptr);
+        else
+            FieldListAppend($2, $1->table);
+        free($1);
+    }
+    ;
+
 Mdecl
-    : ID ID '(' ParamList ')' ';' {}
+    : Type ID '(' ParamList ')' ';' {
+        seenMethodDeclaration = true;
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Methods cannot return a class type.\n");
+            exit(1);
+        }
+        MemberFuncList *method = MemFuncAppend($2, $1->table);
+        MemberFuncInstallParam(method, ParamListGetHead());
+        ParamListReset();
+        free($1);
+        free($2);
+    }
+    | Type ID '(' ')' ';' {
+        seenMethodDeclaration = true;
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Methods cannot return a class type.\n");
+            exit(1);
+        }
+        MemberFuncList *method = MemFuncAppend($2, $1->table);
+        free($1);
+        free($2);
+    }
     ;
 
 MethodDefns
-    : MethodDefns FDef
-    | FDef
+    : MethodDefns Fdef
+    | %empty
     ;
-
-/* todo - complete the rest of production rules */
 
 GDeclBlock
     : DECL GDecList ENDDECL {
@@ -165,6 +233,7 @@ GDeclBlock
         generateProgramStart(targetFile);
         if(showGlobalSymbolTable) printGlobalSymbolTable();
     }
+    | %empty
     ;
 
 GDecList
@@ -203,11 +272,14 @@ PtrDecl
     ;
 
 Type
-    : INT    { $$ = makeDeclType(TYPE_INT, TLookup("int")); }
-    | STRING { $$ = makeDeclType(TYPE_STRING, TLookup("str")); }
+    : INT    { $$ = makeDeclTypeForType(TYPE_INT, TLookup("int")); }
+    | STRING { $$ = makeDeclTypeForType(TYPE_STRING, TLookup("str")); }
     | ID {
-        $$ = makeDeclType(TYPE_CUSTOM, TLookup($1));
-        if ($$->table == NULL) {
+        if (TLookup($1) != NULL) {
+            $$ = makeDeclTypeForType(TYPE_CUSTOM, TLookup($1));
+        } else if (CLookup($1) != NULL) {
+            $$ = makeDeclTypeForClass(TYPE_CLASS, CLookup($1));
+        } else {
             LOG_ERROR("Type '%s' does not exist.\n", $1);
             exit(1);
         }
@@ -215,10 +287,11 @@ Type
     ;
 
 FdefBlock
-    : FdefBlock Fdef { $$ = $1; }
-    | Fdef           { $$ = $1; }
+    : FdefBlock Fdef { $$ = NULL; }
+    | %empty         { $$ = NULL; }
     ;
 
+/* shared between normal declarations and class methods */
 Fdef
     : FdefSig '{' LdeclBlock Body '}' {
         generateFunctionCode(currentFunction, $4, targetFile);
@@ -232,12 +305,17 @@ Fdef
 
 FdefSig
     : Type ID '(' ParamList ')' {
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Functions and methods cannot return a class type.\n");
+            exit(1);
+        }
         if(strcmp($2, "main") == 0) {
             LOG_ERROR("Error: Function name 'main' is reserved\n");
             exit(1);
         }
         LSymbolReset();
-        struct Gsymbol* funcSymbol = GLookup($2);
+
+        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2);
 
         if (funcSymbol == NULL) {
             LOG_ERROR("Error: Function '%s' not declared.\n", $2);
@@ -268,12 +346,16 @@ FdefSig
         free($1);
     }
     | Type ID '(' ')' {
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Functions and methods cannot return a class type.\n");
+            exit(1);
+        }
         if(strcmp($2, "main") == 0) {
             LOG_ERROR("Error: Function name 'main' is reserved\n");
             exit(1);
         }
         LSymbolReset();
-        struct Gsymbol* funcSymbol = GLookup($2);
+        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2);
         if (funcSymbol == NULL) {
             LOG_ERROR("Error: Function '%s' not declared.\n", $2);
             exit(1);
@@ -300,10 +382,18 @@ ParamList
 
 Param
     : Type ID {
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Class types cannot be function parameters.\n");
+            exit(1);
+        }
         ParamListAppendNode($2, $1->table, 0);
         free($1);
     }
     | Type PtrDecl ID {
+        if ($1->cptr != NULL) {
+            LOG_ERROR("Class types cannot be function parameters.\n");
+            exit(1);
+        }
         ParamListAppendNode($3, $1->table, $2);
         free($1);
     }
@@ -333,7 +423,7 @@ MainBlockSig :
             exit(1);
         }
 
-        struct Gsymbol* funcSymbol = GInstall("MAIN", TLookup("int"), 0);
+        struct Gsymbol* funcSymbol = GInstall("MAIN", TLookup("int"), NULL, 0);
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
         LSymbolReset();
@@ -397,6 +487,8 @@ Stmt
         }
         $$ = makeReturnNode($2);
     }
+    | NEW '(' ID ')' { makeNewClassNode($3); }
+    | DELETE '(' ID ')' { makeDeleteClassNode($3); }
     ;
 
 IfStmt
@@ -430,6 +522,7 @@ AssgLhs
 
 Var
     : ID               { $$ = makeLeafNodeId($1); }
+    | SELF { $$ = makeSelfNode(currentClass); }
     | Var '[' Expr ']' { $$ = makeArrayNode($1, $3); }
     | Var '.' ID { $$ = makeUserTypeNode($1, $3); }
     ;
@@ -452,6 +545,8 @@ Expr
     | NUM                     { $$ = makeLeafNodeNum($1); }
     | STRLIT                  { $$ = makeLeafNodeString($1); }
     | Var                     { $$ = $1; }
+    | Var '.' ID '(' ArgList ')' { $$ = makeMethodCallNode($1, $3, $5); }
+    | Var '.' ID '(' ')'      { $$ = makeMethodCallNode($1, $3, NULL); }
     | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
     | ALLOC '(' ')'           { $$ = makeAllocNode(); }

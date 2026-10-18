@@ -16,7 +16,8 @@ struct Gsymbol* GLookup(const char *name) {
     return NULL;
 }
 
-struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLevel) {
+struct Gsymbol* GInstall(const char *name, struct TypeTable* type,
+                         struct ClassTable* cPtr, int pointerLevel) {
     if (name == NULL || strlen(name) == 0) {
         LOG_ERROR("Error: Variable name is invalid. Only non-empty names are allowed.\n");
         exit(1);
@@ -26,8 +27,8 @@ struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLe
         exit(1);
     }
 
-    if (type == NULL) {
-        LOG_ERROR("Type cannot be null.");
+    if ((type == NULL) == (cPtr == NULL)) {
+        LOG_ERROR("Exactly one of type or class must be set.\n");
         exit(1);
     }
     // LOG_INFO("Global Install %s -> %d -> %d", name, type, pointerLevel);
@@ -42,6 +43,7 @@ struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLe
     newSymbol->arrayLength = 0;
     newSymbol->flabel = 0;
     newSymbol->paramList = NULL;
+    newSymbol->cPtr = cPtr;
     if (head == NULL) {
         head = newSymbol;
     } else {
@@ -56,6 +58,7 @@ struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLe
 }
 
 int GTypeKind(const struct Gsymbol* symbol) {
+    if (symbol->cPtr != NULL) return TYPE_CLASS;
     if (strcmp(symbol->type->name, "int") == 0) return TYPE_INT;
     if (strcmp(symbol->type->name, "bool") == 0) return TYPE_BOOL;
     if (strcmp(symbol->type->name, "str") == 0) return TYPE_STRING;

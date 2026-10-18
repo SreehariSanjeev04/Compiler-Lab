@@ -3,6 +3,7 @@
 #include <typetable.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <classtable.h>
 
 typedef struct FieldList {
     char *name;
@@ -10,6 +11,7 @@ typedef struct FieldList {
     int size;
     struct TypeTable *type;
     struct FieldList *next;
+    struct ClassTable *ctype; // for classes (if the member itself is a variable)
 } FieldList;
 
 extern struct FieldList* FieldListHead;
@@ -21,6 +23,7 @@ extern int fieldIndexCounter;
  * @return the new entry, or NULL if allocation fails
  */
 struct FieldList* FieldListAppend(char* name, struct TypeTable* type);
+struct FieldList* FieldListAppendClass(char* name, struct ClassTable* ctype);
 /**
  * @return the head of the FieldList
  */

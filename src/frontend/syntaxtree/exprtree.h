@@ -13,6 +13,7 @@ typedef struct tnode {
     int val;
     int type;
     struct TypeTable* typeEntry;
+    struct ClassTable* cPtr;
     int pointerLevel;
     char* varname;
     int nodetype; 

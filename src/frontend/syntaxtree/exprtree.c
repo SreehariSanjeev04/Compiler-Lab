@@ -22,6 +22,7 @@ static tnode *tnodeInit(void) {
     temp->val = 0;
     temp->type = TYPE_VOID;
     temp->typeEntry = TLookup("void");
+    temp->cPtr = NULL;
     temp->pointerLevel = 0;
     temp->varname = NULL;
     temp->nodetype = -1;
@@ -68,6 +69,7 @@ tnode *makeLeafNodeId(const char *c) {
     temp->Gentry = entry;
     temp->type = GTypeKind(entry);
     temp->typeEntry = entry->type;
+    temp->cPtr = entry->cPtr;
     temp->pointerLevel = entry->pointerLevel;
     return temp;
 }
@@ -387,9 +389,88 @@ tnode *makeInitializeNode(void) {
     return node;
 }
 
+/* Todo: Change the fields of AST Node for Class*/
+
+/**
+ * Example: self.cat.meow()
+ * p.dog.bark()
+ * car.speed
+ */
+
+tnode *makeClassFieldNode(tnode* base, char* fieldName) {
+    if (base->type != TYPE_CLASS || base->cPtr == NULL || base->pointerLevel != 0) {
+        LOG_ERROR("Invalid AST for class field access.\n"); exit(1);
+    }
+    FieldList* field = CFieldLookup(base->cPtr, fieldName);
+    if (field == NULL) { LOG_ERROR("Unknown field '%s' in class '%s'\n", fieldName, base->cPtr->name); exit(1); }
+    tnode* temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_CLASS_ACCESS;
+    temp->left = base;
+    temp->varname = strdup(fieldName);
+    temp->typeEntry = field->type;
+    temp->type = field->type == TLookup("int") ? TYPE_INT :
+                 field->type == TLookup("str") ? TYPE_STRING : TYPE_CLASS; // what about custom types
+    temp->val = field->fieldIndex;
+    return temp;
+}
+
+tnode *makeSelfNode(struct ClassTable* currentClass) {
+    if (currentClass == NULL) {
+        LOG_ERROR(" 'self' is only valid inside a method.\n");
+        exit(1);
+    }
+
+    tnode* node = tnodeInit();
+    node->cPtr = currentClass;
+    node->typeEntry = NULL;
+    node->type = TYPE_CLASS;
+    node->nodetype = NODE_TYPE_SELF;
+    node->pointerLevel = 0; // no pointers allowed as of now
+
+    return node;
+}
+
+tnode* makeNewClassNode(struct ClassTable* currentClass) {
+    if (currentClass == NULL) {
+        LOG_ERROR(" 'self' is only valid inside a method.\n");
+        exit(1);
+    }
+
+    tnode* node = tnodeInit();
+    node->cPtr = currentClass;
+    node->typeEntry = NULL;
+    node->type = NODE_TYPE_NEW;
+    node->type = TYPE_CLASS;
+    node->pointerLevel = 0;
+
+    return node;
+}
+
+tnode* makeDeleteClassNode(struct ClassTable* currentClass) {
+    if (currentClass == NULL) {
+        LOG_ERROR(" 'self' is only valid inside a method.\n");
+        exit(1);
+    }
+
+    tnode* node = tnodeInit();
+    node->cPtr = currentClass;
+    node->typeEntry = NULL;
+    node->type = NODE_TYPE_DELETE;
+    node->type = TYPE_CLASS;
+    node->pointerLevel = 0;
+
+    return node;
+}
+
 int typesCompatible(tnode *expected, tnode *actual) {
-    if (actual->nodetype == NODE_TYPE_NULL || actual->nodetype == NODE_TYPE_ALLOC)
+    if (actual->nodetype == NODE_TYPE_NULL)
+        return (expected->type == TYPE_CUSTOM || expected->type == TYPE_CLASS) &&
+               expected->pointerLevel == 0;
+    if (actual->nodetype == NODE_TYPE_ALLOC)
         return expected->type == TYPE_CUSTOM && expected->pointerLevel == 0;
+    if (expected->type == TYPE_CLASS || actual->type == TYPE_CLASS)
+        return expected->type == TYPE_CLASS && actual->type == TYPE_CLASS &&
+               expected->cPtr == actual->cPtr;
     return expected->typeEntry == actual->typeEntry &&
            expected->pointerLevel == actual->pointerLevel;
 }

@@ -5,6 +5,7 @@ struct FieldList* FieldListHead = NULL;
 struct FieldList* FieldListTail = NULL;
 int fieldIndexCounter = 0;
 
+/* Todo: solve the logical error in destroy list*/
 
 struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     struct FieldList* newField = (struct FieldList*)malloc(sizeof(struct FieldList));
@@ -15,6 +16,7 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
     newField->name = name;
     newField->fieldIndex = fieldIndexCounter++;
     newField->type = type;
+    newField->ctype = NULL;
     newField->size = 1;
     newField->next = NULL;
 
@@ -26,6 +28,12 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
         FieldListTail = newField;
     }
     return newField;
+}
+
+struct FieldList* FieldListAppendClass(char* name, struct ClassTable* ctype) {
+    struct FieldList* field = FieldListAppend(name, NULL);
+    if (field != NULL) field->ctype = ctype;
+    return field;
 }
 
 struct FieldList* FieldListReturnHead() {

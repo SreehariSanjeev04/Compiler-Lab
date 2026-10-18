@@ -48,6 +48,10 @@
 #define NODE_TYPE_ALLOC 37
 #define NODE_TYPE_FREE 38
 #define NODE_TYPE_INITIALIZE 39
+#define NODE_TYPE_CLASS_ACCESS 40
+#define NODE_TYPE_SELF 41
+#define NODE_TYPE_NEW 42
+#define NODE_TYPE_DELETE 43
 
 // Type values
 #define TYPE_INT 0
@@ -55,6 +59,7 @@
 #define TYPE_VOID 2
 #define TYPE_STRING 3
 #define TYPE_CUSTOM 5
+#define TYPE_CLASS 6
 
 // To do - look into void type pointer
 

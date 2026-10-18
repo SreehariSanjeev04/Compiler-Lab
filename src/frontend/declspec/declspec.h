@@ -4,11 +4,13 @@
 #include <stdbool.h>
 
 struct TypeTable;
+struct ClassTable;
 struct ParamList;
 
 typedef struct DeclType {
     int kind;
     struct TypeTable *table;
+    struct ClassTable* cptr;
 } DeclType;
 
 typedef enum DeclaratorKind {
@@ -27,7 +29,8 @@ typedef struct Declarator {
     struct Declarator *next;
 } Declarator;
 
-DeclType* makeDeclType(int kind, struct TypeTable* table);
+DeclType* makeDeclTypeForType(int kind, struct TypeTable* table);
+DeclType* makeDeclTypeForClass(int kind, struct ClassTable* cptr);
 Declarator* makeDeclarator(char* name, DeclaratorKind kind, int pointerLevel,
                             int arrayLength, struct ParamList* parameters);
 Declarator* appendDeclarator(Declarator* list, Declarator* item);

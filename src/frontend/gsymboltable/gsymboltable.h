@@ -6,10 +6,12 @@
 #include <string.h>
 #include <paramlist.h>
 #include <typetable.h>
+#include <classtable.h>
 
 typedef struct Gsymbol {
     char* name;
     struct TypeTable* type; // pointer to the type table, contains default types as well
+    struct ClassTable* cPtr; // pointer to the class if the variable is a class
     int pointerLevel; // level of pointer, 0 for scalars
     int size;         // size of the type of the variable
     int binding;      // stores the static memory address allocated to the variable
@@ -31,7 +33,8 @@ struct Gsymbol* GLookup(const char *name);
  * Installs a new variable into the symbol table.
  * @return the newly created Gsymbol entry
  */
-struct Gsymbol* GInstall(const char *name, struct TypeTable* type, int pointerLevel);
+struct Gsymbol* GInstall(const char *name, struct TypeTable* type,
+                         struct ClassTable* cPtr, int pointerLevel);
 
 int GTypeKind(const struct Gsymbol* symbol);
 

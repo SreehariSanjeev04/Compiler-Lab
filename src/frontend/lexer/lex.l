@@ -51,6 +51,7 @@ identifier  [a-zA-Z][a-zA-Z0-9_]*
 "extends" { return EXTENDS; }
 "new" { return NEW; }
 "self" { return SELF; }
+"delete" { return DELETE; }
 {text} {
 	yylval.str = strdup(yytext); 
 	return STRLIT;
