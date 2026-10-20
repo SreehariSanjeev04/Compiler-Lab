@@ -17,6 +17,7 @@ typedef struct Gsymbol {
     int binding;      // stores the static memory address allocated to the variable
     int arrayLength;   // zero for non-arrays
     int flabel;        // label number identifying the start of a function's code
+    int isFunction;    // identifies functions even when they have no parameters
     struct ParamList* paramList; // linked list to hold the parameters for functions
     struct Gsymbol *next;
 } Gsymbol;

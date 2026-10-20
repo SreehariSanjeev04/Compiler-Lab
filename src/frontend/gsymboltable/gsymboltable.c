@@ -42,6 +42,7 @@ struct Gsymbol* GInstall(const char *name, struct TypeTable* type,
     newSymbol->next = NULL;
     newSymbol->arrayLength = 0;
     newSymbol->flabel = 0;
+    newSymbol->isFunction = 0;
     newSymbol->paramList = NULL;
     newSymbol->cPtr = cPtr;
     if (head == NULL) {

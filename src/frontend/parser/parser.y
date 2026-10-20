@@ -169,13 +169,13 @@ Cname
     ;
 
 ClassMembers
-    : ClassMembers ClassMember
+    : ClassMembers ClassMember {}
     | %empty
     ;
 
 ClassMember
-    : Fld
-    | Mdecl
+    : Fld {}
+    | Mdecl {}
     ;
 
 Fld
@@ -218,7 +218,7 @@ Mdecl
     ;
 
 MethodDefns
-    : MethodDefns Fdef
+    : MethodDefns Fdef {}
     | %empty
     ;
 
@@ -424,6 +424,7 @@ MainBlockSig :
         }
 
         struct Gsymbol* funcSymbol = GInstall("MAIN", TLookup("int"), NULL, 0);
+        funcSymbol->isFunction = 1;
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
         LSymbolReset();
@@ -487,8 +488,8 @@ Stmt
         }
         $$ = makeReturnNode($2);
     }
-    | NEW '(' ID ')' { makeNewClassNode($3); }
-    | DELETE '(' ID ')' { makeDeleteClassNode($3); }
+    | NEW '(' ID ')' { $$ = makeNewClassNode($3); }
+    | DELETE '(' ID ')' { $$ = makeDeleteClassNode($3); }
     ;
 
 IfStmt
@@ -524,7 +525,10 @@ Var
     : ID               { $$ = makeLeafNodeId($1); }
     | SELF { $$ = makeSelfNode(currentClass); }
     | Var '[' Expr ']' { $$ = makeArrayNode($1, $3); }
-    | Var '.' ID { $$ = makeUserTypeNode($1, $3); }
+    | Var '.' ID {
+        $$ = $1->type == TYPE_CLASS ? makeClassFieldNode($1, $3)
+                                    : makeUserTypeNode($1, $3);
+    }
     ;
 
 Expr
@@ -545,8 +549,8 @@ Expr
     | NUM                     { $$ = makeLeafNodeNum($1); }
     | STRLIT                  { $$ = makeLeafNodeString($1); }
     | Var                     { $$ = $1; }
-    | Var '.' ID '(' ArgList ')' { $$ = makeMethodCallNode($1, $3, $5); }
-    | Var '.' ID '(' ')'      { $$ = makeMethodCallNode($1, $3, NULL); }
+    | Var '.' ID '(' ArgList ')' { $$ = makeClassMethodNode($1, $3, $5); }
+    | Var '.' ID '(' ')'      { $$ = makeClassMethodNode($1, $3, NULL); }
     | ID '(' ArgList ')'      { $$ = makeFuncCallNode($1, $3); }
     | ID '(' ')'              { $$ = makeFuncCallNode($1, NULL); }
     | ALLOC '(' ')'           { $$ = makeAllocNode(); }

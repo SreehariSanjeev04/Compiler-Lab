@@ -41,7 +41,7 @@ void assignBindingAddresses(void) {
     struct Gsymbol* current = head;
     while (current != NULL) {
         // function
-        if (current->paramList != NULL) {
+        if (current->isFunction) {
             current = current->next;
             continue;
         }

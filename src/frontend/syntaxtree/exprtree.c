@@ -7,6 +7,7 @@
 #include "gsymboltable.h"
 #include <lsymboltable.h>
 #include <fieldlist.h>
+#include <classtable.h>
 
 static tnode *tnodeInit(void);
 static int countCallArgs(tnode *argsNode);
@@ -61,17 +62,22 @@ tnode *makeLeafNodeId(const char *c) {
         temp->Lentry = lentry;
         return temp;
     }
-    struct Gsymbol *entry = GLookup(c);
-    if (entry == NULL) {
-        LOG_ERROR("Error: Variable '%s' not declared\n", c);
-        exit(1);
+    struct Gsymbol *gentry = GLookup(c);
+
+    if (gentry != NULL) {
+        if (gentry->isFunction) {
+            LOG_ERROR("Error: Function '%s' cannot be used as a variable\n", c);
+            exit(1);
+        }
+        temp->Gentry = gentry;
+        temp->type = GTypeKind(gentry);
+        temp->typeEntry = gentry->type;
+        temp->cPtr = gentry->cPtr;
+        temp->pointerLevel = gentry->pointerLevel;
+        return temp;
     }
-    temp->Gentry = entry;
-    temp->type = GTypeKind(entry);
-    temp->typeEntry = entry->type;
-    temp->cPtr = entry->cPtr;
-    temp->pointerLevel = entry->pointerLevel;
-    return temp;
+    LOG_ERROR("Error: Variable '%s' not declared\n", c);
+    exit(1);
 }
 
 tnode *makeLeafNodeString(const char *str) {
@@ -328,7 +334,7 @@ tnode *makeFuncCallNode(char *name, tnode *args) {
     temp->varname = strdup(name);
     temp->left = args;
     struct Gsymbol *entry = GLookup(name);
-    if (entry == NULL) {
+    if (entry == NULL || !entry->isFunction) {
         LOG_ERROR("Error: Function '%s' not declared\n", name);
         exit(1);
     }
@@ -352,7 +358,8 @@ tnode *makeUserTypeNode(tnode* base, char* fieldName) {
     temp->varname = strdup(fieldName);
     temp->typeEntry = field->type;
     temp->type = field->type == TLookup("int") ? TYPE_INT :
-                 field->type == TLookup("str") ? TYPE_STRING : TYPE_CUSTOM;
+                 field->type == TLookup("str") ? TYPE_STRING :
+                 field->type == TLookup("bool") ? TYPE_BOOL : TYPE_CUSTOM;
     temp->val = field->fieldIndex;
     return temp;
 }
@@ -389,28 +396,90 @@ tnode *makeInitializeNode(void) {
     return node;
 }
 
-/* Todo: Change the fields of AST Node for Class*/
-
-/**
- * Example: self.cat.meow()
- * p.dog.bark()
- * car.speed
- */
-
+/* This function is strictly for class field access */
 tnode *makeClassFieldNode(tnode* base, char* fieldName) {
-    if (base->type != TYPE_CLASS || base->cPtr == NULL || base->pointerLevel != 0) {
+    if (base == NULL || base->type != TYPE_CLASS || base->cPtr == NULL || base->pointerLevel != 0) {
         LOG_ERROR("Invalid AST for class field access.\n"); exit(1);
     }
-    FieldList* field = CFieldLookup(base->cPtr, fieldName);
+    FieldList* field = CFieldLookup(base->cPtr, fieldName); // looking the field in the class
     if (field == NULL) { LOG_ERROR("Unknown field '%s' in class '%s'\n", fieldName, base->cPtr->name); exit(1); }
     tnode* temp = tnodeInit();
-    temp->nodetype = NODE_TYPE_CLASS_ACCESS;
+    temp->nodetype = NODE_TYPE_CLASS_FIELD_ACCESS;
     temp->left = base;
     temp->varname = strdup(fieldName);
+    temp->cPtr = field->ctype;
     temp->typeEntry = field->type;
-    temp->type = field->type == TLookup("int") ? TYPE_INT :
-                 field->type == TLookup("str") ? TYPE_STRING : TYPE_CLASS; // what about custom types
+    if (field->ctype != NULL) {
+        temp->type = TYPE_CLASS;
+    } else if (field->type == TLookup("int")) {
+        temp->type = TYPE_INT;
+    } else if (field->type == TLookup("str")) {
+        temp->type = TYPE_STRING;
+    } else if (field->type == TLookup("bool")) {
+        temp->type = TYPE_BOOL;
+    } else if (field->type != NULL) {
+        temp->type = TYPE_CUSTOM;
+    } else {
+        LOG_ERROR("Field '%s' has no type\n", fieldName);
+        exit(1);
+    }
     temp->val = field->fieldIndex;
+    return temp;
+}
+
+/**
+tnode *makeFuncCallNode(char *name, tnode *args) {
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_FUNC_CALL;
+    temp->varname = strdup(name);
+    temp->left = args;
+    struct Gsymbol *entry = GLookup(name);
+    if (entry == NULL) {
+        LOG_ERROR("Error: Function '%s' not declared\n", name);
+        exit(1);
+    }
+    checkCallArguments(entry, args);
+    temp->Gentry = entry;
+    temp->type = GTypeKind(entry);
+    temp->typeEntry = entry->type;
+    temp->pointerLevel = entry->pointerLevel;
+    return temp;
+}
+ */
+
+tnode* makeClassMethodNode(tnode* base, char* funcName, tnode* args) {
+    if (base == NULL || base->type != TYPE_CLASS || base->cPtr == NULL ||
+        funcName == NULL || funcName[0] == '\0') {
+        LOG_ERROR("The base node and function name cannot be NULL or empty.\n");
+        exit(1);
+    }
+    tnode *temp = tnodeInit();
+    temp->nodetype = NODE_TYPE_CLASS_METHOD_ACCESS;
+    temp->varname = strdup(funcName);
+    temp->left = base;
+    temp->right = args;
+    struct MemberFuncList* funcPtr = CMemLookup(base->cPtr, funcName);
+    if (funcPtr == NULL) {
+        LOG_ERROR("%s is not a method is class %s.\n", funcName, base->cPtr->name);
+        exit(1);
+    }
+    struct ParamList *funcParams = funcPtr->paramList;
+    struct Gsymbol expectedFormat = (struct Gsymbol) {
+        .paramList = funcParams,
+        .name = funcPtr->name
+    };
+    checkCallArguments(&expectedFormat, args);
+    if (funcPtr->type == TLookup("int")) temp->type = TYPE_INT;
+    else if (funcPtr->type == TLookup("str")) temp->type = TYPE_STRING;
+    else if (funcPtr->type == TLookup("bool")) temp->type = TYPE_BOOL;
+    else if (funcPtr->type != NULL) temp->type = TYPE_CUSTOM;
+    else {
+        LOG_ERROR("Method '%s' has no type\n", funcName);
+        exit(1);
+    }
+    
+    temp->typeEntry = TLookup(funcPtr->type->name);
+    temp->pointerLevel = 0; // no pointers for my sake
     return temp;
 }
 
@@ -430,34 +499,42 @@ tnode *makeSelfNode(struct ClassTable* currentClass) {
     return node;
 }
 
-tnode* makeNewClassNode(struct ClassTable* currentClass) {
-    if (currentClass == NULL) {
+tnode* makeNewClassNode(char* className) {
+    struct ClassTable *cptr = CLookup(className);
+    if (cptr == NULL) {
         LOG_ERROR(" 'self' is only valid inside a method.\n");
         exit(1);
     }
 
     tnode* node = tnodeInit();
-    node->cPtr = currentClass;
+    node->cPtr = cptr;
     node->typeEntry = NULL;
-    node->type = NODE_TYPE_NEW;
+    node->nodetype = NODE_TYPE_NEW;
     node->type = TYPE_CLASS;
     node->pointerLevel = 0;
 
     return node;
 }
 
-tnode* makeDeleteClassNode(struct ClassTable* currentClass) {
-    if (currentClass == NULL) {
-        LOG_ERROR(" 'self' is only valid inside a method.\n");
+tnode* makeDeleteClassNode(char* objName) {
+    struct Gsymbol *gentry = GLookup(objName);
+    if (gentry == NULL) {
+        LOG_ERROR("%s is not declared\n", objName);
+        exit(1);
+    }
+
+    if (gentry->cPtr == NULL) {
+        LOG_ERROR("%s is not a class\n", objName);
         exit(1);
     }
 
     tnode* node = tnodeInit();
-    node->cPtr = currentClass;
+    node->Gentry = gentry;
     node->typeEntry = NULL;
-    node->type = NODE_TYPE_DELETE;
+    node->nodetype = NODE_TYPE_DELETE;
     node->type = TYPE_CLASS;
     node->pointerLevel = 0;
+    node->cPtr = gentry->cPtr;
 
     return node;
 }
@@ -490,6 +567,7 @@ static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index) {
     argArray[(*index)++] = argsNode->right;
 }
 
+// for now the functions do not have classes as parameters
 static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     int argc = countCallArgs(args);
     int paramCount = 0;
@@ -513,7 +591,9 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     for (int i = 0; i < argc; i++, param = param->next) {
         
         if ((argArray[i]->typeEntry != param->type &&
-             !(argArray[i]->nodetype == NODE_TYPE_NULL && param->type != TLookup("int") && param->type != TLookup("str"))) ||
+             !(argArray[i]->nodetype == NODE_TYPE_NULL && param->type != TLookup("int") &&
+               param->type != TLookup("bool") && param->type != TLookup("str") &&
+               param->type != TLookup("void"))) ||
             argArray[i]->pointerLevel != param->pointerLevel) {
             LOG_ERROR("Error: Argument %d of function '%s' has an incompatible type\n",
                     i + 1, entry->name);
