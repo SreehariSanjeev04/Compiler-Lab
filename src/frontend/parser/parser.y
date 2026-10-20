@@ -424,7 +424,6 @@ MainBlockSig :
         }
 
         struct Gsymbol* funcSymbol = GInstall("MAIN", TLookup("int"), NULL, 0);
-        funcSymbol->isFunction = 1;
         funcSymbol->flabel = generateFunctionLabel();
         currentFunction = funcSymbol;
         LSymbolReset();

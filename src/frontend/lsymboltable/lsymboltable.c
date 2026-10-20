@@ -21,7 +21,8 @@ struct Lsymbol* LInstall(char* name, struct TypeTable* type, int pointerLevel, i
     newSymbol->name = strdup(name);
     newSymbol->typeEntry = type;
     newSymbol->type = strcmp(type->name, "int") == 0 ? TYPE_INT :
-                      strcmp(type->name, "str") == 0 ? TYPE_STRING : TYPE_CUSTOM;
+                      strcmp(type->name, "str") == 0 ? TYPE_STRING :
+                      strcmp(type->name, "bool") == 0 ? TYPE_BOOL : TYPE_CUSTOM;
     newSymbol->binding = binding;
     newSymbol->pointerLevel = pointerLevel; 
     newSymbol->next = NULL;

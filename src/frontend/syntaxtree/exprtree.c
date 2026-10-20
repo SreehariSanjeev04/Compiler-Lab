@@ -65,7 +65,7 @@ tnode *makeLeafNodeId(const char *c) {
     struct Gsymbol *gentry = GLookup(c);
 
     if (gentry != NULL) {
-        if (gentry->isFunction) {
+        if (gentry->flabel >= 0) {
             LOG_ERROR("Error: Function '%s' cannot be used as a variable\n", c);
             exit(1);
         }
@@ -334,7 +334,7 @@ tnode *makeFuncCallNode(char *name, tnode *args) {
     temp->varname = strdup(name);
     temp->left = args;
     struct Gsymbol *entry = GLookup(name);
-    if (entry == NULL || !entry->isFunction) {
+    if (entry == NULL || entry->flabel < 0) {
         LOG_ERROR("Error: Function '%s' not declared\n", name);
         exit(1);
     }

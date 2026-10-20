@@ -75,7 +75,6 @@ void installDeclarators(DeclType *type, Declarator *list, bool global)
             }
             if (list->kind == DECL_FUNCTION)
             {
-                symbol->isFunction = 1;
                 symbol->paramList = list->parameters;
                 symbol->flabel = generateFunctionLabel();
             }
