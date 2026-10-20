@@ -32,6 +32,40 @@
     }
 
     static struct Gsymbol methodDefinitionSymbol;
+    static FILE* classMethodsFile = NULL;
+
+    static FILE* functionOutput(void) {
+        if (!insideClass()) return targetFile;
+        if (classMethodsFile == NULL) {
+            classMethodsFile = tmpfile();
+            if (classMethodsFile == NULL) {
+                LOG_ERROR("Could not create temporary storage for class methods.\n");
+                exit(1);
+            }
+        }
+        return classMethodsFile;
+    }
+
+    static void finishGlobalDeclarations(void) {
+        assignBindingAddresses();
+        generateProgramStart(targetFile);
+        if (classMethodsFile != NULL) {
+            rewind(classMethodsFile);
+            int ch;
+            while ((ch = fgetc(classMethodsFile)) != EOF) {
+                if (fputc(ch, targetFile) == EOF) {
+                    LOG_ERROR("Could not write class method code.\n");
+                    exit(1);
+                }
+            }
+            if (ferror(classMethodsFile)) {
+                LOG_ERROR("Could not read class method code.\n");
+                exit(1);
+            }
+            fclose(classMethodsFile);
+            classMethodsFile = NULL;
+        }
+    }
 
     static struct Gsymbol* lookupDefinitionSymbol(char* name) {
         if (!insideClass()) return GLookup(name);
@@ -224,16 +258,14 @@ MethodDefns
 
 GDeclBlock
     : DECL GDecList ENDDECL {
-        assignBindingAddresses();
-        generateProgramStart(targetFile);
+        finishGlobalDeclarations();
         if(showGlobalSymbolTable) printGlobalSymbolTable(); 
     }
     | DECL ENDDECL         {
-        assignBindingAddresses();
-        generateProgramStart(targetFile);
+        finishGlobalDeclarations();
         if(showGlobalSymbolTable) printGlobalSymbolTable();
     }
-    | %empty
+    | %empty { finishGlobalDeclarations(); }
     ;
 
 GDecList
@@ -294,11 +326,11 @@ FdefBlock
 /* shared between normal declarations and class methods */
 Fdef
     : FdefSig '{' LdeclBlock Body '}' {
-        generateFunctionCode(currentFunction, $4, targetFile);
+        generateFunctionCode(currentFunction, $4, functionOutput());
         $$ = NULL;
     }
     | FdefSig '{' Body '}' {
-        generateFunctionCode(currentFunction, $3, targetFile);
+        generateFunctionCode(currentFunction, $3, functionOutput());
         $$ = NULL;
     }
     ;
@@ -341,6 +373,7 @@ FdefSig
             nextParamWord--;
             current = current->next;
         }
+        if (insideClass()) LInstall("self", TLookup("int"), 0, nextParamWord); // installing self into local symbol table
         ParamListDestroy();
         currentFunction = funcSymbol;
         free($1);
@@ -370,6 +403,7 @@ FdefSig
             LOG_ERROR("Error: Function '%s' parameters do not match declaration.\n", $2);
             exit(1);
         }
+        if (insideClass()) LInstall("self", TLookup("int"), 0, -3); // installing self into local symbol table
         currentFunction = funcSymbol;
         free($1);
     }
@@ -404,13 +438,11 @@ MainBlock
     : MainBlockSig '{' LdeclBlock Body '}' {
 
         struct Gsymbol* funcSymbol = GLookup("MAIN");
-        generateProgramStart(targetFile);
         generateFunctionCode(funcSymbol, $4, targetFile);
         $$ = NULL;
     }
     | MainBlockSig '{' Body '}'  {
         struct Gsymbol* funcSymbol = GLookup("MAIN");
-        generateProgramStart(targetFile);
         generateFunctionCode(funcSymbol, $3, targetFile);
         $$ = NULL;
     }
@@ -487,8 +519,7 @@ Stmt
         }
         $$ = makeReturnNode($2);
     }
-    | NEW '(' ID ')' { $$ = makeNewClassNode($3); }
-    | DELETE '(' ID ')' { $$ = makeDeleteClassNode($3); }
+    | DELETE '(' ID ')' ';' { $$ = makeDeleteClassNode($3); }
     ;
 
 IfStmt
@@ -559,6 +590,7 @@ Expr
     | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
     | NOT Expr %prec NOT     { $$ = makeNotNode($2); }
+    | NEW '(' ID ')' { $$ = makeNewClassNode($3); }
     ;
 
 ArgList

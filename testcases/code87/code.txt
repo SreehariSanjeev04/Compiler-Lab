@@ -1,0 +1,17 @@
+decl
+  int f();
+enddecl
+
+int f() {
+  begin
+    return 42;
+  end
+}
+
+int main() {
+  begin
+    write(f());
+    write(f() + f());
+    return 0;
+  end
+}

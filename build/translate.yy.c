@@ -1007,30 +1007,29 @@ YY_RULE_SETUP
     char labelName[32];
     sscanf(yytext, " %31s", labelName);
     int address = getAddress(labelName);
-    // The label reference is always the last token on its line (JMP/JZ/CALL),
-    // so the trailing newline is re-emitted here.
+
     fprintf(outputFile, " %d\n", address);
 }
 	YY_BREAK
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 19 "src/backend/translate/label_translate.l"
+#line 18 "src/backend/translate/label_translate.l"
 {fprintf(outputFile, "\n");}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 20 "src/backend/translate/label_translate.l"
+#line 19 "src/backend/translate/label_translate.l"
 {
     fprintf(outputFile, "%s", yytext);
 }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 23 "src/backend/translate/label_translate.l"
+#line 22 "src/backend/translate/label_translate.l"
 ECHO;
 	YY_BREAK
-#line 1034 "build/translate.yy.c"
+#line 1033 "build/translate.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2035,7 +2034,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 23 "src/backend/translate/label_translate.l"
+#line 22 "src/backend/translate/label_translate.l"
 
 
 int translatewrap() {

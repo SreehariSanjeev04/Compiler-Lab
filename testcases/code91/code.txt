@@ -1,0 +1,33 @@
+class
+  A {
+    decl
+      int f0;
+      int f1;
+      int f2;
+      int f3;
+      int f4;
+      int f5;
+      int f6;
+      int f7;
+    enddecl
+  }
+endclass
+
+decl
+  A p;
+enddecl
+
+int main() {
+  begin
+    initialize();
+    p = new(A);
+    p.f0 = 1;
+    p.f7 = 8;
+    write(p.f7);
+    write(p.f0);
+    delete(p);
+    p = new(A);
+    write(p.f7);
+    return 0;
+  end
+}

@@ -11,8 +11,7 @@
     char labelName[32];
     sscanf(yytext, " %31s", labelName);
     int address = getAddress(labelName);
-    // The label reference is always the last token on its line (JMP/JZ/CALL),
-    // so the trailing newline is re-emitted here.
+
     fprintf(outputFile, " %d\n", address);
 }
 

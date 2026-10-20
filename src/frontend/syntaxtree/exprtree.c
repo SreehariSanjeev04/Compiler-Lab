@@ -407,8 +407,8 @@ tnode *makeClassFieldNode(tnode* base, char* fieldName) {
     temp->nodetype = NODE_TYPE_CLASS_FIELD_ACCESS;
     temp->left = base;
     temp->varname = strdup(fieldName);
-    temp->cPtr = field->ctype;
-    temp->typeEntry = field->type;
+    temp->cPtr = field->ctype; // if a normal field, no ctype
+    temp->typeEntry = field->type; // rather than cptr, then typeEntry
     if (field->ctype != NULL) {
         temp->type = TYPE_CLASS;
     } else if (field->type == TLookup("int")) {
@@ -546,6 +546,7 @@ int typesCompatible(tnode *expected, tnode *actual) {
     if (actual->nodetype == NODE_TYPE_ALLOC)
         return expected->type == TYPE_CUSTOM && expected->pointerLevel == 0;
     if (expected->type == TYPE_CLASS || actual->type == TYPE_CLASS)
+        // should work for A x; x = new(A)
         return expected->type == TYPE_CLASS && actual->type == TYPE_CLASS &&
                expected->cPtr == actual->cPtr;
     return expected->typeEntry == actual->typeEntry &&

@@ -77,6 +77,11 @@ void CFieldInstall(struct ClassTable *cptr, struct FieldList* fields) {
     cptr->fieldCount = 0;
     for (struct FieldList *field = fields; field != NULL; field = field->next) {
         cptr->fieldCount++;
+        
+        if (cptr->fieldCount > 8) {
+            LOG_ERROR("Maximum 8 fields allowed in each class\n");
+            exit(1);
+        }
     }
 }
 void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods) {
@@ -88,6 +93,11 @@ void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods) {
     cptr->methodCount = 0;
     for (struct MemberFuncList *method = methods; method != NULL; method = method->next) {
         cptr->methodCount++;
+
+        if (cptr->methodCount > 8) {
+            LOG_ERROR("Maximum 8 methods allowed in each class\n");
+            exit(1);
+        }
     }
 }
 struct MemberFuncList* CMemLookup(struct ClassTable* cptr, char *name) {

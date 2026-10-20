@@ -7,30 +7,11 @@
 #include <binding.h>
 #include <lsymboltable.h>
 #include "expr_codegen.h"
+#include "class_codegen.h"
 
 static bool insideWhileLoop = false;
 static int whileStartLabel = -1;
 static int whileEndLabel = -1;
-
-static void copyAggregate(int destinationReg, int sourceReg, int size,
-                          FILE *targetFile)
-{
-    int valueReg = getReg();
-
-    for (int offset = 0; offset < size; offset++)
-    {
-        fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, sourceReg);
-        fprintf(targetFile, "MOV [R%d], R%d\n", destinationReg, valueReg);
-
-        if (offset + 1 < size)
-        {
-            fprintf(targetFile, "ADD R%d, 1\n", sourceReg);
-            fprintf(targetFile, "ADD R%d, 1\n", destinationReg);
-        }
-    }
-
-    freeReg();
-}
 
 int codeGenControlLeaf(tnode *root, FILE *targetFile)
 {
@@ -191,7 +172,8 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             (variableNode->nodetype != NODE_TYPE_ID &&
              variableNode->nodetype != NODE_TYPE_ARRAY &&
              variableNode->nodetype != NODE_TYPE_DEREF &&
-             variableNode->nodetype != NODE_TYPE_USER_DEREF))
+             variableNode->nodetype != NODE_TYPE_USER_DEREF &&
+             variableNode->nodetype != NODE_TYPE_CLASS_FIELD_ACCESS))
         {
             LOG_ERROR("Error: READ node must have an ID, array node, or dereference as its left child\n");
             exit(1);
@@ -220,6 +202,9 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         } else if (variableNode->nodetype == NODE_TYPE_USER_DEREF) {
             addressReg = getReg();
             emitUserTypeAddressInto(addressReg, variableNode, targetFile);
+        } else if (variableNode->nodetype == NODE_TYPE_CLASS_FIELD_ACCESS) {
+            addressReg = getReg();
+            emitClassFieldAccessAddress(addressReg, variableNode, targetFile);
         }
         readValue(addressReg, targetFile);
         freeReg();
@@ -261,6 +246,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
     }
     case NODE_TYPE_WRITE:
     {
+        // for class fields, the type of the field would be in the node
         if (root->left->type != TYPE_INT && root->left->type != TYPE_STRING &&
             root->left->type != TYPE_BOOL) {
             LOG_ERROR("write requires an int or str expression\n"); exit(1);
@@ -280,14 +266,26 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         }
 
         int rightReg;
-        if (root->right->nodetype == NODE_TYPE_ALLOC) {
-            rightReg = codeGenLibraryCall("Alloc", -1, root->left->typeEntry->size, targetFile);
+        if (root->right->nodetype == NODE_TYPE_ALLOC || root->right->nodetype == NODE_TYPE_NEW) {
+            rightReg = codeGenLibraryCall("Alloc", -1, 0, targetFile);
+            int checkReg = getReg();
+            int allocationDoneLabel = generateLabel();
+            fprintf(targetFile, "MOV R%d, -1\n", checkReg);
+            fprintf(targetFile, "EQ R%d, R%d\n", checkReg, rightReg);
+            fprintf(targetFile, "JZ R%d, L%d\n", checkReg, allocationDoneLabel);
+            fprintf(targetFile, "MOV R%d, 0\n", rightReg);
+            fprintf(targetFile, "L%d:\n", allocationDoneLabel);
+            freeReg();
         }
         else if (effectivePointerLevel(root->left) > 0 &&
             (root->right->nodetype == NODE_TYPE_ARRAY ||
              (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->arrayLength > 0)))
         {
             rightReg = codeGenAddressOperand(root->right, targetFile);
+        }
+        else if (root->right->nodetype == NODE_TYPE_SELF) {
+            // return the object address
+            rightReg = codeGenSelf(targetFile);
         }
         else
         {
@@ -307,10 +305,14 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
             freeReg(); // free addressReg
         }
-
         else if (root->left->nodetype == NODE_TYPE_USER_DEREF) {
             int addressReg = getReg();
             emitUserTypeAddressInto(addressReg, root->left, targetFile);
+            fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            freeReg();
+        } else if (root->left->nodetype == NODE_TYPE_CLASS_FIELD_ACCESS) {
+            int addressReg = getReg();
+            emitClassFieldAccessAddress(addressReg, root->left, targetFile);
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
             freeReg();
         }

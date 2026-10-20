@@ -1,0 +1,39 @@
+class
+  A {
+    decl
+      A next;
+      int value;
+      int get();
+      int link();
+    enddecl
+
+    int get() {
+      begin
+        return self.value;
+      end
+    }
+
+    int link() {
+      begin
+        self.next = self;
+        return self.value;
+      end
+    }
+  }
+endclass
+
+decl
+  A p;
+enddecl
+
+int main() {
+  begin
+    initialize();
+    p = new(A);
+    p.value = 7;
+    write(p.link());
+    write(p.next.get());
+    delete(p);
+    return 0;
+  end
+}

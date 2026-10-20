@@ -28,21 +28,24 @@ bool isAssignmentCompatible(tnode *left, tnode *right)
         LOG_ERROR("NULL node passed to isAssignmentCompatible\n");
         exit(1);
     }
-
+    // the left should have some desirable types
     if (left->nodetype != NODE_TYPE_ID &&
         left->nodetype != NODE_TYPE_ARRAY &&
         left->nodetype != NODE_TYPE_DEREF &&
-        left->nodetype != NODE_TYPE_USER_DEREF)
+        left->nodetype != NODE_TYPE_USER_DEREF &&
+        left->nodetype != NODE_TYPE_CLASS_FIELD_ACCESS)
     {
         return false;
     }
 
+    // left is an entire global array
     if (left->nodetype == NODE_TYPE_ID && left->Gentry != NULL &&
         left->Gentry->arrayLength > 0) return false;
 
     if (!typesCompatible(left, right)) return false;
 
     // pointers for user defined type not supported as of now
+    // pointers for classes not supported
     if (effectivePointerLevel(left) != effectivePointerLevel(right))
     {
         return false;

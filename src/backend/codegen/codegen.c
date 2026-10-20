@@ -5,9 +5,10 @@
 #include <lsymboltable.h>
 #include "expr_codegen.h"
 #include "stmt_codegen.h"
+#include "class_codegen.h"
 #include <register_alloc.h>
 
-static int countLocals(void) {
+int countLocals(void) {
     int count = 0;
     struct Lsymbol* current = LSymbolGetHead();
     while (current != NULL) {
@@ -107,6 +108,13 @@ int codeGen(tnode *root, FILE *targetFile)
             { int result = codeGenLibraryCall("Heapset", -1, 0, targetFile);
               if (root->val) { freeReg(); return -1; }
               return result; }
+        case NODE_TYPE_NEW:
+                // return the register containing the address
+            return codeGenLibraryCall("Alloc", -1, 0, targetFile);
+        case NODE_TYPE_DELETE:
+            return codeGenClassDelete(root, targetFile);
+        case NODE_TYPE_FUNC_CALL:
+            return codeGenFuncCall(root, targetFile);
         default:
             LOG_ERROR("Error: Unknown leaf node type %d\n", root->nodetype);
             exit(1);
@@ -134,8 +142,11 @@ int codeGen(tnode *root, FILE *targetFile)
           if (root->val) { freeReg(); return -1; }
           return result; }
     case NODE_TYPE_INITIALIZE:
-        { codeGenLibraryCall("Heapset", -1, 0, targetFile);
-          freeReg(); return -1; }
+        { 
+          codeGenLibraryCall("Heapset", -1, 0, targetFile);
+          freeReg(); 
+        return -1; 
+    }
     case NODE_TYPE_NOT:
         return codeGenNot(root, targetFile);
     case NODE_TYPE_USER_DEREF:
@@ -152,6 +163,17 @@ int codeGen(tnode *root, FILE *targetFile)
     case NODE_TYPE_RETURN:
     case NODE_TYPE_ASSIGN:
         return codeGenStatement(root, targetFile);
+    default:
+        break;
+    }
+
+    // related to classes
+    switch (root->nodetype)
+    {
+    case NODE_TYPE_CLASS_FIELD_ACCESS:
+        return codeGenClassFieldAccess(root, targetFile);
+    case NODE_TYPE_CLASS_METHOD_ACCESS:
+        return codeGenClassMethodAccess(root, targetFile);
     default:
         break;
     }

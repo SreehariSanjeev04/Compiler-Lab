@@ -9,7 +9,7 @@
 #include "gsymboltable.h"
 
 int codeGen(tnode* root, FILE* targetFile);
-
+int countLocals(void);
 void generateProgramStart(FILE* targetFile);
 void generateFunctionCode(struct Gsymbol* funcSymbol, tnode* body, FILE* targetFile);
 
