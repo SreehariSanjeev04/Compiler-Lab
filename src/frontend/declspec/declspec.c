@@ -17,7 +17,7 @@ DeclType *makeDeclTypeForType(int kind, struct TypeTable *table)
         LOG_ERROR("Out of memory\n");
         exit(1);
     }
-    *type = (DeclType){.kind = kind, .table = table};
+    *type = (DeclType){.kind = kind, .table = table, .cptr = NULL};
     return type;
 }
 
@@ -28,7 +28,7 @@ DeclType *makeDeclTypeForClass(int kind, struct ClassTable* cptr) {
         LOG_ERROR("Out of memory\n");
         exit(1);
     }
-    *type = (DeclType){.kind = kind, .cptr = cptr};
+    *type = (DeclType){.kind = kind, .cptr = cptr, .table = NULL};
     return type;
 }
 
@@ -81,12 +81,7 @@ void installDeclarators(DeclType *type, Declarator *list, bool global)
         }
         else
         {
-            if (type->cptr != NULL)
-            {
-                LOG_ERROR("Class variables cannot be local.\n");
-                exit(1);
-            }
-            LInstall(list->name, type->table, 0, 0);
+            LInstall(list->name, type->table, 0, 0, type->cptr);
         }
         free(list->name);
         free(list);

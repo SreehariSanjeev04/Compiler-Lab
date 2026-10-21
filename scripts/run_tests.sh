@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$REPO_ROOT"
+mkdir -p build
+
 # Color configuration
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -106,7 +110,7 @@ for code_dir in $subdirs; do
         test_num=$(echo "$base_input" | tr -dc '0-9')
 
         expected_output="${inner_tests_dir}/output${test_num}.txt"
-        temp_output="${inner_tests_dir}/temp_output${test_num}.txt"
+        temp_output="${TEST_TMP_DIR}/${code_name}_output${test_num}.txt"
 
         if [ ! -f "$expected_output" ]; then
             echo -e "     ${RED}testcase ${test_num} failed (missing expected output file)${NC}"
@@ -118,8 +122,15 @@ for code_dir in $subdirs; do
         # Passing standard library using library.lib and redirecting stdin/stdout
         if [ -f "library.lib" ]; then
             timeout 120 ./xsm -l library.lib -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
+            sim_status=$?
         else
             timeout 120 ./xsm -e "$target_xsm" < "$input_file" > "$temp_output" 2>/dev/null
+            sim_status=$?
+        fi
+        if [ "$sim_status" -ne 0 ]; then
+            echo -e "     ${RED}testcase ${test_num} failed (simulator exited with status ${sim_status})${NC}"
+            TOTAL_FAILED=$((TOTAL_FAILED + 1))
+            continue
         fi
 
         # Drop the simulator's own shutdown banner before comparing

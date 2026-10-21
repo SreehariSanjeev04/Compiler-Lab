@@ -70,6 +70,7 @@ bool isArithmeticCompatible(tnode *left, tnode *right, int op)
     if ((op == NODE_TYPE_EQ || op == NODE_TYPE_NE) &&
         lLevel == 0 && rLevel == 0 &&
         ((left->typeEntry == right->typeEntry && lType == TYPE_CUSTOM) ||
+        (left->cPtr == right->cPtr && lType == TYPE_CLASS) || (lType == TYPE_CLASS && (right->nodetype == NODE_TYPE_NUM || right->nodetype == NODE_TYPE_NULL)) ||
          (lType == TYPE_CUSTOM && right->nodetype == NODE_TYPE_NULL) ||
          (rType == TYPE_CUSTOM && left->nodetype == NODE_TYPE_NULL))) return true;
 

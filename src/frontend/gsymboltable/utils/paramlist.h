@@ -5,12 +5,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <typetable.h>
-
+#include <classtable.h>
 
 typedef struct ParamList {
     char *name;
     struct TypeTable* type;
     int pointerLevel;
+    struct ClassTable *cPtr; // pointer to the class entry
     struct ParamList *next;
 } ParamList;
 
@@ -21,7 +22,7 @@ extern struct ParamList* tailParamList;
  * Creates a new parameter node.
  * @return the newly created ParamList node
  */
-struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel);
+struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable *cptr);
 /**
  * @return the head of the parameter list
  */
@@ -47,6 +48,6 @@ void ParamListReset();
 /**
  * Appends a new parameter to the end of the list.
  */
-void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel);
+void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable* cptr);
 
 #endif

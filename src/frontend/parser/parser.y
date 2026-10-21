@@ -369,11 +369,11 @@ FdefSig
         int nextParamWord = -3;
         while(current != NULL) {
             struct Lsymbol* local = LInstall(current->name, current->type,
-                                             current->pointerLevel, nextParamWord);
+                                             current->pointerLevel, nextParamWord, current->cPtr);
             nextParamWord--;
             current = current->next;
         }
-        if (insideClass()) LInstall("self", TLookup("int"), 0, nextParamWord); // installing self into local symbol table
+        if (insideClass()) LInstall("self", TLookup("int"), 0, nextParamWord, NULL); // installing self into local symbol table
         ParamListDestroy();
         currentFunction = funcSymbol;
         free($1);
@@ -403,7 +403,7 @@ FdefSig
             LOG_ERROR("Error: Function '%s' parameters do not match declaration.\n", $2);
             exit(1);
         }
-        if (insideClass()) LInstall("self", TLookup("int"), 0, -3); // installing self into local symbol table
+        if (insideClass()) LInstall("self", TLookup("int"), 0, -3, NULL); // installing self into local symbol table
         currentFunction = funcSymbol;
         free($1);
     }
@@ -416,19 +416,11 @@ ParamList
 
 Param
     : Type ID {
-        if ($1->cptr != NULL) {
-            LOG_ERROR("Class types cannot be function parameters.\n");
-            exit(1);
-        }
-        ParamListAppendNode($2, $1->table, 0);
+        ParamListAppendNode($2, $1->table, 0, $1->cptr);
         free($1);
     }
     | Type PtrDecl ID {
-        if ($1->cptr != NULL) {
-            LOG_ERROR("Class types cannot be function parameters.\n");
-            exit(1);
-        }
-        ParamListAppendNode($3, $1->table, $2);
+        ParamListAppendNode($3, $1->table, $2, $1->cptr);
         free($1);
     }
 

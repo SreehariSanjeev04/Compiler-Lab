@@ -1,0 +1,38 @@
+class
+  A {
+    decl
+      int x;
+      int sum(A other);
+      int sum_self();
+    enddecl
+
+    int sum(A other) {
+      begin
+        return self.x + other.x;
+      end
+    }
+
+    int sum_self() {
+      begin
+        return self.sum(self);
+      end
+    }
+  }
+endclass
+
+decl
+  A p, q;
+enddecl
+
+int main() {
+  begin
+    initialize();
+    p = new(A);
+    q = new(A);
+    p.x = 5;
+    q.x = 7;
+    write(p.sum(q));
+    write(p.sum_self());
+    return 0;
+  end
+}

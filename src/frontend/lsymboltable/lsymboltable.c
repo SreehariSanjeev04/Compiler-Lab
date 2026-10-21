@@ -6,7 +6,7 @@
 struct Lsymbol* Lhead = NULL;
 struct Lsymbol* Ltail = NULL;
 
-struct Lsymbol* LInstall(char* name, struct TypeTable* type, int pointerLevel, int binding) {
+struct Lsymbol* LInstall(char* name, struct TypeTable* type, int pointerLevel, int binding, struct ClassTable* cptr) {
     struct Lsymbol* newSymbol = (struct Lsymbol*)malloc(sizeof(struct Lsymbol));
     if(!newSymbol) {
         LOG_ERROR("Memory allocation failed for Lsymbol\n");
@@ -17,10 +17,11 @@ struct Lsymbol* LInstall(char* name, struct TypeTable* type, int pointerLevel, i
         free(newSymbol);
         exit(1);
     }
-    // LOG_INFO("Local install %s -> %d\n", name, type);
     newSymbol->name = strdup(name);
     newSymbol->typeEntry = type;
-    newSymbol->type = strcmp(type->name, "int") == 0 ? TYPE_INT :
+    newSymbol->cPtr = cptr;
+    if (newSymbol->cPtr != NULL) newSymbol->type = TYPE_CLASS;
+    else newSymbol->type = strcmp(type->name, "int") == 0 ? TYPE_INT :
                       strcmp(type->name, "str") == 0 ? TYPE_STRING :
                       strcmp(type->name, "bool") == 0 ? TYPE_BOOL : TYPE_CUSTOM;
     newSymbol->binding = binding;
@@ -75,6 +76,7 @@ void LSymbolAssignBindingAddresses(void) {
     struct Lsymbol* current = Lhead;
     while (current != NULL) {
         if (current->binding == 0) {
+            // locally declared variables
             current->binding = binding + 1;
             binding++;
         }

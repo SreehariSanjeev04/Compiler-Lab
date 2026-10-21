@@ -8,6 +8,7 @@
 #include <register_alloc.h>
 #include <fieldlist.h>
 #include <binding.h>
+#include <class_codegen.h>
 
 int codeGenArrayAddress(tnode *root, FILE *targetFile)
 {
@@ -214,7 +215,7 @@ int codeGenLeafValue(tnode *root, FILE *targetFile)
         int valueReg = getReg();
         int addressReg = getReg();
         emitVarAddressInto(addressReg, root->varname, targetFile);
-        fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, addressReg);
+        fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, addressReg); // for classes, it woould be the reference address of the object
         freeReg(); // free addressReg
         return valueReg;
     }
@@ -286,8 +287,6 @@ int codeGenBinaryOp(tnode *root, FILE *targetFile)
         LOG_ERROR("Error: Type Mismatch in arithmetic or relational operation\n");
         exit(1);
     }
-    // Pointer operands are fetched in address form (arrays decay to addresses),
-    // so that p + 1 advances p by one word and p - q yields the word difference.
     int leftLevel = effectivePointerLevel(root->left);
     int rightLevel = effectivePointerLevel(root->right);
     int leftReg = leftLevel > 0 ? codeGenAddressOperand(root->left, targetFile) : codeGen(root->left, targetFile);

@@ -136,19 +136,33 @@ int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
 }
 
 int codeGenClassDelete(tnode *root, FILE *targetFile) {
-    if (root == NULL || root->nodetype != NODE_TYPE_DELETE || root->Gentry == NULL) {
+    if (root == NULL || root->nodetype != NODE_TYPE_DELETE || (root->Gentry == NULL && root->Lentry == NULL)) {
         LOG_ERROR("Invalid class delete node.\n");
         exit(1);
     }
 
     int reg = getReg();
-    fprintf(targetFile, "MOV R%d, %d\n", reg, root->Gentry->binding);
+
+    if (root->Lentry != NULL) {
+        int binding = root->Lentry->binding;
+        fprintf(targetFile, "MOV R%d, BP\n", reg);
+        fprintf(targetFile, "ADD R%d, %d\n", reg, binding);
+    } else {
+        fprintf(targetFile, "MOV R%d, %d\n", reg, root->Gentry->binding);
+    }
     fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
     codeGenLibraryCall("Free", reg, 0, targetFile);
 
     int doneLabel = generateLabel();
     fprintf(targetFile, "JNZ R%d, L%d\n", reg, doneLabel);
-    fprintf(targetFile, "MOV R%d, %d\n", reg, root->Gentry->binding);
+
+    if (root->Lentry != NULL) {
+        int binding = root->Lentry->binding;
+        fprintf(targetFile, "MOV R%d, BP\n", reg);
+        fprintf(targetFile, "ADD R%d, %d\n", reg, binding);
+    } else {
+        fprintf(targetFile, "MOV R%d, %d\n", reg, root->Gentry->binding);
+    }
     fprintf(targetFile, "MOV [R%d], 0\n", reg);
     fprintf(targetFile, "L%d:\n", doneLabel);
 

@@ -1,0 +1,30 @@
+class
+  A {
+    decl
+      int x;
+    enddecl
+  }
+endclass
+
+decl
+  int getval(A item);
+enddecl
+
+int getval(A item) {
+  begin
+    return item.x;
+  end
+}
+
+int main() {
+  decl
+    A local;
+  enddecl
+  begin
+    initialize();
+    local = new(A);
+    local.x = 3;
+    write(getval(local));
+    return 0;
+  end
+}

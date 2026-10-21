@@ -268,14 +268,6 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         int rightReg;
         if (root->right->nodetype == NODE_TYPE_ALLOC || root->right->nodetype == NODE_TYPE_NEW) {
             rightReg = codeGenLibraryCall("Alloc", -1, 0, targetFile);
-            int checkReg = getReg();
-            int allocationDoneLabel = generateLabel();
-            fprintf(targetFile, "MOV R%d, -1\n", checkReg);
-            fprintf(targetFile, "EQ R%d, R%d\n", checkReg, rightReg);
-            fprintf(targetFile, "JZ R%d, L%d\n", checkReg, allocationDoneLabel);
-            fprintf(targetFile, "MOV R%d, 0\n", rightReg);
-            fprintf(targetFile, "L%d:\n", allocationDoneLabel);
-            freeReg();
         }
         else if (effectivePointerLevel(root->left) > 0 &&
             (root->right->nodetype == NODE_TYPE_ARRAY ||

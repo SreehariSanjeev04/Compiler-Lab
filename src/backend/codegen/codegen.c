@@ -111,6 +111,8 @@ int codeGen(tnode *root, FILE *targetFile)
         case NODE_TYPE_NEW:
                 // return the register containing the address
             return codeGenLibraryCall("Alloc", -1, 0, targetFile);
+        case NODE_TYPE_SELF:
+            return codeGenSelf(targetFile);
         case NODE_TYPE_DELETE:
             return codeGenClassDelete(root, targetFile);
         case NODE_TYPE_FUNC_CALL:

@@ -1,0 +1,29 @@
+class
+  A {
+    decl
+      int x;
+    enddecl
+  }
+endclass
+
+decl
+  A p, q;
+enddecl
+
+int main() {
+  begin
+    initialize();
+    p = new(A);
+    q = p;
+    write(p == q);
+    q = new(A);
+    write(p == q);
+    write(p == 7);
+    write(p == -1);
+    write(p == NULL);
+    delete(p);
+    write(p == NULL);
+    delete(q);
+    return 0;
+  end
+}

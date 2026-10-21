@@ -60,6 +60,7 @@ tnode *makeLeafNodeId(const char *c) {
         temp->typeEntry = lentry->typeEntry;
         temp->pointerLevel = lentry->pointerLevel;
         temp->Lentry = lentry;
+        temp->cPtr = lentry->cPtr;
         return temp;
     }
     struct Gsymbol *gentry = GLookup(c);
@@ -518,23 +519,30 @@ tnode* makeNewClassNode(char* className) {
 
 tnode* makeDeleteClassNode(char* objName) {
     struct Gsymbol *gentry = GLookup(objName);
-    if (gentry == NULL) {
+    struct Lsymbol *lentry = LLookup(objName);
+    if (gentry == NULL && lentry == NULL) {
         LOG_ERROR("%s is not declared\n", objName);
         exit(1);
     }
 
-    if (gentry->cPtr == NULL) {
+    if ((lentry != NULL ? lentry->cPtr : gentry->cPtr) == NULL) {
         LOG_ERROR("%s is not a class\n", objName);
         exit(1);
     }
 
     tnode* node = tnodeInit();
-    node->Gentry = gentry;
+    if (lentry != NULL) {
+        node->Lentry = lentry;
+        node->Gentry = NULL;
+    } else {
+        node->Gentry = gentry;
+        node->Lentry = NULL;
+    }
     node->typeEntry = NULL;
     node->nodetype = NODE_TYPE_DELETE;
     node->type = TYPE_CLASS;
     node->pointerLevel = 0;
-    node->cPtr = gentry->cPtr;
+    node->cPtr = lentry != NULL ? lentry->cPtr : gentry->cPtr;
 
     return node;
 }
@@ -591,7 +599,7 @@ static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     struct ParamList *param = entry->paramList;
     for (int i = 0; i < argc; i++, param = param->next) {
         
-        if ((argArray[i]->typeEntry != param->type &&
+        if (((argArray[i]->typeEntry != param->type || argArray[i]->cPtr != param->cPtr) &&
              !(argArray[i]->nodetype == NODE_TYPE_NULL && param->type != TLookup("int") &&
                param->type != TLookup("bool") && param->type != TLookup("str") &&
                param->type != TLookup("void"))) ||

@@ -2,6 +2,9 @@
 
 set -e
 
+CALLER_DIR="$PWD"
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+
 COUNTEREXAMPLE=false
 FIX=false
 SHOW_GST=false
@@ -26,8 +29,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-INPUT_FILE="${1:-input.xsm}"
+INPUT_FILE="${1:-$REPO_ROOT/input.xsm}"
 SIM_INPUT="${2:-}"
+if [[ "$INPUT_FILE" != /* ]]; then
+    INPUT_FILE="$CALLER_DIR/$INPUT_FILE"
+fi
+if [[ -n "$SIM_INPUT" && "$SIM_INPUT" != /* ]]; then
+    SIM_INPUT="$CALLER_DIR/$SIM_INPUT"
+fi
+cd "$REPO_ROOT"
+mkdir -p build
 OUTPUT_FILE="output.xsm"
 echo "Input file: $INPUT_FILE"
 
@@ -98,7 +109,7 @@ echo "========================================"
 
 if [ -n "$SIM_INPUT" ]; then
     echo "Simulator input: $SIM_INPUT"
-    ./xsm -l library.lib -e output.xsm < "$SIM_INPUT"
+    ./xsm -l library.lib -e "$OUTPUT_FILE" < "$SIM_INPUT"
 else
-    ./xsm -l library.lib -e output.xsm
+    ./xsm -l library.lib -e "$OUTPUT_FILE"
 fi

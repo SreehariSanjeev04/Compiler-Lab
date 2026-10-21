@@ -26,21 +26,27 @@ struct ParamList* ParamListGetParam(char *name) {
     return NULL;
 }
 
-struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel) {
+struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable* cptr) {
     struct ParamList* newNode = (struct ParamList*)malloc(sizeof(ParamList));
     newNode->name = strdup(name);
     newNode->type = type;
     newNode->pointerLevel = pointerLevel;
+    newNode->cPtr = cptr;
     newNode->next = NULL;
     return newNode;
 }
 
-void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel) {
+void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable *cptr) {
     if(ParamListGetParam(name) != NULL) {
         LOG_ERROR("Error: Parameter '%s' is already defined in the parameter list.\n", name);
         exit(1);
     }
-    struct ParamList* newNode = ParamListCreateNode(name, type, pointerLevel);
+
+    if (cptr != NULL && pointerLevel > 0) {
+        LOG_ERROR("Pointer to class not allowed as a parameter\n");
+        exit(1);
+    }
+    struct ParamList* newNode = ParamListCreateNode(name, type, pointerLevel, cptr);
 
     if (headParamList == NULL) {
         headParamList = newNode;
@@ -70,7 +76,8 @@ bool ParamListCheckIfParamsMatch(struct ParamList* list1, struct ParamList* list
     struct ParamList* current2 = list2;
 
     while (current1 != NULL && current2 != NULL) {
-        if (strcmp(current1->name, current2->name) != 0 || current1->type != current2->type ||
+        /* classes wouldn't have type, basically NULL */
+        if (strcmp(current1->name, current2->name) != 0 || current1->type != current2->type || current1->cPtr != current2->cPtr ||
             current1->pointerLevel != current2->pointerLevel) {
             return false;
         }
