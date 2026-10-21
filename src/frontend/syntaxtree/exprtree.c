@@ -547,6 +547,18 @@ tnode* makeDeleteClassNode(char* objName) {
     return node;
 }
 
+static bool isDescendentClass(struct ClassTable *ancestor, struct ClassTable* child) {
+    if (ancestor == NULL || child == NULL) {
+        LOG_ERROR("The ancestor / child should not be NULL\n");
+        exit(1);
+    }
+    while(child != ancestor) {
+        if (child->parentPtr == NULL) return false;
+        child = child->parentPtr;
+    }
+    return true;
+}
+
 int typesCompatible(tnode *expected, tnode *actual) {
     if (actual->nodetype == NODE_TYPE_NULL)
         return (expected->type == TYPE_CUSTOM || expected->type == TYPE_CLASS) &&
@@ -555,8 +567,9 @@ int typesCompatible(tnode *expected, tnode *actual) {
         return expected->type == TYPE_CUSTOM && expected->pointerLevel == 0;
     if (expected->type == TYPE_CLASS || actual->type == TYPE_CLASS)
         // should work for A x; x = new(A)
+        // the left class should be the parent while right should be child or same class
         return expected->type == TYPE_CLASS && actual->type == TYPE_CLASS &&
-               expected->cPtr == actual->cPtr;
+               isDescendentClass(expected->cPtr, actual->cPtr);
     return expected->typeEntry == actual->typeEntry &&
            expected->pointerLevel == actual->pointerLevel;
 }
@@ -576,7 +589,6 @@ static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index) {
     argArray[(*index)++] = argsNode->right;
 }
 
-// for now the functions do not have classes as parameters
 static void checkCallArguments(struct Gsymbol *entry, tnode *args) {
     int argc = countCallArgs(args);
     int paramCount = 0;

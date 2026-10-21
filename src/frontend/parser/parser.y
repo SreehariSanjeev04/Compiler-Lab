@@ -199,7 +199,7 @@ ClassDef
 
 Cname
     : ID { $$ = CInstall($1, NULL); }
-    | ID EXTENDS ID { $$ = CInstall($1, $3); }
+    | ID EXTENDS ID { $$ = CInstall($1, $3); } // inheritance
     ;
 
 ClassMembers
