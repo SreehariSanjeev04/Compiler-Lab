@@ -1,5 +1,6 @@
 #include "classtable.h"
 #include "logger.h"
+#include "constants.h"
 
 #include <string.h>
 
@@ -124,6 +125,7 @@ struct ClassTable *CInstall(char *name, char* parentClassName) {
     }
     classPtr->parentPtr = parent;
     classPtr->classIdx = counter++;
+    classPtr->vftAddress = DEFAULT_BINDING_ADDRESS + classPtr->classIdx * 8;
     classPtr->vfuncptr = parent != NULL ? duplicateMethods(parent->vfuncptr): NULL; 
     classPtr->memberField = parent != NULL ? duplicateFields(parent->memberField) : NULL;
     

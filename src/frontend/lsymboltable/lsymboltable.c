@@ -78,7 +78,8 @@ void LSymbolAssignBindingAddresses(void) {
         if (current->binding == 0) {
             // locally declared variables
             current->binding = binding + 1;
-            binding++;
+            if (current->cPtr != NULL) binding += 2;
+            else binding++;
         }
         current = current->next;
     }

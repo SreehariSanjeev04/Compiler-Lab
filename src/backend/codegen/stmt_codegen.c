@@ -289,6 +289,14 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             int addressReg = getReg();
             emitVarAddressInto(addressReg, root->left->varname, targetFile);
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+
+            if (root->right->nodetype == NODE_TYPE_NEW) {
+                // A = new(B);
+                // add the virtual function table pointer as well
+                fprintf(targetFile, "ADD R%d, 1\n", addressReg);
+                int vftAddr = root->right->cPtr->vftAddress;
+                fprintf(targetFile, "MOV [R%d], %d\n", addressReg, vftAddr);
+            }
             freeReg(); // free addressReg
         }
         else if (root->left->nodetype == NODE_TYPE_DEREF)

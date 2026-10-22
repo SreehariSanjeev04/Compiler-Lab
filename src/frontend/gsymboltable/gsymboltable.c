@@ -37,7 +37,7 @@ struct Gsymbol* GInstall(const char *name, struct TypeTable* type,
     strcpy(newSymbol->name, name);
     newSymbol->type = type;
     newSymbol->pointerLevel = pointerLevel;
-    newSymbol->size = DEFAULT_VAR_SIZE;
+    newSymbol->size = cPtr != NULL ? DEFAULT_CLASS_VAR_SIZE : DEFAULT_VAR_SIZE;
     newSymbol->binding = -1; // Assigned by assignBindingAddresses() after all declarations
     newSymbol->next = NULL;
     newSymbol->arrayLength = 0;

@@ -5,6 +5,7 @@
 
 typedef struct ClassTable {
     char *name;
+    int vftAddress;
     struct FieldList *memberField;
     struct ClassTable *parentPtr;
     struct MemberFuncList *vfuncptr;
