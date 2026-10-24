@@ -58,6 +58,7 @@ void generateProgramStart(FILE* targetFile) {
     programStarted = true;
     fprintf(targetFile, "0\n2056\n0\n0\n0\n0\n0\n0\n");
     fprintf(targetFile, "MOV SP, %d\n", currentBindingAddress); // stack base = end of globals
+    createVirtualFunctionTable(targetFile);
     fprintf(targetFile, "CALL MAIN\n");
     exitProgram(targetFile);
 }

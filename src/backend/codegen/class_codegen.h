@@ -13,5 +13,5 @@ int codeGenClassFieldAccess(tnode *root, FILE* targetFile);
 int codeGenClassMethodAccess(tnode *root, FILE* targetFile);
 int codeGenClassDelete(tnode *root, FILE* targetFile);
 int codeGenSelf(FILE* targetFile);
-
+void createVirtualFunctionTable(FILE* targetFile);
 #endif

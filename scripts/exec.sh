@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-INPUT_FILE="${1:-$REPO_ROOT/input.xsm}"
+INPUT_FILE="${1:-$REPO_ROOT/input.txt}"
 SIM_INPUT="${2:-}"
 if [[ "$INPUT_FILE" != /* ]]; then
     INPUT_FILE="$CALLER_DIR/$INPUT_FILE"

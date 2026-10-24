@@ -7,7 +7,7 @@
 
 %option yylineno
 digit  [0-9]
-number  -?{digit}+
+number  {digit}+
 
 text  \"[^\"\\]*\"
 

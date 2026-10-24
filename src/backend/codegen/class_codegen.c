@@ -116,7 +116,7 @@ static void emitFunctionLabel(int reg, tnode* root, FILE* targetFile) {
     fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
 
     char* funcName = root->varname;
-    char* classPtr = root->left->cPtr;
+    struct ClassTable* classPtr = root->left->cPtr;
     struct MemberFuncList* methodPtr = CMemLookup(classPtr, funcName);
     int offset = methodPtr->funcPosition;
 
@@ -142,9 +142,14 @@ int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
     saveRegisters(targetFile);
 
     int receiverReg = getReg();
+    int valueReg = getReg();
     emitClassFieldAccessAddress(receiverReg, root->left, targetFile);
-    fprintf(targetFile, "MOV R%d, [R%d]\n", receiverReg, receiverReg);
-    fprintf(targetFile, "PUSH R%d\n", receiverReg);
+    fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, receiverReg);
+    fprintf(targetFile, "PUSH R%d\n", valueReg);
+    fprintf(targetFile, "ADD R%d, 1\n", receiverReg); // vft address
+    fprintf(targetFile, "MOV R%d, [R%d]\n", valueReg, receiverReg);
+    fprintf(targetFile, "PUSH R%d\n", valueReg);
+    freeReg();
     freeReg();
 
     int argWords = pushMethodArguments(root->right, targetFile);
@@ -156,12 +161,13 @@ int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
     int funcLabelReg = getReg();
     emitFunctionLabel(funcLabelReg, root, targetFile);
     fprintf(targetFile, "CALL R%d\n", funcLabelReg);
+    freeReg();
 
     int resultReg = getReg();
     fprintf(targetFile, "POP R%d\n", resultReg);
 
     int discardReg = resultReg == MAX_REGISTERS - 1 ? MAX_REGISTERS - 2 : MAX_REGISTERS - 1;
-    for (int i = 0; i < argWords + 1; i++) {
+    for (int i = 0; i < argWords + 2; i++) {
         fprintf(targetFile, "POP R%d\n", discardReg);
     }
     for (int i = savedCount - 1; i >= 0; i--) {

@@ -273,12 +273,13 @@ int codeGenStatement(tnode *root, FILE *targetFile)
             (root->right->nodetype == NODE_TYPE_ARRAY ||
              (root->right->nodetype == NODE_TYPE_ID && root->right->Gentry != NULL && root->right->Gentry->arrayLength > 0)))
         {
+            // for assignment of pointers to global arrays
             rightReg = codeGenAddressOperand(root->right, targetFile);
         }
         else if (root->right->nodetype == NODE_TYPE_SELF) {
             // return the object address
             rightReg = codeGenSelf(targetFile);
-        }
+        } 
         else
         {
             rightReg = codeGen(root->right, targetFile);
@@ -287,7 +288,7 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         if (root->left->nodetype == NODE_TYPE_ID)
         {
             int addressReg = getReg();
-            emitVarAddressInto(addressReg, root->left->varname, targetFile);
+            emitVarAddressInto(addressReg, root->left->varname, targetFile); // for classes, address of the symbol
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
 
             if (root->right->nodetype == NODE_TYPE_NEW) {
@@ -296,6 +297,15 @@ int codeGenStatement(tnode *root, FILE *targetFile)
                 fprintf(targetFile, "ADD R%d, 1\n", addressReg);
                 int vftAddr = root->right->cPtr->vftAddress;
                 fprintf(targetFile, "MOV [R%d], %d\n", addressReg, vftAddr);
+            } else if(root->right->cPtr != NULL) {
+                /* Direct assignment or field access */
+                int sourceReg = getReg();
+                emitClassFieldAccessAddress(sourceReg, root->right, targetFile);
+                fprintf(targetFile, "ADD R%d, 1\n", sourceReg);
+                fprintf(targetFile, "MOV R%d, [R%d]\n", sourceReg, sourceReg);
+                fprintf(targetFile, "ADD R%d, 1\n", addressReg);
+                fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, sourceReg);
+                freeReg();
             }
             freeReg(); // free addressReg
         }

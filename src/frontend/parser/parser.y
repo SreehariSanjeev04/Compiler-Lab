@@ -49,7 +49,6 @@
     static void finishGlobalDeclarations(void) {
         assignBindingAddresses();
         generateProgramStart(targetFile);
-        createVirtualFunctionTable(targetFile);
         if (classMethodsFile != NULL) {
             rewind(classMethodsFile);
             int ch;
@@ -118,7 +117,7 @@
 %left LT GT LE GE
 %left PLUS MINUS
 %left '*' DIV MOD
-%right ADDR DEREF NOT
+%right ADDR DEREF NOT UMINUS
 
 %%
 
@@ -374,7 +373,9 @@ FdefSig
             nextParamWord--;
             current = current->next;
         }
-        if (insideClass()) LInstall("self", TLookup("int"), 0, nextParamWord, NULL); // installing self into local symbol table
+        if (insideClass())
+            LInstall("self", TLookup("int"), 0, nextParamWord - 1, NULL); // installing self into local symbol table
+
         ParamListDestroy();
         currentFunction = funcSymbol;
         free($1);
@@ -404,7 +405,7 @@ FdefSig
             LOG_ERROR("Error: Function '%s' parameters do not match declaration.\n", $2);
             exit(1);
         }
-        if (insideClass()) LInstall("self", TLookup("int"), 0, -3, NULL); // installing self into local symbol table
+        if (insideClass()) LInstall("self", TLookup("int"), 0, -4, NULL); // installing self into local symbol table
         currentFunction = funcSymbol;
         free($1);
     }
@@ -580,6 +581,7 @@ Expr
     | INITIALIZE '(' ')'      { $$ = makeInitializeNode(); }
     | FREE '(' Var ')'        { $$ = makeFreeNode($3); }
     | NULLLIT                { $$ = makeNullNode(); }
+    | MINUS NUM %prec UMINUS { $$ = makeLeafNodeNum(-1 * $2); }
     | '&' Var %prec ADDR      { $$ = makeAddressNode($2); }
     | '*' Expr %prec DEREF   { $$ = makeDeRefNode($2); }
     | NOT Expr %prec NOT     { $$ = makeNotNode($2); }
