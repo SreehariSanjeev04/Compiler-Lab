@@ -313,7 +313,14 @@ int codeGenStatement(tnode *root, FILE *targetFile)
         } else if (root->left->nodetype == NODE_TYPE_CLASS_FIELD_ACCESS) {
             int addressReg = getReg();
             emitClassFieldAccessAddress(addressReg, root->left, targetFile);
+            
+            struct ClassTable* cptr = root->left->cPtr;
             fprintf(targetFile, "MOV [R%d], R%d\n", addressReg, rightReg);
+            
+            if (cptr != NULL) {
+                fprintf(targetFile, "ADD R%d, 1\n", addressReg);
+                fprintf(targetFile, "MOV [R%d], %d\n", addressReg, cptr->vftAddress);
+            }
             freeReg();
         }
         else

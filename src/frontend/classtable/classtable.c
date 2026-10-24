@@ -9,6 +9,19 @@ static int counter = 0;
 struct ClassTable *classTableListHead = NULL;
 struct ClassTable *classTableListTail = NULL;
 
+int CGetClassCount(void) {
+    int count = 0;
+    struct ClassTable *current = classTableListHead;
+    while(current != NULL) {
+        count++;
+        current = current->next;
+    }
+    return count;
+} 
+
+struct ClassTable *ClassTableGetHead(void) {
+    return classTableListHead;
+}
 static struct MemberFuncList *duplicateMethods(
     const struct MemberFuncList *methods
 ) {
@@ -227,7 +240,8 @@ static struct FieldList* appendFields(struct FieldList* old, struct FieldList* n
     current = old;
     int offset = 0;
     while(current != NULL) {
-        current->fieldIndex = offset++;
+        current->fieldIndex = offset;
+        offset = current->ctype != NULL ? offset + 2 : offset + 1;
         current = current->next;
     }
 
@@ -271,7 +285,8 @@ void CFieldInstall(struct ClassTable *cptr, struct FieldList* fields) {
     }
     cptr->memberField = appendFields(cptr->memberField, fields);
     for (struct FieldList *field = fields; field != NULL; field = field->next) {
-        cptr->fieldCount++;
+        if (field->ctype != NULL) cptr->fieldCount+=2; // to store the vft as well
+        else cptr->fieldCount++;
         
         if (cptr->fieldCount > 8) {
             LOG_ERROR("Maximum 8 fields allowed in each class\n");

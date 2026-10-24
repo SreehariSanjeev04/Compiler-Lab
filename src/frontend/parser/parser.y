@@ -49,6 +49,7 @@
     static void finishGlobalDeclarations(void) {
         assignBindingAddresses();
         generateProgramStart(targetFile);
+        createVirtualFunctionTable(targetFile);
         if (classMethodsFile != NULL) {
             rewind(classMethodsFile);
             int ch;

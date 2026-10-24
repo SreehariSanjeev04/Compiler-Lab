@@ -21,5 +21,6 @@ void CFieldInstall(struct ClassTable *cptr, struct FieldList* fields);
 void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods);
 struct MemberFuncList* CMemLookup(struct ClassTable* ctype, char *name);
 struct FieldList* CFieldLookup(struct ClassTable* ctype, char* name);
-
+int CGetClassCount(void);
+struct ClassTable *ClassTableGetHead(void);
 #endif

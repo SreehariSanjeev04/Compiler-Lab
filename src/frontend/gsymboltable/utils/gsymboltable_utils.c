@@ -3,6 +3,7 @@
 #include <gsymboltable.h>
 #include <constants.h>
 #include <fieldlist.h>
+#include <classtable.h>
 
 // Compiler flag to display the global symbol table
 int showGlobalSymbolTable = 0;
@@ -37,7 +38,8 @@ void setArrayLength(struct Gsymbol* symbol, int length) {
 }
 
 void assignBindingAddresses(void) {
-    currentBindingAddress = DEFAULT_BINDING_ADDRESS;
+    int classCount = CGetClassCount();
+    currentBindingAddress = DEFAULT_BINDING_ADDRESS + classCount * 8; // space reserved for virtual function table
     struct Gsymbol* current = head;
     while (current != NULL) {
         // function

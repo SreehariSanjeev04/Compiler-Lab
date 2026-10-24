@@ -32,7 +32,10 @@ struct FieldList* FieldListAppend(char* name, struct TypeTable* type) {
 
 struct FieldList* FieldListAppendClass(char* name, struct ClassTable* ctype) {
     struct FieldList* field = FieldListAppend(name, NULL);
-    if (field != NULL) field->ctype = ctype;
+    if (field != NULL) {
+        field->ctype = ctype;
+        fieldIndexCounter++; // one field reserved for virtual function pointer
+    }
     return field;
 }
 

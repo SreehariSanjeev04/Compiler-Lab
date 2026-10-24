@@ -7,6 +7,23 @@
 
 #include <string.h>
 
+void createVirtualFunctionTable(FILE* targetFile) {
+    struct ClassTable *head = ClassTableGetHead();
+    while (head != NULL) {
+        int vftAddr = head->vftAddress;
+        struct MemberFuncList *method = head->vfuncptr;
+        for(int offset = 0; offset < head->methodCount; offset++, method = method->next) {
+            int flabel = method->Flabel;
+            fprintf(targetFile, "MOV [%d], F%d\n", vftAddr + offset, flabel);
+        }
+        for(int offset = head->methodCount; offset < 8; offset++) {
+            fprintf(targetFile, "MOV [%d], -1\n", vftAddr + offset);
+        }
+
+        head = head->next;
+    }
+}
+
 /* Emits the dereferenced address of into the target register*/
 void emitClassFieldAccessAddress(
     int targetReg,
@@ -92,6 +109,22 @@ static int pushMethodArguments(tnode *args, FILE *targetFile) {
     return 1;
 }
 
+static void emitFunctionLabel(int reg, tnode* root, FILE* targetFile) {
+    /* Get the address of the class first */
+    emitClassFieldAccessAddress(reg, root->left, targetFile); // gets the address, self or obj
+    fprintf(targetFile, "ADD R%d, 1\n", reg); // address of the virtual table pointer
+    fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
+
+    char* funcName = root->varname;
+    char* classPtr = root->left->cPtr;
+    struct MemberFuncList* methodPtr = CMemLookup(classPtr, funcName);
+    int offset = methodPtr->funcPosition;
+
+    fprintf(targetFile, "ADD R%d, %d\n", reg, offset);
+    fprintf(targetFile, "MOV R%d, [R%d]\n", reg, reg);
+    return;
+}
+
 int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
     if (root == NULL || root->nodetype != NODE_TYPE_CLASS_METHOD_ACCESS ||
         root->left == NULL || root->left->cPtr == NULL) {
@@ -120,7 +153,9 @@ int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
     fprintf(targetFile, "MOV R%d, 0\nPUSH R%d\n", slotReg, slotReg);
     freeReg();
 
-    fprintf(targetFile, "CALL F%d\n", method->Flabel);
+    int funcLabelReg = getReg();
+    emitFunctionLabel(funcLabelReg, root, targetFile);
+    fprintf(targetFile, "CALL R%d\n", funcLabelReg);
 
     int resultReg = getReg();
     fprintf(targetFile, "POP R%d\n", resultReg);
