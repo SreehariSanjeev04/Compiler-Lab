@@ -1,0 +1,14 @@
+int main() {
+  decl
+    int n, i;
+  enddecl
+
+  begin
+read(n);
+i = 1;
+repeat
+    write(i);
+    i = i + 1;
+until (i > n);
+  end
+}

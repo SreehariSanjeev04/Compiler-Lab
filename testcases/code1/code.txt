@@ -1,0 +1,16 @@
+decl
+  int x, y;
+enddecl
+
+int main() {
+  decl
+    int s;
+  enddecl
+  begin
+    read(x);
+    read(y);
+    s = x + y;
+    write(s);
+    return 0;
+  end
+}

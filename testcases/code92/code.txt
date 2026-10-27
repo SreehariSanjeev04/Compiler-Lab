@@ -1,0 +1,30 @@
+class
+  A {
+    decl
+      int x;
+    enddecl
+  }
+endclass
+
+decl
+  A p;
+  int setval(A item, int value);
+enddecl
+
+int setval(A item, int value) {
+  begin
+    item.x = value;
+    return item.x;
+  end
+}
+
+int main() {
+  begin
+    initialize();
+    p = new(A);
+    p.x = 1;
+    write(setval(p, 42));
+    write(p.x);
+    return 0;
+  end
+}

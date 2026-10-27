@@ -1,0 +1,31 @@
+decl
+  int b, e;
+  int power(int base, int exp);
+enddecl
+
+int power(int base, int exp) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(exp == 0) then
+      r = 1;
+    else
+      r = base * power(base, exp - 1);
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int r;
+  enddecl
+  begin
+    read(b);
+    read(e);
+    r = power(b, e);
+    write(r);
+    return 0;
+  end
+}

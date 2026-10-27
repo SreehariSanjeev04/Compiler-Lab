@@ -1,0 +1,30 @@
+class
+  A {
+    decl
+      int x;
+    enddecl
+  }
+endclass
+
+decl
+  A p, q;
+  int i;
+enddecl
+
+int main() {
+  begin
+    initialize();
+    i = 0;
+    while (i < 127) do
+      p = new(A);
+      i = i + 1;
+    endwhile;
+    q = new(A);
+    delete(p);
+    q = new(A);
+    q.x = 99;
+    write(i);
+    write(q.x);
+    return 0;
+  end
+}

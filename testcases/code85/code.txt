@@ -1,0 +1,23 @@
+type
+  box {
+    int value;
+  }
+endtype
+decl
+  box before, after;
+enddecl
+int main() {
+  begin
+    write(initialize());
+    before = alloc();
+    before.value = 73;
+    write(initialize());
+    after = alloc();
+    write(after == before);
+    write(after.value);
+    after.value = 24;
+    write(after.value);
+    write(free(after));
+    return 0;
+  end
+}

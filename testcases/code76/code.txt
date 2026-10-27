@@ -1,0 +1,42 @@
+type
+  node {
+    int value;
+    node next;
+  }
+  box {
+    node head;
+    str label;
+  }
+endtype
+decl
+  node make(int x);
+  node items[3];
+  box b;
+enddecl
+node make(int x) {
+  decl
+    node n;
+  enddecl
+  begin
+    n = alloc();
+    n.value = x;
+    n.next = NULL;
+    return n;
+  end
+}
+int main() {
+  begin
+    initialize();
+    items[0] = make(11);
+    items[1] = make(22);
+    items[0].next = items[1];
+    b = alloc();
+    b.head = items[0];
+    write(b.head.next.value);
+    write(items[0].value);
+    free(items[1]);
+    free(items[0]);
+    free(b);
+    return 0;
+  end
+}

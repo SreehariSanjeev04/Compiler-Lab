@@ -1,0 +1,39 @@
+decl
+    int *p;
+    int **q;
+enddecl
+
+int main() {
+  decl
+    int a, b;
+    int sum;
+  enddecl
+
+  begin
+p = &a;
+q = &p;
+read(**q);
+read(*(p + 0));
+read(b);
+sum = a + b;
+write(sum);
+if (q) then
+    write(1);
+else
+    write(0);
+endif;
+if (*q) then
+    write(2);
+else
+    write(0);
+endif;
+do
+    sum = sum - 1;
+while (sum) endwhile;
+write(sum);
+repeat
+    sum = sum + 3;
+until (sum);
+write(sum);
+  end
+}

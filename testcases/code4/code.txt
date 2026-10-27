@@ -1,0 +1,20 @@
+decl
+  int a, b;
+enddecl
+
+int main() {
+  decl
+    int t;
+  enddecl
+  begin
+    read(a);
+    read(b);
+    while(b != 0) do
+      t = b;
+      b = a % b;
+      a = t;
+    endwhile;
+    write(a);
+    return 0;
+  end
+}

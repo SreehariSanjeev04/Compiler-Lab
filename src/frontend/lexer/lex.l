@@ -1,0 +1,100 @@
+%{
+	#include "logger.h"
+	#include "parser.tab.h"
+	#include "exprtree.h"
+	void yyerror(char const *s);
+%}
+
+%option yylineno
+digit  [0-9]
+number  {digit}+
+
+text  \"[^\"\\]*\"
+
+identifier  [a-zA-Z][a-zA-Z0-9_]*
+%%
+
+"begin"	{return START;}
+"end"	{return END;}
+"read"	{return READ;}
+"write"	{return WRITE;}
+"if"	{return IF;}
+"while"	{return WHILE;}
+"then"	{return THEN;}
+"else"	{return ELSE;}
+"do"	{return DO;}
+"endwhile"	{return ENDWHILE;}
+"endif"	{return ENDIF;}
+"breakpoint"	{return BREAKPOINT;}
+"break"	{return BREAK;}
+"continue"	{return CONTINUE;}
+"repeat" {return REPEAT;}
+"until" {return UNTIL;}
+"decl" {return DECL;}
+"enddecl" {return ENDDECL;}
+"int" {return INT;}
+"str" {return STRING;}
+"return" {return RETURN;}
+"AND"|"and"|"&&" {return AND;}
+"OR"|"or"|"||" {return OR;}
+"NOT"|"not"|"!" {return NOT;}
+"main" {return MAIN;}
+"tuple" {yyerror("Tuple types are no longer supported"); exit(1);}
+"type" { return CTYPE;}
+"endtype" { return ENDTYPE; }
+"alloc"|"Alloc" { return ALLOC; }
+"free"|"Free" { return FREE; }
+"initialize"|"Initialize" { return INITIALIZE; }
+"NULL"|"null" { return NULLLIT; }
+"class" { return CLASS; }
+"endclass" { return ENDCLASS; }
+"extends" { return EXTENDS; }
+"new" { return NEW; }
+"self" { return SELF; }
+"delete" { return DELETE; }
+{text} {
+	yylval.str = strdup(yytext); 
+	return STRLIT;
+}
+{number}	{
+yylval.val = atoi(yytext); return NUM;}
+
+{identifier} {
+yylval.str = strdup(yytext);
+return ID;
+}
+
+"==" {return EQ;}
+"!=" {return NE;}
+"<" {return LT;}
+">" {return GT;}
+"<=" {return LE;}
+">=" {return GE;}
+"+"	{return PLUS;}
+"-"	{return MINUS;}
+"*"	{return *yytext;}
+"/"	{return DIV;}
+"=" {return ASSIGN;}
+"%" {return MOD;}
+"(" { return *yytext; }
+")" { return *yytext; }
+"[" { return *yytext; }
+"]" { return *yytext; }
+"{" { return *yytext; }
+"}" { return *yytext; }
+";" { return *yytext; }
+"," { return *yytext; }
+"&" { return *yytext; }
+"." { return *yytext; }
+
+[ \t]	{}
+[\n]	{}
+.	{yyerror("unknown character\n");
+	LOG_ERROR("Error: Unknown character '%c' at line %d\n", *yytext, yylineno);
+	exit(1);}
+
+%%
+
+int yywrap(void) {
+	return 1;
+}

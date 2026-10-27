@@ -1,0 +1,22 @@
+decl
+    int *p, *q;
+enddecl
+
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
+p = &a;
+q = &b;
+*p = 10;
+*q = 20;
+write(a);
+write(b);
+write(*p + *q);
+a = 5;
+write(*p);
+write(a + b);
+  end
+}

@@ -1,0 +1,28 @@
+decl
+  int a;
+  int b;
+  int setVal(int *p, int *q, int v);
+enddecl
+
+int setVal(int *p, int *q, int v) {
+  begin
+    *p = v;
+    *q = v + 1;
+    return *p + *q;
+  end
+}
+
+int main() {
+  decl
+    int r;
+  enddecl
+  begin
+    read(a);
+    read(b);
+    r = setVal(&a, &b, 10);
+    write(r);
+    write(a);
+    write(b);
+    return 0;
+  end
+}

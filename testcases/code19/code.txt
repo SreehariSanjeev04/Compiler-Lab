@@ -1,0 +1,16 @@
+int main() {
+  decl
+    int n, i, s;
+  enddecl
+
+  begin
+read(n);
+i = 1;
+s = 0;
+while (i <= n) do
+    s = s + i;
+    i = i + 1;
+endwhile;
+write(s);
+  end
+}

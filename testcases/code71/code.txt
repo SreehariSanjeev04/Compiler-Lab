@@ -1,0 +1,29 @@
+decl
+  int x;
+  int *q;
+  int **r;
+  int bump(int **pp);
+enddecl
+
+int bump(int **pp) {
+  begin
+    **pp = **pp + 1;
+    return **pp;
+  end
+}
+
+int main() {
+  decl
+    int v;
+  enddecl
+  begin
+    read(x);
+    q = &x;
+    r = &q;
+    v = bump(&q);
+    write(v);
+    write(x);
+    write(**r);
+    return 0;
+  end
+}

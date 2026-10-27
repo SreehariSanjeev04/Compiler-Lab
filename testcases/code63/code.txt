@@ -1,0 +1,30 @@
+decl
+  int x;
+  int digitSum(int v);
+enddecl
+
+int digitSum(int v) {
+  decl
+    int r;
+  enddecl
+  begin
+    if(v < 10) then
+      r = v;
+    else
+      r = (v % 10) + digitSum(v / 10);
+    endif;
+    return r;
+  end
+}
+
+int main() {
+  decl
+    int r;
+  enddecl
+  begin
+    read(x);
+    r = digitSum(x);
+    write(r);
+    return 0;
+  end
+}

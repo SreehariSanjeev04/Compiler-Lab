@@ -1,0 +1,31 @@
+begin
+decl
+    int a[10];
+    int *p, *q;
+    int i;
+enddecl
+i = 0;
+while (i < 10) do
+    a[i] = i * 10;
+    i = i + 1;
+endwhile;
+p = a;
+q = a + 5;
+write(q - p);
+write(*(p + (q - p) - 1));
+if (p) then
+    write(1);
+else
+    write(0);
+endif;
+if (*p) then
+    write(2);
+else
+    write(3);
+endif;
+i = 10;
+while (i) do
+    i = i - 1;
+endwhile;
+write(i);
+end;

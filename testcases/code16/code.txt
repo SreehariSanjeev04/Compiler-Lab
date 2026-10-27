@@ -1,0 +1,11 @@
+int main() {
+  decl
+    int a, b;
+  enddecl
+
+  begin
+read(a);
+read(b);
+write(a == b);
+  end
+}

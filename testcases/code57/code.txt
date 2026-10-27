@@ -1,0 +1,80 @@
+decl
+  int n;
+  int a[16];
+  int tmp[16];
+  int mergeSort(int l, int r);
+  int merge(int l, int m, int r);
+enddecl
+
+int merge(int l, int m, int r) {
+  decl
+    int i, j, k;
+  enddecl
+  begin
+    i = l;
+    j = m + 1;
+    k = l;
+    while((i <= m) AND (j <= r)) do
+      if(a[i] <= a[j]) then
+        tmp[k] = a[i];
+        i = i + 1;
+      else
+        tmp[k] = a[j];
+        j = j + 1;
+      endif;
+      k = k + 1;
+    endwhile;
+    while(i <= m) do
+      tmp[k] = a[i];
+      i = i + 1;
+      k = k + 1;
+    endwhile;
+    while(j <= r) do
+      tmp[k] = a[j];
+      j = j + 1;
+      k = k + 1;
+    endwhile;
+    i = l;
+    while(i <= r) do
+      a[i] = tmp[i];
+      i = i + 1;
+    endwhile;
+    return 0;
+  end
+}
+
+int mergeSort(int l, int r) {
+  decl
+    int m, s;
+  enddecl
+  begin
+    if(l < r) then
+      m = (l + r) / 2;
+      s = mergeSort(l, m);
+      s = mergeSort(m + 1, r);
+      s = merge(l, m, r);
+    endif;
+    return 0;
+  end
+}
+
+int main() {
+  decl
+    int r, i;
+  enddecl
+  begin
+    read(n);
+    i = 0;
+    while(i < n) do
+      read(a[i]);
+      i = i + 1;
+    endwhile;
+    r = mergeSort(0, n - 1);
+    i = 0;
+    while(i < n) do
+      write(a[i]);
+      i = i + 1;
+    endwhile;
+    return 0;
+  end
+}

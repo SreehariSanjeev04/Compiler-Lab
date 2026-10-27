@@ -1,0 +1,11 @@
+begin
+decl
+    str p;
+    str *a;
+enddecl
+a = &p;
+*a = "Hello";
+write(*a);
+read(*a);
+write(*a);
+end;

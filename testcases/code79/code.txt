@@ -1,0 +1,58 @@
+type
+  bst {
+    int value;
+    bst left;
+    bst right;
+  }
+endtype
+decl
+  bst root;
+  bst insert(bst tree, int value);
+  int inorder(bst tree);
+enddecl
+bst insert(bst tree, int value) {
+  begin
+    if (tree == null) then
+      tree = alloc();
+      tree.value = value;
+      tree.left = null;
+      tree.right = null;
+    else
+      if (value < tree.value) then
+        tree.left = insert(tree.left, value);
+      else
+        tree.right = insert(tree.right, value);
+      endif;
+    endif;
+    return tree;
+  end
+}
+int inorder(bst tree) {
+  decl
+    int result;
+  enddecl
+  begin
+    if (tree != null) then
+      result = inorder(tree.left);
+      write(tree.value);
+      result = inorder(tree.right);
+    endif;
+    return 0;
+  end
+}
+int main() {
+  decl
+    int value, result;
+  enddecl
+  begin
+    initialize();
+    root = null;
+    read(value);
+    while (value != 0) do
+      root = insert(root, value);
+      read(value);
+    endwhile;
+    result = inorder(root);
+    return 0;
+  end
+}

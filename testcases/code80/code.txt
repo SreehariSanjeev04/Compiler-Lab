@@ -1,0 +1,47 @@
+type
+  result {
+    int gcd;
+    int x;
+    int y;
+  }
+endtype
+decl
+  result solve(int a, int b);
+enddecl
+result solve(int a, int b) {
+  decl
+    result child, answer;
+  enddecl
+  begin
+    answer = alloc();
+    if (b == 0) then
+      answer.gcd = a;
+      answer.x = 1;
+      answer.y = 0;
+    else
+      child = solve(b, a % b);
+      answer.gcd = child.gcd;
+      answer.x = child.y;
+      answer.y = child.x - (a / b) * child.y;
+      free(child);
+    endif;
+    return answer;
+  end
+}
+int main() {
+  decl
+    int a, b;
+    result answer;
+  enddecl
+  begin
+    initialize();
+    read(a);
+    read(b);
+    answer = solve(a, b);
+    write(answer.gcd);
+    write(answer.x);
+    write(answer.y);
+    free(answer);
+    return 0;
+  end
+}

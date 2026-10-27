@@ -1,0 +1,22 @@
+decl
+    str s[3];
+    str *a;
+enddecl
+
+int main() {
+  decl
+  enddecl
+
+  begin
+s[0] = "one";
+s[1] = "two";
+s[2] = "three";
+a = s;
+write(*a);
+write(s[2]);
+read(s[1]);
+write(s[1]);
+read(*a);
+write(*a);
+  end
+}

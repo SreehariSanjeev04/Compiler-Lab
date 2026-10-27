@@ -1,0 +1,19 @@
+begin
+decl
+    str s;
+    str *a;
+    str **b;
+enddecl
+a = &s;
+b = &a;
+**b = "Hello";
+write(**b);
+write(*a);
+write(s);
+**b = "World";
+write(**b);
+read(**b);
+write(**b);
+write(*a);
+write(s);
+end;

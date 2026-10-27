@@ -1,0 +1,16 @@
+begin
+decl
+    int a, b;
+    int *p;
+    int **q;
+enddecl
+p = &a;
+q = &p;
+**q = 42;
+write(a);
+write(**q);
+*p = *p + 1;
+write(a);
+b = *p;
+write(b);
+end;

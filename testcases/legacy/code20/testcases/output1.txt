@@ -1,0 +1,6 @@
+100
+2
+3
+4
+200
+Machine is halting.

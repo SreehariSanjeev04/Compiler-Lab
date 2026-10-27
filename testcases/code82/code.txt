@@ -1,0 +1,22 @@
+type
+  item {
+    int value;
+  }
+endtype
+decl
+  item values[100];
+enddecl
+int main() {
+  decl
+    int index;
+  enddecl
+  begin
+    initialize();
+    index = 99;
+    values[index] = alloc();
+    values[index].value = 123;
+    write(values[99].value);
+    free(values[index]);
+    return 0;
+  end
+}

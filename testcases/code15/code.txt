@@ -1,0 +1,12 @@
+int main() {
+  decl
+    int a;
+  enddecl
+
+  begin
+read(a);
+if (a > 10) then
+    write(a);
+endif;
+  end
+}
