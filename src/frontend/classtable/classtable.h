@@ -1,5 +1,8 @@
 #ifndef CLASSTABLE_H
 #define CLASSTABLE_H
+
+struct ParamList;
+
 #include <fieldlist.h>
 #include <memfunclist.h>
 
@@ -19,7 +22,7 @@ struct ClassTable *CInstall(char *name, char* parentClassName);
 struct ClassTable* CLookup(char *name);
 void CFieldInstall(struct ClassTable *cptr, struct FieldList* fields);
 void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods);
-struct MemberFuncList* CMemLookup(struct ClassTable* ctype, char *name);
+struct MemberFuncList* CMemLookup(struct ClassTable* cptr, char *name, struct ParamList* paramlist);
 struct FieldList* CFieldLookup(struct ClassTable* ctype, char* name);
 int CGetClassCount(void);
 struct ClassTable *ClassTableGetHead(void);

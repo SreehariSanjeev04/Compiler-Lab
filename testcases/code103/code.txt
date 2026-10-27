@@ -1,0 +1,66 @@
+class
+A {
+decl
+int f(int x);
+enddecl
+int f(int x) {
+begin
+    return x+1;
+end
+}
+}
+B extends A {
+decl
+int f(str x);
+enddecl
+int f(str x) {
+begin
+    return 20;
+end
+}
+}
+C extends B {
+decl
+int h();
+int f(str x);
+int f(int x);
+enddecl
+int h() {
+begin
+    return 40;
+end
+}
+int f(str x) {
+begin
+    return 30;
+end
+}
+int f(int x) {
+begin
+    return x+100;
+end
+}
+}
+endclass
+decl
+A a;
+B b;
+C c;
+enddecl
+int main() {
+decl
+    int status;
+enddecl
+begin
+status=initialize();
+c=new(C);
+write(c.h());
+write(c.f(5));
+write(c.f("hi"));
+a=c;
+write(a.f(5));
+b=c;
+write(b.f("hi"));
+return 0;
+end
+}

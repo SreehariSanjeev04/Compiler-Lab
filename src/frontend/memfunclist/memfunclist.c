@@ -17,10 +17,6 @@ struct MemberFuncList *MemFuncAppend(char* name, struct TypeTable* type) {
         LOG_ERROR("Member function type cannot be NULL.\n");
         exit(1);
     }
-    if (MemFuncLookup(name) != NULL) {
-        LOG_ERROR("Member function '%s' is already defined.\n", name);
-        exit(1);
-    }
 
     struct MemberFuncList *func = malloc(sizeof(*func));
     if (func == NULL) {

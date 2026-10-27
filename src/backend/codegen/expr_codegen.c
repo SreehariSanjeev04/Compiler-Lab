@@ -103,13 +103,6 @@ int codeGenAddressOperand(tnode *root, FILE *targetFile)
     return codeGen(root, targetFile);
 }
 
-static int countCallArgs(tnode *argsNode)
-{
-    if (argsNode == NULL) return 0;
-    if (argsNode->nodetype != NODE_TYPE_ARG) return 1;
-    return countCallArgs(argsNode->left) + 1;
-}
-
 static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index)
 {
     if (argsNode == NULL) return;

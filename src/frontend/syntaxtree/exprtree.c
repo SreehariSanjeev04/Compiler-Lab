@@ -10,7 +10,7 @@
 #include <classtable.h>
 
 static tnode *tnodeInit(void);
-static int countCallArgs(tnode *argsNode);
+int countCallArgs(tnode *argsNode);
 static void flattenCallArgs(tnode *argsNode, tnode **argArray, int *index);
 static void checkCallArguments(struct Gsymbol *entry, tnode *args);
 
@@ -459,7 +459,7 @@ tnode* makeClassMethodNode(tnode* base, char* funcName, tnode* args) {
     temp->varname = strdup(funcName);
     temp->left = base;
     temp->right = args;
-    struct MemberFuncList* funcPtr = CMemLookup(base->cPtr, funcName);
+    struct MemberFuncList* funcPtr = CMemLookup(base->cPtr, funcName, ParamListConvertFromTnode(args));
     if (funcPtr == NULL) {
         LOG_ERROR("%s is not a method is class %s.\n", funcName, base->cPtr->name);
         exit(1);
@@ -573,7 +573,7 @@ int typesCompatible(tnode *expected, tnode *actual) {
     return expected->typeEntry == actual->typeEntry &&
            expected->pointerLevel == actual->pointerLevel;
 }
-static int countCallArgs(tnode *argsNode) {
+int countCallArgs(tnode *argsNode) {
     if (argsNode == NULL) return 0;
     if (argsNode->nodetype != NODE_TYPE_ARG) return 1;
     return countCallArgs(argsNode->left) + 1;

@@ -31,5 +31,5 @@ struct FieldList* FieldListReturnHead();
 
 void FieldListReset();
 
-void FieldListDestroy();
+void FieldListDestroy(struct FieldList* fieldList);
 #endif

@@ -48,13 +48,12 @@ void FieldListReset() {
     fieldIndexCounter = 0;
 }
 
-void FieldListDestroy() {
-    FieldList* current = FieldListHead;
+void FieldListDestroy(struct FieldList* fieldList) {
+    FieldList* current = fieldList;
     while (current) {
         FieldList* next = current->next;
         free(current);
         current = next;
     }
-    FieldListReset();
 }
 

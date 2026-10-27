@@ -1,6 +1,8 @@
 #ifndef PARAMLIST_H
 #define PARAMLIST_H
 
+struct tnode;
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -49,5 +51,11 @@ void ParamListReset();
  * Appends a new parameter to the end of the list.
  */
 void ParamListAppendNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable* cptr);
+
+int ParamListGetArgCount(struct ParamList *params);
+
+bool ParamListCheckArgs(struct ParamList* params, struct ParamList* args);
+
+struct ParamList* ParamListConvertFromTnode(struct tnode* args);
 
 #endif

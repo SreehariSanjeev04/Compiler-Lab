@@ -58,5 +58,6 @@ tnode* makeFreeNode(tnode* value);
 tnode* makeInitializeNode(void);
 int typesCompatible(tnode* expected, tnode* actual);
 void freeTree(tnode* root);
+int countCallArgs(tnode *argsNode);
 
 #endif // SYNTAXTREE_H

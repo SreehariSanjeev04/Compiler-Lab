@@ -169,7 +169,6 @@ struct ClassTable* CLookup(char *name) {
     return NULL; 
 }
 
-/* Todo: fix issue*/
 
 static bool checkFieldsAgainstParentClass(struct FieldList *fieldList, struct ClassTable *parentPtr) {
     if (parentPtr == NULL) {
@@ -295,16 +294,17 @@ void CFieldInstall(struct ClassTable *cptr, struct FieldList* fields) {
     }
 }
 
-static struct MemberFuncList* deleteMethod(struct MemberFuncList* list, const char* name) {
+static struct MemberFuncList* deleteMethod(struct MemberFuncList* list, const char* name, struct ParamList* params) {
     if (list == NULL) return NULL;
     if (name[0] == '\0') return list;
 
     struct MemberFuncList *curr = list;
     struct MemberFuncList* head = list;
 
-    if (strcmp(head->name, name) == 0) return head->next;
-    while(curr->next != NULL && strcmp(curr->next->name, name) != 0) curr = curr->next;
+    if (strcmp(head->name, name) == 0 && ParamListCheckArgs(head->paramList, params)) return head->next;
+    while(curr->next != NULL && (strcmp(curr->next->name, name) != 0 || !ParamListCheckArgs(curr->next->paramList, params))) curr = curr->next;
 
+    if (curr->next == NULL) return head;
     struct MemberFuncList* deleteNode = curr->next;
     curr->next = curr->next->next;
 
@@ -326,30 +326,58 @@ void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods) {
         struct MemberFuncList *curr = methods;
         while(curr != NULL) {
             struct MemberFuncList *next = curr->next;
-            struct MemberFuncList *parentMethodEntry = CMemLookup(cptr->parentPtr, curr->name);
-
+            struct MemberFuncList *parentMethodEntry = CMemLookup(cptr->parentPtr, curr->name, curr->paramList);
             if (parentMethodEntry != NULL) {
-                if (!checkMethodSignature(curr, parentMethodEntry)) {
-                    LOG_ERROR("Method overloading not permitted\n");
+                if (checkMethodSignature(curr, parentMethodEntry)) {
+                    struct MemberFuncList *curr2 = CMemLookup(cptr, curr->name, curr->paramList);
+                    while(curr2 && strcmp(curr2->name, curr->name) != 0) curr2 = curr2->next;
+                    
+                    if(curr2 == NULL) {
+                        LOG_ERROR("Could not find the method in method list of class %s\n", cptr->name);
+                        exit(1);
+                    }
+
+                    /* The methods have to be inherited during CInstall() */
+
+                    curr2->Flabel = curr->Flabel; 
+                    curr2->paramList = curr->paramList;
+
+                    methods = deleteMethod(methods, curr->name, curr->paramList);
+                } else {
+                    LOG_ERROR("Invalid overloading\n");
                     exit(1);
                 }
 
-                struct MemberFuncList *curr2 = cptr->vfuncptr;
-                while(curr2 && strcmp(curr2->name, curr->name) != 0) curr2 = curr2->next;
-                
-                if(curr2 == NULL) {
-                    LOG_ERROR("Could not find the method in method list of class %s\n", cptr->name);
-                    exit(1);
+            } else {
+                // check if there is any other function with the same name
+                struct MemberFuncList *curr1 = methods;
+                while(curr1) {
+                    if (curr1 == curr) {
+                        curr1 = curr1->next;
+                        continue;
+                    }
+                    if (strcmp(curr1->name, curr->name) == 0) {
+                        LOG_ERROR("Method overloading of a non parental function is not allowed\n");
+                        exit(1);
+                    } 
+                    curr1 = curr1->next;
                 }
-
-                /* The methods have to be inherited during CInstall() */
-
-                curr2->Flabel = curr->Flabel; 
-                curr2->paramList = curr->paramList;
-
-                methods = deleteMethod(methods, curr->name);
             }
             curr = next;
+        }
+    } else {
+        // not an extended class, just a lazy way to check multiple entries of the same name
+        struct MemberFuncList *curr1 = methods;
+        while (curr1) {
+            struct MemberFuncList *curr2 = curr1->next;
+            while(curr2) {
+                if (strcmp(curr1->name, curr2->name) == 0) {
+                    LOG_ERROR("Method overloading of a non parental function is not allowed\n");
+                    exit(1);
+                }
+                curr2 = curr2->next;
+            }
+            curr1 = curr1->next;
         }
     }
     cptr->vfuncptr = appendMethods(cptr->vfuncptr, methods);
@@ -362,7 +390,7 @@ void CMemInstall(struct ClassTable *cptr, struct MemberFuncList* methods) {
         }
     }
 }
-struct MemberFuncList* CMemLookup(struct ClassTable* cptr, char *name) {
+struct MemberFuncList* CMemLookup(struct ClassTable* cptr, char *name, struct ParamList* params) {
     if (cptr == NULL) {
         LOG_ERROR("The class pointer should not be NULL.\n");
         exit(1);
@@ -373,7 +401,7 @@ struct MemberFuncList* CMemLookup(struct ClassTable* cptr, char *name) {
     }
     for (struct ClassTable *cls = cptr; cls != NULL; cls = cls->parentPtr) {
         for (struct MemberFuncList *current = cls->vfuncptr; current != NULL; current = current->next) {
-            if (strcmp(current->name, name) == 0) {
+            if (strcmp(current->name, name) == 0 && ParamListCheckArgs(current->paramList, params)) {
                 return current;
             }
         }

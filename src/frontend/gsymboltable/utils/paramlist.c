@@ -2,6 +2,7 @@
 #include <paramlist.h> 
 #include <constants.h>
 #include <string.h> 
+#include <exprtree.h>
 
 struct ParamList* headParamList = NULL;
 struct ParamList* tailParamList = NULL;
@@ -24,6 +25,70 @@ struct ParamList* ParamListGetParam(char *name) {
         current = current->next;
     }
     return NULL;
+}
+
+int ParamListGetArgCount(struct ParamList *params) {
+    int count = 0;
+    struct ParamList *param = params;
+    while (param) {
+        count++;
+        param = param->next;
+    }
+    return count;
+}
+
+bool ParamListCheckArgs(struct ParamList* params, struct ParamList* args) {
+    if (ParamListGetArgCount(params) != ParamListGetArgCount(args)) return false;
+    
+    struct ParamList* curr1 = params;
+    struct ParamList* curr2 = args;
+    while(curr1 != NULL && curr2 != NULL) {
+        if (curr1->type != curr2->type || curr1->pointerLevel != curr2->pointerLevel || curr1->cPtr != curr2->cPtr) return false;
+        curr1 = curr1->next;
+        curr2 = curr2->next;
+    }
+
+    return true;
+}
+
+struct ParamList* ParamListConvertFromTnode(struct tnode* args) {
+    if (args == NULL) return NULL;
+    
+    struct ParamList* head = NULL;
+
+    struct tnode* curr = args;
+    while (curr->nodetype == NODE_TYPE_ARG) {
+        struct ParamList* newNode = (struct ParamList*)malloc(sizeof(ParamList));
+        struct tnode* node = curr->right;
+        newNode->cPtr = node->cPtr;
+        newNode->name = node->varname;
+        newNode->type = node->typeEntry;
+        newNode->pointerLevel = node->pointerLevel;
+        newNode->next = NULL;
+
+        if (head == NULL) head = newNode;
+        else {
+            newNode->next = head;
+            head = newNode;
+        }
+
+        curr = curr->left;
+    }
+
+    struct ParamList* newNode = (struct ParamList*)malloc(sizeof(ParamList));
+    struct tnode* node = curr;
+    newNode->cPtr = node->cPtr;
+    newNode->name = node->varname;
+    newNode->type = node->typeEntry;
+    newNode->pointerLevel = node->pointerLevel;
+    newNode->next = NULL;
+
+    if (head == NULL) head = newNode;
+    else {
+        newNode->next = head;
+        head = newNode;
+    }
+    return head;
 }
 
 struct ParamList* ParamListCreateNode(char *name, struct TypeTable* type, int pointerLevel, struct ClassTable* cptr) {

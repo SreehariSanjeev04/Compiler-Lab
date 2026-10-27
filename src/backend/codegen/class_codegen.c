@@ -117,7 +117,7 @@ static void emitFunctionLabel(int reg, tnode* root, FILE* targetFile) {
 
     char* funcName = root->varname;
     struct ClassTable* classPtr = root->left->cPtr;
-    struct MemberFuncList* methodPtr = CMemLookup(classPtr, funcName);
+    struct MemberFuncList* methodPtr = CMemLookup(classPtr, funcName, ParamListConvertFromTnode(root->right));
     int offset = methodPtr->funcPosition;
 
     fprintf(targetFile, "ADD R%d, %d\n", reg, offset);
@@ -132,7 +132,7 @@ int codeGenClassMethodAccess(tnode *root, FILE *targetFile) {
         exit(1);
     }
 
-    MemberFuncList *method = CMemLookup(root->left->cPtr, root->varname);
+    MemberFuncList *method = CMemLookup(root->left->cPtr, root->varname, ParamListConvertFromTnode(root->right));
     if (method == NULL) {
         LOG_ERROR("Method '%s' was not found.\n", root->varname);
         exit(1);

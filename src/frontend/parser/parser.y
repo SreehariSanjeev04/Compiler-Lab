@@ -67,10 +67,10 @@
         }
     }
 
-    static struct Gsymbol* lookupDefinitionSymbol(char* name) {
+    static struct Gsymbol* lookupDefinitionSymbol(char* name, struct ParamList* params) {
         if (!insideClass()) return GLookup(name);
 
-        struct MemberFuncList* method = CMemLookup(currentClass, name);
+        struct MemberFuncList* method = CMemLookup(currentClass, name, params);
         if (method == NULL) return NULL;
 
         methodDefinitionSymbol = (struct Gsymbol){
@@ -347,7 +347,7 @@ FdefSig
         }
         LSymbolReset();
 
-        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2);
+        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2, ParamListGetHead());
 
         if (funcSymbol == NULL) {
             LOG_ERROR("Error: Function '%s' not declared.\n", $2);
@@ -390,7 +390,7 @@ FdefSig
             exit(1);
         }
         LSymbolReset();
-        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2);
+        struct Gsymbol* funcSymbol = lookupDefinitionSymbol($2, NULL);
         if (funcSymbol == NULL) {
             LOG_ERROR("Error: Function '%s' not declared.\n", $2);
             exit(1);
